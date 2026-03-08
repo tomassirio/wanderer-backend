@@ -1,0 +1,51 @@
+databaseChangeLog:
+  - changeSet:
+      id: 028-create-trip-days-table
+      author: tomassirio
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - tableExists:
+                tableName: trip_days
+      changes:
+        - createTable:
+            tableName: trip_days
+            columns:
+              - column:
+                  name: id
+                  type: uuid
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: trip_id
+                  type: uuid
+                  constraints:
+                    nullable: false
+              - column:
+                  name: day_number
+                  type: int
+                  constraints:
+                    nullable: false
+              - column:
+                  name: start_timestamp
+                  type: timestamp with time zone
+                  constraints:
+                    nullable: false
+              - column:
+                  name: end_timestamp
+                  type: timestamp with time zone
+                  constraints:
+                    nullable: true
+        - addForeignKeyConstraint:
+            baseTableName: trip_days
+            baseColumnNames: trip_id
+            referencedTableName: trips
+            referencedColumnNames: id
+            constraintName: fk_trip_days_trip_id
+        - createIndex:
+            tableName: trip_days
+            indexName: idx_trip_days_trip_id
+            columns:
+              - column:
+                  name: trip_id

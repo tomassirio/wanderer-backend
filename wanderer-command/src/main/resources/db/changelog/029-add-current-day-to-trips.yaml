@@ -1,0 +1,19 @@
+databaseChangeLog:
+  - changeSet:
+      id: 029-add-current-day-to-trips
+      author: tomassirio
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - columnExists:
+                tableName: trips
+                columnName: current_day
+      changes:
+        - addColumn:
+            tableName: trips
+            columns:
+              - column:
+                  name: current_day
+                  type: int
+                  constraints:
+                    nullable: true

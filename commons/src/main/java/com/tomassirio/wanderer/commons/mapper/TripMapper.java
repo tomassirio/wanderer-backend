@@ -11,7 +11,8 @@ import org.mapstruct.factory.Mappers;
             CommentMapper.class,
             TripUpdateMapper.class,
             TripSettingsMapper.class,
-            TripDetailsMapper.class
+            TripDetailsMapper.class,
+            TripDayMapper.class
         })
 public interface TripMapper {
 
@@ -44,5 +45,6 @@ public interface TripMapper {
                     "java(tripDTO.tripPlanId() != null ? java.util.UUID.fromString(tripDTO.tripPlanId()) : null)")
     @Mapping(target = "comments", ignore = true)
     @Mapping(target = "tripUpdates", ignore = true)
+    @Mapping(target = "tripDays", ignore = true)
     Trip toEntity(TripDTO tripDTO);
 }

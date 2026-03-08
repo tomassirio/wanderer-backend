@@ -9,4 +9,5 @@ public record TripDetailsDTO(
         Instant endTimestamp,
         GeoLocation startLocation,
         GeoLocation endLocation,
-        List<GeoLocation> waypoints) {}
+        List<GeoLocation> waypoints,
+        Integer currentDay) {}

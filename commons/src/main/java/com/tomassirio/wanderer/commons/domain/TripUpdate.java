@@ -34,9 +34,8 @@ public class TripUpdate {
     @JoinColumn(name = "trip_id", nullable = false)
     private Trip trip;
 
-    @NotNull
     @Type(JsonBinaryType.class)
-    @Column(name = "location", nullable = false, columnDefinition = "jsonb")
+    @Column(name = "location", columnDefinition = "jsonb")
     private GeoLocation location;
 
     @Column(name = "battery")

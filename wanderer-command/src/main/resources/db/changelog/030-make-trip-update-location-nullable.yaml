@@ -1,0 +1,14 @@
+databaseChangeLog:
+  - changeSet:
+      id: 030-make-trip-update-location-nullable
+      author: tomassirio
+      preConditions:
+        - onFail: MARK_RAN
+        - columnExists:
+            tableName: trip_updates
+            columnName: location
+      changes:
+        - dropNotNullConstraint:
+            tableName: trip_updates
+            columnName: location
+            columnDataType: jsonb
