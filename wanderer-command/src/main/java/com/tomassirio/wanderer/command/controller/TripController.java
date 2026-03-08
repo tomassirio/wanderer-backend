@@ -212,4 +212,25 @@ public class TripController {
         log.info("Accepted trip update creation request with ID: {}", updateId);
         return ResponseEntity.status(HttpStatus.ACCEPTED).body(updateId);
     }
+
+    @PatchMapping(ApiConstants.TRIP_TOGGLE_DAY_ENDPOINT)
+    @PreAuthorize("hasAnyRole('ADMIN','USER')")
+    @Operation(
+            summary = "Toggle day for a multi-day trip",
+            description =
+                    "Toggles the current day state of a multi-day trip. "
+                            + "If the trip is IN_PROGRESS, the current day is finished and the trip "
+                            + "status changes to RESTING. If the trip is RESTING, a new day starts "
+                            + "and the trip status changes to IN_PROGRESS. "
+                            + "Only available for trips with MULTI_DAY modality. "
+                            + "Returns 202 Accepted with the trip ID.")
+    public ResponseEntity<UUID> toggleDay(
+            @Parameter(hidden = true) @CurrentUserId UUID userId, @PathVariable UUID id) {
+        log.info("Received request to toggle day for trip {} by user {}", id, userId);
+
+        UUID tripId = tripService.toggleDay(userId, id);
+
+        log.info("Accepted toggle day request for trip ID: {}", tripId);
+        return ResponseEntity.status(HttpStatus.ACCEPTED).body(tripId);
+    }
 }

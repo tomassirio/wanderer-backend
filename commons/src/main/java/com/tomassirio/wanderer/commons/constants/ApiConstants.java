@@ -137,6 +137,7 @@ public final class ApiConstants {
     public static final String TRIP_UPDATE_BY_ID_ENDPOINT = "/updates" + UUID_PATH_VARIABLE;
     public static final String TRIP_COMMENTS_ENDPOINT = "/{tripId}/comments";
     public static final String TRIPS_AVAILABLE_ENDPOINT = ME_SUFFIX + "/available";
+    public static final String TRIP_TOGGLE_DAY_ENDPOINT = "/{id}/toggle-day";
     public static final String TRIP_FROM_PLAN_ENDPOINT = "/from-plan/{tripPlanId}";
 
     // ============================================================
