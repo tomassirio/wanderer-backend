@@ -1445,4 +1445,166 @@ class TripServiceImplTest {
 
         verify(eventPublisher, never()).publishEvent(any(TripStatusChangedEvent.class));
     }
+
+    // --- changeStatus transition validation tests ---
+
+    @Test
+    void changeStatus_fromFinishedToInProgress_shouldThrowIllegalStateException() {
+        // Given
+        UUID tripId = UUID.randomUUID();
+
+        Trip existingTrip =
+                Trip.builder()
+                        .id(tripId)
+                        .userId(USER_ID)
+                        .tripSettings(
+                                TripSettings.builder()
+                                        .tripStatus(TripStatus.FINISHED)
+                                        .visibility(TripVisibility.PUBLIC)
+                                        .build())
+                        .build();
+
+        when(tripRepository.findById(tripId)).thenReturn(Optional.of(existingTrip));
+
+        // When & Then
+        assertThatThrownBy(() -> tripService.changeStatus(USER_ID, tripId, TripStatus.IN_PROGRESS))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("Cannot transition from FINISHED to IN_PROGRESS");
+
+        verify(eventPublisher, never()).publishEvent(any());
+    }
+
+    @Test
+    void changeStatus_fromCreatedToResting_shouldThrowIllegalStateException() {
+        // Given
+        UUID tripId = UUID.randomUUID();
+
+        Trip existingTrip =
+                Trip.builder()
+                        .id(tripId)
+                        .userId(USER_ID)
+                        .tripSettings(
+                                TripSettings.builder()
+                                        .tripStatus(TripStatus.CREATED)
+                                        .visibility(TripVisibility.PUBLIC)
+                                        .build())
+                        .build();
+
+        when(tripRepository.findById(tripId)).thenReturn(Optional.of(existingTrip));
+
+        // When & Then
+        assertThatThrownBy(() -> tripService.changeStatus(USER_ID, tripId, TripStatus.RESTING))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("Cannot transition from CREATED to RESTING");
+
+        verify(eventPublisher, never()).publishEvent(any());
+    }
+
+    @Test
+    void changeStatus_fromPausedToResting_shouldThrowIllegalStateException() {
+        // Given
+        UUID tripId = UUID.randomUUID();
+
+        Trip existingTrip =
+                Trip.builder()
+                        .id(tripId)
+                        .userId(USER_ID)
+                        .tripSettings(
+                                TripSettings.builder()
+                                        .tripStatus(TripStatus.PAUSED)
+                                        .visibility(TripVisibility.PUBLIC)
+                                        .build())
+                        .build();
+
+        when(tripRepository.findById(tripId)).thenReturn(Optional.of(existingTrip));
+
+        // When & Then
+        assertThatThrownBy(() -> tripService.changeStatus(USER_ID, tripId, TripStatus.RESTING))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("Cannot transition from PAUSED to RESTING");
+
+        verify(eventPublisher, never()).publishEvent(any());
+    }
+
+    @Test
+    void changeStatus_toRestingForSimpleTrip_shouldThrowIllegalStateException() {
+        // Given
+        UUID tripId = UUID.randomUUID();
+
+        Trip existingTrip =
+                Trip.builder()
+                        .id(tripId)
+                        .userId(USER_ID)
+                        .tripSettings(
+                                TripSettings.builder()
+                                        .tripStatus(TripStatus.IN_PROGRESS)
+                                        .visibility(TripVisibility.PUBLIC)
+                                        .tripModality(TripModality.SIMPLE)
+                                        .build())
+                        .build();
+
+        when(tripRepository.findById(tripId)).thenReturn(Optional.of(existingTrip));
+
+        // When & Then
+        assertThatThrownBy(() -> tripService.changeStatus(USER_ID, tripId, TripStatus.RESTING))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("RESTING status is only available for MULTI_DAY trips");
+
+        verify(eventPublisher, never()).publishEvent(any());
+    }
+
+    @Test
+    void changeStatus_toRestingForMultiDayTrip_shouldSucceed() {
+        // Given
+        UUID tripId = UUID.randomUUID();
+
+        Trip existingTrip =
+                Trip.builder()
+                        .id(tripId)
+                        .userId(USER_ID)
+                        .tripSettings(
+                                TripSettings.builder()
+                                        .tripStatus(TripStatus.IN_PROGRESS)
+                                        .visibility(TripVisibility.PUBLIC)
+                                        .tripModality(TripModality.MULTI_DAY)
+                                        .build())
+                        .tripDetails(TripDetails.builder().currentDay(1).build())
+                        .build();
+
+        when(tripRepository.findById(tripId)).thenReturn(Optional.of(existingTrip));
+
+        // When
+        UUID result = tripService.changeStatus(USER_ID, tripId, TripStatus.RESTING);
+
+        // Then
+        assertThat(result).isEqualTo(tripId);
+        verify(eventPublisher).publishEvent(any(TripStatusChangedEvent.class));
+    }
+
+    @Test
+    void changeStatus_toRestingForNullModality_shouldThrowIllegalStateException() {
+        // Given
+        UUID tripId = UUID.randomUUID();
+
+        Trip existingTrip =
+                Trip.builder()
+                        .id(tripId)
+                        .userId(USER_ID)
+                        .tripSettings(
+                                TripSettings.builder()
+                                        .tripStatus(TripStatus.IN_PROGRESS)
+                                        .visibility(TripVisibility.PUBLIC)
+                                        .tripModality(null)
+                                        .build())
+                        .build();
+
+        when(tripRepository.findById(tripId)).thenReturn(Optional.of(existingTrip));
+
+        // When & Then
+        assertThatThrownBy(() -> tripService.changeStatus(USER_ID, tripId, TripStatus.RESTING))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("RESTING status is only available for MULTI_DAY trips");
+
+        verify(eventPublisher, never()).publishEvent(any());
+    }
 }
