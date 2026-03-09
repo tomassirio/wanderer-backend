@@ -6,6 +6,7 @@ import com.tomassirio.wanderer.command.controller.request.TripStatusRequest;
 import com.tomassirio.wanderer.command.controller.request.TripUpdateCreationRequest;
 import com.tomassirio.wanderer.command.controller.request.TripUpdateRequest;
 import com.tomassirio.wanderer.command.controller.request.TripVisibilityRequest;
+import com.tomassirio.wanderer.command.service.TripDayService;
 import com.tomassirio.wanderer.command.service.TripService;
 import com.tomassirio.wanderer.command.service.TripUpdateService;
 import com.tomassirio.wanderer.commons.constants.ApiConstants;
@@ -45,6 +46,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class TripController {
 
     private final TripService tripService;
+    private final TripDayService tripDayService;
     private final TripUpdateService tripUpdateService;
 
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
@@ -228,7 +230,7 @@ public class TripController {
             @Parameter(hidden = true) @CurrentUserId UUID userId, @PathVariable UUID id) {
         log.info("Received request to toggle day for trip {} by user {}", id, userId);
 
-        UUID tripId = tripService.toggleDay(userId, id);
+        UUID tripId = tripDayService.toggleDay(userId, id);
 
         log.info("Accepted toggle day request for trip ID: {}", tripId);
         return ResponseEntity.status(HttpStatus.ACCEPTED).body(tripId);

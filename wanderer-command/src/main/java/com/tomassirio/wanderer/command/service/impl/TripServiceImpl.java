@@ -259,63 +259,6 @@ public class TripServiceImpl implements TripService {
         return id;
     }
 
-    @Override
-    public UUID toggleDay(UUID userId, UUID id) {
-        // Validate trip exists and ownership
-        Trip trip =
-                tripRepository
-                        .findById(id)
-                        .orElseThrow(() -> new EntityNotFoundException("Trip not found"));
-
-        ownershipValidator.validateOwnership(trip, userId, Trip::getUserId, Trip::getId, "trip");
-
-        // Validate trip is MULTI_DAY
-        TripModality modality =
-                Optional.ofNullable(trip.getTripSettings())
-                        .map(TripSettings::getTripModality)
-                        .orElse(null);
-
-        if (modality != TripModality.MULTI_DAY) {
-            throw new IllegalStateException("Toggle day is only available for MULTI_DAY trips.");
-        }
-
-        // Determine the new status based on current status
-        TripStatus currentStatus =
-                Optional.ofNullable(trip.getTripSettings())
-                        .map(TripSettings::getTripStatus)
-                        .orElse(null);
-
-        TripStatus newStatus;
-        if (currentStatus == TripStatus.IN_PROGRESS) {
-            newStatus = TripStatus.RESTING;
-        } else if (currentStatus == TripStatus.RESTING) {
-            newStatus = TripStatus.IN_PROGRESS;
-            // Validate that user doesn't have another trip in progress
-            activeTripRepository
-                    .findById(userId)
-                    .ifPresent(
-                            activeTrip -> {
-                                if (!activeTrip.getTripId().equals(id)) {
-                                    throw new IllegalStateException(
-                                            "User already has a trip in progress. Only one trip can be in progress at a time.");
-                                }
-                            });
-        } else {
-            throw new IllegalStateException(
-                    "Toggle day requires trip to be IN_PROGRESS or RESTING. Current status: "
-                            + currentStatus);
-        }
-
-        // Publish event - handler will persist status change, create lifecycle update, manage days
-        eventPublisher.publishEvent(
-                TripStatusChangedEvent.builder()
-                        .tripId(id)
-                        .newStatus(newStatus.name())
-                        .previousStatus(currentStatus.name())
-                        .build());
-
-        return id;
-    }
 
     private TripModality deriveModalityFromPlanType(TripPlanType planType) {
         return TripPlanType.MULTI_DAY.equals(planType)
