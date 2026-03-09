@@ -67,7 +67,7 @@ class ActiveTripManagerTest {
     }
 
     @Test
-    void manageActiveTrip_whenPaused_andMatchingActiveTrip_shouldDeleteActiveTrip() {
+    void manageActiveTrip_whenPaused_andMatchingActiveTrip_shouldKeepActiveTrip() {
         // Given
         UUID userId = UUID.randomUUID();
         UUID tripId = UUID.randomUUID();
@@ -78,8 +78,13 @@ class ActiveTripManagerTest {
         activeTripManager.manageActiveTrip(userId, tripId, TripStatus.PAUSED);
 
         // Then
-        verify(activeTripRepository).delete(activeTrip);
-        verify(activeTripRepository, never()).save(any(ActiveTrip.class));
+        ArgumentCaptor<ActiveTrip> captor = ArgumentCaptor.forClass(ActiveTrip.class);
+        verify(activeTripRepository).save(captor.capture());
+
+        ActiveTrip saved = captor.getValue();
+        assertThat(saved.getUserId()).isEqualTo(userId);
+        assertThat(saved.getTripId()).isEqualTo(tripId);
+        verify(activeTripRepository, never()).delete(any(ActiveTrip.class));
     }
 
     @Test
@@ -98,7 +103,7 @@ class ActiveTripManagerTest {
     }
 
     @Test
-    void manageActiveTrip_whenResting_andMatchingActiveTrip_shouldDeleteActiveTrip() {
+    void manageActiveTrip_whenResting_andMatchingActiveTrip_shouldKeepActiveTrip() {
         // Given
         UUID userId = UUID.randomUUID();
         UUID tripId = UUID.randomUUID();
@@ -109,18 +114,24 @@ class ActiveTripManagerTest {
         activeTripManager.manageActiveTrip(userId, tripId, TripStatus.RESTING);
 
         // Then
-        verify(activeTripRepository).delete(activeTrip);
+        ArgumentCaptor<ActiveTrip> captor = ArgumentCaptor.forClass(ActiveTrip.class);
+        verify(activeTripRepository).save(captor.capture());
+
+        ActiveTrip saved = captor.getValue();
+        assertThat(saved.getUserId()).isEqualTo(userId);
+        assertThat(saved.getTripId()).isEqualTo(tripId);
+        verify(activeTripRepository, never()).delete(any(ActiveTrip.class));
     }
 
     @Test
-    void manageActiveTrip_whenNotInProgress_andNoActiveTrip_shouldNotDelete() {
+    void manageActiveTrip_whenFinished_andNoActiveTrip_shouldNotDelete() {
         // Given
         UUID userId = UUID.randomUUID();
         UUID tripId = UUID.randomUUID();
         when(activeTripRepository.findById(userId)).thenReturn(Optional.empty());
 
         // When
-        activeTripManager.manageActiveTrip(userId, tripId, TripStatus.PAUSED);
+        activeTripManager.manageActiveTrip(userId, tripId, TripStatus.FINISHED);
 
         // Then
         verify(activeTripRepository, never()).delete(any(ActiveTrip.class));
@@ -128,7 +139,7 @@ class ActiveTripManagerTest {
     }
 
     @Test
-    void manageActiveTrip_whenNotInProgress_andDifferentTripActive_shouldNotDelete() {
+    void manageActiveTrip_whenFinished_andDifferentTripActive_shouldNotDelete() {
         // Given
         UUID userId = UUID.randomUUID();
         UUID tripId = UUID.randomUUID();
@@ -137,7 +148,7 @@ class ActiveTripManagerTest {
         when(activeTripRepository.findById(userId)).thenReturn(Optional.of(activeTrip));
 
         // When
-        activeTripManager.manageActiveTrip(userId, tripId, TripStatus.PAUSED);
+        activeTripManager.manageActiveTrip(userId, tripId, TripStatus.FINISHED);
 
         // Then
         verify(activeTripRepository, never()).delete(any(ActiveTrip.class));
