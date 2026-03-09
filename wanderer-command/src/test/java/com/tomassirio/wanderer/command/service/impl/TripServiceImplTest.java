@@ -1353,6 +1353,80 @@ class TripServiceImplTest {
     }
 
     @Test
+    void changeStatus_whenUserHasPausedTrip_andStartsNewTrip_shouldThrowIllegalStateException() {
+        // Given
+        UUID pausedTripId = UUID.randomUUID();
+        UUID newTripId = UUID.randomUUID();
+
+        TripSettings newTripSettings =
+                TripSettings.builder()
+                        .tripStatus(TripStatus.CREATED)
+                        .visibility(TripVisibility.PUBLIC)
+                        .build();
+
+        Trip newTrip =
+                Trip.builder()
+                        .id(newTripId)
+                        .userId(USER_ID)
+                        .tripSettings(newTripSettings)
+                        .build();
+
+        com.tomassirio.wanderer.commons.domain.ActiveTrip activeTrip =
+                com.tomassirio.wanderer.commons.domain.ActiveTrip.builder()
+                        .userId(USER_ID)
+                        .tripId(pausedTripId)
+                        .build();
+
+        when(tripRepository.findById(newTripId)).thenReturn(Optional.of(newTrip));
+        when(activeTripRepository.findById(USER_ID)).thenReturn(Optional.of(activeTrip));
+
+        // When & Then
+        assertThatThrownBy(
+                        () -> tripService.changeStatus(USER_ID, newTripId, TripStatus.IN_PROGRESS))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("User already has a trip in progress");
+
+        verify(eventPublisher, never()).publishEvent(any(TripStatusChangedEvent.class));
+    }
+
+    @Test
+    void changeStatus_whenUserHasRestingTrip_andStartsNewTrip_shouldThrowIllegalStateException() {
+        // Given
+        UUID restingTripId = UUID.randomUUID();
+        UUID newTripId = UUID.randomUUID();
+
+        TripSettings newTripSettings =
+                TripSettings.builder()
+                        .tripStatus(TripStatus.CREATED)
+                        .visibility(TripVisibility.PUBLIC)
+                        .build();
+
+        Trip newTrip =
+                Trip.builder()
+                        .id(newTripId)
+                        .userId(USER_ID)
+                        .tripSettings(newTripSettings)
+                        .build();
+
+        com.tomassirio.wanderer.commons.domain.ActiveTrip activeTrip =
+                com.tomassirio.wanderer.commons.domain.ActiveTrip.builder()
+                        .userId(USER_ID)
+                        .tripId(restingTripId)
+                        .build();
+
+        when(tripRepository.findById(newTripId)).thenReturn(Optional.of(newTrip));
+        when(activeTripRepository.findById(USER_ID)).thenReturn(Optional.of(activeTrip));
+
+        // When & Then
+        assertThatThrownBy(
+                        () -> tripService.changeStatus(USER_ID, newTripId, TripStatus.IN_PROGRESS))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("User already has a trip in progress");
+
+        verify(eventPublisher, never()).publishEvent(any(TripStatusChangedEvent.class));
+    }
+
+    @Test
     void changeStatus_toRestingForNullModality_shouldThrowIllegalStateException() {
         // Given
         UUID tripId = UUID.randomUUID();
