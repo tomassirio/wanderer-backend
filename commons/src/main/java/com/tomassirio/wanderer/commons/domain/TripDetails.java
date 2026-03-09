@@ -37,4 +37,7 @@ public class TripDetails {
     @Column(name = "waypoints", columnDefinition = "jsonb")
     @Builder.Default
     private List<GeoLocation> waypoints = new ArrayList<>();
+
+    @Column(name = "current_day")
+    private Integer currentDay;
 }

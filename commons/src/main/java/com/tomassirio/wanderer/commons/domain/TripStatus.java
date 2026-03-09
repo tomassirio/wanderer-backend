@@ -1,5 +1,10 @@
 package com.tomassirio.wanderer.commons.domain;
 
+import java.util.EnumMap;
+import java.util.EnumSet;
+import java.util.Map;
+import java.util.Set;
+
 /**
  * Represents the lifecycle status of a trip.
  *
@@ -17,5 +22,27 @@ public enum TripStatus {
     IN_PROGRESS,
     PAUSED,
     RESTING,
-    FINISHED
+    FINISHED;
+
+    private static final Map<TripStatus, Set<TripStatus>> ALLOWED_TRANSITIONS;
+
+    static {
+        ALLOWED_TRANSITIONS = new EnumMap<>(TripStatus.class);
+        ALLOWED_TRANSITIONS.put(CREATED, EnumSet.of(IN_PROGRESS, FINISHED));
+        ALLOWED_TRANSITIONS.put(IN_PROGRESS, EnumSet.of(PAUSED, RESTING, FINISHED));
+        ALLOWED_TRANSITIONS.put(PAUSED, EnumSet.of(IN_PROGRESS, FINISHED));
+        ALLOWED_TRANSITIONS.put(RESTING, EnumSet.of(IN_PROGRESS, FINISHED));
+        ALLOWED_TRANSITIONS.put(FINISHED, EnumSet.noneOf(TripStatus.class));
+    }
+
+    /**
+     * Returns whether transitioning from this status to the given target status is allowed.
+     *
+     * @param target the desired new status
+     * @return {@code true} if the transition is permitted
+     */
+    public boolean canTransitionTo(TripStatus target) {
+        Set<TripStatus> allowed = ALLOWED_TRANSITIONS.get(this);
+        return allowed != null && allowed.contains(target);
+    }
 }

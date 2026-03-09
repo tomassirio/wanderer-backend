@@ -143,6 +143,24 @@ public class TripServiceImpl implements TripService {
         TripStatus previousStatus =
                 trip.getTripSettings() != null ? trip.getTripSettings().getTripStatus() : null;
 
+        // Validate allowed status transition
+        if (previousStatus != null && !previousStatus.canTransitionTo(status)) {
+            throw new IllegalStateException(
+                    "Cannot transition from " + previousStatus + " to " + status + ".");
+        }
+
+        // RESTING is only valid for MULTI_DAY trips — use toggle-day endpoint instead
+        if (status == TripStatus.RESTING) {
+            TripModality modality =
+                    Optional.ofNullable(trip.getTripSettings())
+                            .map(TripSettings::getTripModality)
+                            .orElse(null);
+            if (modality != TripModality.MULTI_DAY) {
+                throw new IllegalStateException(
+                        "RESTING status is only available for MULTI_DAY trips.");
+            }
+        }
+
         // Validate that user doesn't have another trip in progress
         if (status == TripStatus.IN_PROGRESS) {
             activeTripRepository
@@ -240,6 +258,7 @@ public class TripServiceImpl implements TripService {
 
         return id;
     }
+
 
     private TripModality deriveModalityFromPlanType(TripPlanType planType) {
         return TripPlanType.MULTI_DAY.equals(planType)

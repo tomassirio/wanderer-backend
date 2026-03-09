@@ -50,6 +50,9 @@ public class Trip implements Polylineable {
     @OneToMany(mappedBy = "trip", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<TripUpdate> tripUpdates;
 
+    @OneToMany(mappedBy = "trip", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<TripDay> tripDays;
+
     @Column(name = "encoded_polyline", columnDefinition = "TEXT")
     private String encodedPolyline;
 

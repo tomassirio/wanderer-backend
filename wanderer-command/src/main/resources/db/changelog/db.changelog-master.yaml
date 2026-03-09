@@ -53,3 +53,9 @@ databaseChangeLog:
       file: db/changelog/026-add-pre-announced-to-promoted-trips.yaml
   - include:
       file: db/changelog/027-add-update-type-to-trip-updates.yaml
+  - include:
+      file: db/changelog/028-create-trip-days-table.yaml
+  - include:
+      file: db/changelog/029-add-current-day-to-trips.yaml
+  - include:
+      file: db/changelog/030-make-trip-update-location-nullable.yaml
