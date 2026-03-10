@@ -2,6 +2,7 @@ package com.tomassirio.wanderer.commons.domain;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.List;
 import org.junit.jupiter.api.Test;
 
 class TripStatusTest {
@@ -64,5 +65,28 @@ class TripStatusTest {
         for (TripStatus target : TripStatus.values()) {
             assertThat(TripStatus.FINISHED.canTransitionTo(target)).isFalse();
         }
+    }
+
+    @Test
+    void isActive_shouldReturnTrueForActiveStatuses() {
+        assertThat(TripStatus.IN_PROGRESS.isActive()).isTrue();
+        assertThat(TripStatus.PAUSED.isActive()).isTrue();
+        assertThat(TripStatus.RESTING.isActive()).isTrue();
+    }
+
+    @Test
+    void isActive_shouldReturnFalseForNonActiveStatuses() {
+        assertThat(TripStatus.CREATED.isActive()).isFalse();
+        assertThat(TripStatus.FINISHED.isActive()).isFalse();
+    }
+
+    @Test
+    void getActiveStatuses_shouldReturnOnlyActiveStatuses() {
+        List<TripStatus> activeStatuses = TripStatus.getActiveStatuses();
+
+        assertThat(activeStatuses)
+                .containsExactlyInAnyOrder(
+                        TripStatus.IN_PROGRESS, TripStatus.PAUSED, TripStatus.RESTING);
+        assertThat(activeStatuses).doesNotContain(TripStatus.CREATED, TripStatus.FINISHED);
     }
 }

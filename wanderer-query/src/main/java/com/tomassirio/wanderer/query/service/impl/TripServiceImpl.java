@@ -87,7 +87,7 @@ public class TripServiceImpl implements TripService {
     public List<TripDTO> getOngoingPublicTrips(UUID requestingUserId) {
         List<Trip> publicTrips =
                 tripRepository.findByVisibilityAndStatusIn(
-                        TripVisibility.PUBLIC, List.of(TripStatus.CREATED, TripStatus.IN_PROGRESS));
+                        TripVisibility.PUBLIC, TripStatus.getActiveStatuses());
 
         if (requestingUserId == null) {
             return enrichListWithUsernames(publicTrips.stream().map(tripMapper::toDTO).toList());
