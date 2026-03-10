@@ -425,7 +425,7 @@ class TripServiceTest {
         ongoingTrip2.getTripSettings().setTripStatus(TripStatus.IN_PROGRESS);
 
         when(tripRepository.findByVisibilityAndStatusIn(
-                        TripVisibility.PUBLIC, List.of(TripStatus.CREATED, TripStatus.IN_PROGRESS)))
+                        TripVisibility.PUBLIC, TripStatus.getActiveStatuses()))
                 .thenReturn(List.of(ongoingTrip1, ongoingTrip2));
         when(userRepository.findAllById(anyCollection()))
                 .thenReturn(List.of(TestEntityFactory.createUser()));
@@ -444,14 +444,14 @@ class TripServiceTest {
 
         verify(tripRepository)
                 .findByVisibilityAndStatusIn(
-                        TripVisibility.PUBLIC, List.of(TripStatus.CREATED, TripStatus.IN_PROGRESS));
+                        TripVisibility.PUBLIC, TripStatus.getActiveStatuses());
     }
 
     @Test
     void getOngoingPublicTrips_whenNoOngoingTripsExist_shouldReturnEmptyList() {
         // Given
         when(tripRepository.findByVisibilityAndStatusIn(
-                        TripVisibility.PUBLIC, List.of(TripStatus.CREATED, TripStatus.IN_PROGRESS)))
+                        TripVisibility.PUBLIC, TripStatus.getActiveStatuses()))
                 .thenReturn(Collections.emptyList());
 
         // When
@@ -463,7 +463,7 @@ class TripServiceTest {
 
         verify(tripRepository)
                 .findByVisibilityAndStatusIn(
-                        TripVisibility.PUBLIC, List.of(TripStatus.CREATED, TripStatus.IN_PROGRESS));
+                        TripVisibility.PUBLIC, TripStatus.getActiveStatuses());
     }
 
     @Test
@@ -475,7 +475,7 @@ class TripServiceTest {
         ongoingPublicTrip.getTripSettings().setTripStatus(TripStatus.IN_PROGRESS);
 
         when(tripRepository.findByVisibilityAndStatusIn(
-                        TripVisibility.PUBLIC, List.of(TripStatus.CREATED, TripStatus.IN_PROGRESS)))
+                        TripVisibility.PUBLIC, TripStatus.getActiveStatuses()))
                 .thenReturn(List.of(ongoingPublicTrip));
         when(userRepository.findAllById(anyCollection()))
                 .thenReturn(List.of(TestEntityFactory.createUser()));
@@ -491,7 +491,7 @@ class TripServiceTest {
 
         verify(tripRepository)
                 .findByVisibilityAndStatusIn(
-                        TripVisibility.PUBLIC, List.of(TripStatus.CREATED, TripStatus.IN_PROGRESS));
+                        TripVisibility.PUBLIC, TripStatus.getActiveStatuses());
     }
 
     @Test
@@ -533,7 +533,7 @@ class TripServiceTest {
                         .build();
 
         when(tripRepository.findByVisibilityAndStatusIn(
-                        TripVisibility.PUBLIC, List.of(TripStatus.CREATED, TripStatus.IN_PROGRESS)))
+                        TripVisibility.PUBLIC, TripStatus.getActiveStatuses()))
                 .thenReturn(List.of(notFollowedTrip, followedTrip1, followedTrip2));
         when(userFollowRepository.findByFollowerId(requestingUserId))
                 .thenReturn(List.of(follow1, follow2));
@@ -557,7 +557,7 @@ class TripServiceTest {
 
         verify(tripRepository)
                 .findByVisibilityAndStatusIn(
-                        TripVisibility.PUBLIC, List.of(TripStatus.CREATED, TripStatus.IN_PROGRESS));
+                        TripVisibility.PUBLIC, TripStatus.getActiveStatuses());
         verify(userFollowRepository).findByFollowerId(requestingUserId);
     }
 
@@ -575,7 +575,7 @@ class TripServiceTest {
         trip2.getTripSettings().setTripStatus(TripStatus.IN_PROGRESS);
 
         when(tripRepository.findByVisibilityAndStatusIn(
-                        TripVisibility.PUBLIC, List.of(TripStatus.CREATED, TripStatus.IN_PROGRESS)))
+                        TripVisibility.PUBLIC, TripStatus.getActiveStatuses()))
                 .thenReturn(List.of(trip1, trip2));
         when(userFollowRepository.findByFollowerId(requestingUserId))
                 .thenReturn(Collections.emptyList());
@@ -593,7 +593,7 @@ class TripServiceTest {
 
         verify(tripRepository)
                 .findByVisibilityAndStatusIn(
-                        TripVisibility.PUBLIC, List.of(TripStatus.CREATED, TripStatus.IN_PROGRESS));
+                        TripVisibility.PUBLIC, TripStatus.getActiveStatuses());
         verify(userFollowRepository).findByFollowerId(requestingUserId);
     }
 
@@ -630,7 +630,7 @@ class TripServiceTest {
                         .build();
 
         when(tripRepository.findByVisibilityAndStatusIn(
-                        TripVisibility.PUBLIC, List.of(TripStatus.CREATED, TripStatus.IN_PROGRESS)))
+                        TripVisibility.PUBLIC, TripStatus.getActiveStatuses()))
                 .thenReturn(List.of(followedTrip1, followedTrip2));
         when(userFollowRepository.findByFollowerId(requestingUserId))
                 .thenReturn(List.of(follow1, follow2));
@@ -651,7 +651,7 @@ class TripServiceTest {
 
         verify(tripRepository)
                 .findByVisibilityAndStatusIn(
-                        TripVisibility.PUBLIC, List.of(TripStatus.CREATED, TripStatus.IN_PROGRESS));
+                        TripVisibility.PUBLIC, TripStatus.getActiveStatuses());
         verify(userFollowRepository).findByFollowerId(requestingUserId);
     }
 
@@ -682,7 +682,7 @@ class TripServiceTest {
                         .build();
 
         when(tripRepository.findByVisibilityAndStatusIn(
-                        TripVisibility.PUBLIC, List.of(TripStatus.CREATED, TripStatus.IN_PROGRESS)))
+                        TripVisibility.PUBLIC, TripStatus.getActiveStatuses()))
                 .thenReturn(List.of(notFollowedTrip1, notFollowedTrip2));
         when(userFollowRepository.findByFollowerId(requestingUserId)).thenReturn(List.of(follow));
         when(userRepository.findAllById(anyCollection()))
@@ -702,7 +702,7 @@ class TripServiceTest {
 
         verify(tripRepository)
                 .findByVisibilityAndStatusIn(
-                        TripVisibility.PUBLIC, List.of(TripStatus.CREATED, TripStatus.IN_PROGRESS));
+                        TripVisibility.PUBLIC, TripStatus.getActiveStatuses());
         verify(userFollowRepository).findByFollowerId(requestingUserId);
     }
 

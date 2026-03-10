@@ -1,9 +1,12 @@
 package com.tomassirio.wanderer.commons.domain;
 
+import java.util.Arrays;
 import java.util.EnumMap;
 import java.util.EnumSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import lombok.Getter;
 
 /**
  * Represents the lifecycle status of a trip.
@@ -17,12 +20,28 @@ import java.util.Set;
  *   <li>{@link #FINISHED} – Trip has been completed.
  * </ul>
  */
+@Getter
 public enum TripStatus {
-    CREATED,
-    IN_PROGRESS,
-    PAUSED,
-    RESTING,
-    FINISHED;
+    CREATED(false),
+    IN_PROGRESS(true),
+    PAUSED(true),
+    RESTING(true),
+    FINISHED(false);
+
+    private final boolean active;
+
+    TripStatus(boolean active) {
+        this.active = active;
+    }
+
+    /**
+     * Returns an unmodifiable list of all statuses that represent an active (ongoing) trip.
+     *
+     * @return list of active {@link TripStatus} values
+     */
+    public static List<TripStatus> getActiveStatuses() {
+        return Arrays.stream(values()).filter(TripStatus::isActive).toList();
+    }
 
     private static final Map<TripStatus, Set<TripStatus>> ALLOWED_TRANSITIONS;
 
