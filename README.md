@@ -1,6 +1,5 @@
-<!-- Replace the placeholder below with your logo: ![Wanderer](path/to/logo.png) -->
 <p align="center">
-  <img src="https://via.placeholder.com/900x250/1a1a2e/e0e0e0?text=🥾+W+A+N+D+E+R+E+R+⛪" alt="Wanderer Banner" width="100%" />
+  <img src="https://raw.githubusercontent.com/tomassirio/wanderer-backend/main/wanderer-auth/src/main/resources/assets/wanderer-logo.png" alt="Wanderer Logo" width="400" />
 </p>
 
 <p align="center">
