@@ -1,4 +1,11 @@
-# Wanderer
+<!-- Replace the placeholder below with your logo: ![Wanderer](path/to/logo.png) -->
+<p align="center">
+  <img src="https://via.placeholder.com/900x250/1a1a2e/e0e0e0?text=🥾+W+A+N+D+E+R+E+R+⛪" alt="Wanderer Banner" width="100%" />
+</p>
+
+<p align="center">
+  <strong>Real-time pilgrimage tracking — Utrecht to Santiago de Compostela</strong>
+</p>
 
 ![Java](https://img.shields.io/badge/Java-21-orange?logo=openjdk&logoColor=white)
 ![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.5.6-brightgreen?logo=spring&logoColor=white)
