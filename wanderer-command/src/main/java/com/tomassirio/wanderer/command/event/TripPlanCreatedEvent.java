@@ -29,6 +29,7 @@ public class TripPlanCreatedEvent implements DomainEvent, Broadcastable {
     private List<GeoLocation> waypoints;
     private Map<String, Object> metadata;
     private Instant createdTimestamp;
+    private String plannedPolyline;
 
     @Override
     public String getEventType() {

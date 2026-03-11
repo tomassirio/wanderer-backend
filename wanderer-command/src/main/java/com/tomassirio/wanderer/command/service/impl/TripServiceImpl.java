@@ -225,6 +225,7 @@ public class TripServiceImpl implements TripService {
                         .endTimestamp(
                                 tripPlan.getEndDate().atStartOfDay().toInstant(ZoneOffset.UTC))
                         .tripModality(deriveModalityFromPlanType(tripPlan.getPlanType()))
+                        .plannedPolyline(tripPlan.getPlannedPolyline())
                         .build());
 
         return tripId;

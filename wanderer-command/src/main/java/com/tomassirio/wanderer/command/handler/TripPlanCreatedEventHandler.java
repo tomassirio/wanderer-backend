@@ -42,6 +42,7 @@ public class TripPlanCreatedEventHandler implements EventHandler<TripPlanCreated
                         .waypoints(
                                 Optional.ofNullable(event.getWaypoints()).orElseGet(ArrayList::new))
                         .metadata(Optional.ofNullable(event.getMetadata()).orElseGet(HashMap::new))
+                        .plannedPolyline(event.getPlannedPolyline())
                         .build();
 
         tripPlanRepository.save(tripPlan);

@@ -46,7 +46,7 @@ public class TestEntityFactory extends BaseTestEntityFactory {
             GeoLocation endLocation,
             TripPlanType planType) {
         return new TripPlanCreationRequest(
-                name, startDate, endDate, startLocation, endLocation, List.of(), planType);
+                name, startDate, endDate, startLocation, endLocation, List.of(), planType, null);
     }
 
     public static TripPlanCreationRequest createTripPlanCreationRequest(String name) {
@@ -67,7 +67,7 @@ public class TestEntityFactory extends BaseTestEntityFactory {
             GeoLocation startLocation,
             GeoLocation endLocation) {
         return new TripPlanUpdateRequest(
-                name, startDate, endDate, startLocation, endLocation, List.of());
+                name, startDate, endDate, startLocation, endLocation, List.of(), null);
     }
 
     public static TripPlanUpdateRequest createTripPlanUpdateRequest(String name) {

@@ -83,7 +83,8 @@ class TripPlanServiceImplTest {
                         startLocation,
                         endLocation,
                         List.of(),
-                        TripPlanType.SIMPLE);
+                        TripPlanType.SIMPLE,
+                        null);
 
         // When
         UUID result = tripPlanService.createTripPlan(userId, request);
@@ -119,7 +120,8 @@ class TripPlanServiceImplTest {
                         startLocation,
                         endLocation,
                         List.of(),
-                        TripPlanType.MULTI_DAY);
+                        TripPlanType.MULTI_DAY,
+                        null);
 
         // When
         UUID result = tripPlanService.createTripPlan(userId, request);
@@ -145,7 +147,8 @@ class TripPlanServiceImplTest {
                         startLocation,
                         endLocation,
                         List.of(),
-                        TripPlanType.SIMPLE);
+                        TripPlanType.SIMPLE,
+                        null);
 
         doThrow(new IllegalArgumentException("End date must be after start date"))
                 .when(tripPlanValidator)
@@ -170,7 +173,8 @@ class TripPlanServiceImplTest {
                         startLocation,
                         endLocation,
                         List.of(),
-                        TripPlanType.MULTI_DAY);
+                        TripPlanType.MULTI_DAY,
+                        null);
 
         // When
         UUID result = tripPlanService.createTripPlan(userId, request);
@@ -198,7 +202,8 @@ class TripPlanServiceImplTest {
                         endDate.plusDays(1),
                         startLocation,
                         endLocation,
-                        List.of());
+                        List.of(),
+                        null);
 
         TripPlan existingPlan =
                 TripPlan.builder()
@@ -240,7 +245,13 @@ class TripPlanServiceImplTest {
         // Given
         TripPlanUpdateRequest request =
                 new TripPlanUpdateRequest(
-                        "Updated Plan", startDate, endDate, startLocation, endLocation, List.of());
+                        "Updated Plan",
+                        startDate,
+                        endDate,
+                        startLocation,
+                        endLocation,
+                        List.of(),
+                        null);
 
         when(tripPlanRepository.findById(planId)).thenReturn(Optional.empty());
 
@@ -260,7 +271,13 @@ class TripPlanServiceImplTest {
         UUID differentUserId = UUID.randomUUID();
         TripPlanUpdateRequest request =
                 new TripPlanUpdateRequest(
-                        "Updated Plan", startDate, endDate, startLocation, endLocation, List.of());
+                        "Updated Plan",
+                        startDate,
+                        endDate,
+                        startLocation,
+                        endLocation,
+                        List.of(),
+                        null);
 
         TripPlan existingPlan =
                 TripPlan.builder()
@@ -307,7 +324,8 @@ class TripPlanServiceImplTest {
                         newEndDate,
                         newStartLocation,
                         newEndLocation,
-                        List.of());
+                        List.of(),
+                        null);
 
         TripPlan existingPlan =
                 TripPlan.builder()

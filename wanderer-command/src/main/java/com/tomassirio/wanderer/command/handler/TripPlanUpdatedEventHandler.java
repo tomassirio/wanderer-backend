@@ -46,6 +46,7 @@ public class TripPlanUpdatedEventHandler implements EventHandler<TripPlanUpdated
                                     event.getWaypoints() != null
                                             ? event.getWaypoints()
                                             : List.of());
+                            tripPlan.setPlannedPolyline(event.getPlannedPolyline());
 
                             // Re-validate metadata for the plan type
                             metadataProcessor.applyMetadata(tripPlan, tripPlan.getMetadata());

@@ -128,7 +128,8 @@ class TripPlanControllerTest {
                         location,
                         location,
                         List.of(),
-                        TripPlanType.SIMPLE);
+                        TripPlanType.SIMPLE,
+                        null);
 
         // When & Then
         mockMvc.perform(
@@ -147,7 +148,14 @@ class TripPlanControllerTest {
 
         TripPlanCreationRequest request =
                 new TripPlanCreationRequest(
-                        "", startDate, endDate, location, location, List.of(), TripPlanType.SIMPLE);
+                        "",
+                        startDate,
+                        endDate,
+                        location,
+                        location,
+                        List.of(),
+                        TripPlanType.SIMPLE,
+                        null);
 
         // When & Then
         mockMvc.perform(
@@ -173,7 +181,8 @@ class TripPlanControllerTest {
                         location,
                         location,
                         List.of(),
-                        TripPlanType.SIMPLE);
+                        TripPlanType.SIMPLE,
+                        null);
 
         // When & Then
         mockMvc.perform(
@@ -197,7 +206,8 @@ class TripPlanControllerTest {
                         location,
                         location,
                         List.of(),
-                        TripPlanType.SIMPLE);
+                        TripPlanType.SIMPLE,
+                        null);
 
         // When & Then
         mockMvc.perform(
@@ -221,7 +231,8 @@ class TripPlanControllerTest {
                         location,
                         location,
                         List.of(),
-                        TripPlanType.SIMPLE);
+                        TripPlanType.SIMPLE,
+                        null);
 
         // When & Then
         mockMvc.perform(
@@ -246,7 +257,8 @@ class TripPlanControllerTest {
                         null,
                         endLocation,
                         List.of(),
-                        TripPlanType.SIMPLE);
+                        TripPlanType.SIMPLE,
+                        null);
 
         // When & Then
         mockMvc.perform(
@@ -271,7 +283,8 @@ class TripPlanControllerTest {
                         startLocation,
                         null,
                         List.of(),
-                        TripPlanType.SIMPLE);
+                        TripPlanType.SIMPLE,
+                        null);
 
         // When & Then
         mockMvc.perform(
@@ -290,7 +303,7 @@ class TripPlanControllerTest {
 
         TripPlanCreationRequest request =
                 new TripPlanCreationRequest(
-                        "Valid Name", startDate, endDate, location, location, List.of(), null);
+                        "Valid Name", startDate, endDate, location, location, List.of(), null, null);
 
         // When & Then
         mockMvc.perform(
@@ -392,7 +405,8 @@ class TripPlanControllerTest {
         GeoLocation location = TestEntityFactory.createGeoLocation(0.0, 0.0);
 
         TripPlanUpdateRequest request =
-                new TripPlanUpdateRequest("", startDate, endDate, location, location, List.of());
+                new TripPlanUpdateRequest(
+                        "", startDate, endDate, location, location, List.of(), null);
 
         // When & Then
         mockMvc.perform(
@@ -411,7 +425,8 @@ class TripPlanControllerTest {
         GeoLocation location = TestEntityFactory.createGeoLocation(0.0, 0.0);
 
         TripPlanUpdateRequest request =
-                new TripPlanUpdateRequest("AB", startDate, endDate, location, location, List.of());
+                new TripPlanUpdateRequest(
+                        "AB", startDate, endDate, location, location, List.of(), null);
 
         // When & Then
         mockMvc.perform(
@@ -430,7 +445,7 @@ class TripPlanControllerTest {
 
         TripPlanUpdateRequest request =
                 new TripPlanUpdateRequest(
-                        "Valid Name", null, endDate, location, location, List.of());
+                        "Valid Name", null, endDate, location, location, List.of(), null);
 
         // When & Then
         mockMvc.perform(
@@ -449,7 +464,7 @@ class TripPlanControllerTest {
 
         TripPlanUpdateRequest request =
                 new TripPlanUpdateRequest(
-                        "Valid Name", startDate, null, location, location, List.of());
+                        "Valid Name", startDate, null, location, location, List.of(), null);
 
         // When & Then
         mockMvc.perform(

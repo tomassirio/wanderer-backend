@@ -76,6 +76,7 @@ public class TripPlanServiceImpl implements TripPlanService {
                         .waypoints(Optional.ofNullable(request.waypoints()).orElse(List.of()))
                         .metadata(metadata)
                         .createdTimestamp(createdTimestamp)
+                        .plannedPolyline(request.plannedPolyline())
                         .build());
 
         return tripPlanId;
@@ -101,6 +102,7 @@ public class TripPlanServiceImpl implements TripPlanService {
                         .startLocation(request.startLocation())
                         .endLocation(request.endLocation())
                         .waypoints(request.waypoints() != null ? request.waypoints() : List.of())
+                        .plannedPolyline(request.plannedPolyline())
                         .build());
 
         return planId;

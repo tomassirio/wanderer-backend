@@ -32,4 +32,8 @@ public record TripPlanUpdateRequest(
                 @NotNull(message = "End location is required")
                 GeoLocation endLocation,
         @Schema(description = "Intermediate waypoints (optional)", example = "[]")
-                List<@Valid GeoLocation> waypoints) {}
+                List<@Valid GeoLocation> waypoints,
+        @Schema(
+                        description = "Planned polyline encoded string (optional)",
+                        example = "encoded_polyline_string_here")
+                String plannedPolyline) {}

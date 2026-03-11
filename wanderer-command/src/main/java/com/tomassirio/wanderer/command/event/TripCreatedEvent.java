@@ -30,6 +30,7 @@ public class TripCreatedEvent implements DomainEvent, Broadcastable {
     private Instant startTimestamp;
     private Instant endTimestamp;
     private TripModality tripModality;
+    private String plannedPolyline;
 
     @Override
     public String getEventType() {

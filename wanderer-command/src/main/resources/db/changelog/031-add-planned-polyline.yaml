@@ -1,0 +1,34 @@
+databaseChangeLog:
+  - changeSet:
+      id: 031-add-planned-polyline-to-trip-plans
+      author: tomassirio
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - columnExists:
+                tableName: trip_plans
+                columnName: planned_polyline
+      changes:
+        - addColumn:
+            tableName: trip_plans
+            columns:
+              - column:
+                  name: planned_polyline
+                  type: TEXT
+  - changeSet:
+      id: 031-add-planned-polyline-to-trips
+      author: tomassirio
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - columnExists:
+                tableName: trips
+                columnName: planned_polyline
+      changes:
+        - addColumn:
+            tableName: trips
+            columns:
+              - column:
+                  name: planned_polyline
+                  type: TEXT
+

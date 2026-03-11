@@ -15,6 +15,7 @@ public record TripDTO(
         List<TripUpdateDTO> tripUpdates,
         List<TripDayDTO> tripDays,
         String encodedPolyline,
+        String plannedPolyline,
         Instant polylineUpdatedAt,
         Instant creationTimestamp,
         Boolean enabled) {}

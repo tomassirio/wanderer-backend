@@ -56,6 +56,9 @@ public class Trip implements Polylineable {
     @Column(name = "encoded_polyline", columnDefinition = "TEXT")
     private String encodedPolyline;
 
+    @Column(name = "planned_polyline", columnDefinition = "TEXT")
+    private String plannedPolyline;
+
     @Column(name = "polyline_updated_at")
     private Instant polylineUpdatedAt;
 

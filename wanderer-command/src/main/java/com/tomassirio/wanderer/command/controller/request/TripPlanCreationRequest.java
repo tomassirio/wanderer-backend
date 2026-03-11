@@ -36,4 +36,8 @@ public record TripPlanCreationRequest(
                 List<@Valid GeoLocation> waypoints,
         @Schema(description = "Plan type", example = "SIMPLE")
                 @NotNull(message = "Plan type is required")
-                TripPlanType planType) {}
+                TripPlanType planType,
+        @Schema(
+                        description = "Planned polyline encoded string (optional)",
+                        example = "encoded_polyline_string_here")
+                String plannedPolyline) {}
