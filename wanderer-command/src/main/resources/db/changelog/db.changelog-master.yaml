@@ -59,3 +59,5 @@ databaseChangeLog:
       file: db/changelog/029-add-current-day-to-trips.yaml
   - include:
       file: db/changelog/030-make-trip-update-location-nullable.yaml
+  - include:
+      file: db/changelog/031-add-planned-polyline.yaml

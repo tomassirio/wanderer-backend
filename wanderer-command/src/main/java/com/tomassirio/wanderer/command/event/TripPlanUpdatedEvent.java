@@ -23,6 +23,7 @@ public class TripPlanUpdatedEvent implements DomainEvent, Broadcastable {
     private GeoLocation startLocation;
     private GeoLocation endLocation;
     private List<GeoLocation> waypoints;
+    private String plannedPolyline;
 
     @Override
     public String getEventType() {

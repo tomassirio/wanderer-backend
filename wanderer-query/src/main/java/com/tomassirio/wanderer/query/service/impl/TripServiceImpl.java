@@ -170,6 +170,7 @@ public class TripServiceImpl implements TripService {
                                         trip.tripUpdates(),
                                         trip.tripDays(),
                                         trip.encodedPolyline(),
+                                        trip.plannedPolyline(),
                                         trip.polylineUpdatedAt(),
                                         trip.creationTimestamp(),
                                         trip.enabled()))
@@ -205,6 +206,7 @@ public class TripServiceImpl implements TripService {
                 trip.tripUpdates(),
                 trip.tripDays(),
                 trip.encodedPolyline(),
+                trip.plannedPolyline(),
                 trip.polylineUpdatedAt(),
                 trip.creationTimestamp(),
                 trip.enabled());

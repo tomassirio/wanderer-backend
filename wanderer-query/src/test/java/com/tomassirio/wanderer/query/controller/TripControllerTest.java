@@ -468,6 +468,7 @@ class TripControllerTest {
                 List.of(), // tripUpdates
                 List.of(), // tripDays
                 null, // encodedPolyline
+                null, // plannedPolyline
                 null, // polylineUpdatedAt
                 Instant.now(),
                 true);
@@ -490,6 +491,7 @@ class TripControllerTest {
                 List.of(), // tripUpdates
                 List.of(), // tripDays
                 null, // encodedPolyline
+                null, // plannedPolyline
                 null, // polylineUpdatedAt
                 Instant.now(),
                 true);

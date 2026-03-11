@@ -96,6 +96,7 @@ class TripPlanControllerTest {
                         List.of(waypoint1, waypoint2, waypoint3),
                         null,
                         null,
+                        null,
                         Instant.now());
 
         when(tripPlanService.getTripPlan(planId)).thenReturn(tripPlan);
@@ -220,6 +221,7 @@ class TripPlanControllerTest {
                         List.of(),
                         null,
                         null,
+                        null,
                         Instant.now());
 
         when(tripPlanService.getTripPlan(planId)).thenReturn(tripPlan);
@@ -253,6 +255,7 @@ class TripPlanControllerTest {
                         startLocation,
                         endLocation,
                         List.of(),
+                        null,
                         null,
                         null,
                         Instant.now());
@@ -300,6 +303,7 @@ class TripPlanControllerTest {
                         new GeoLocation(43.01, -8.55),
                         List.of(),
                         "a~l~Fjk~uOwHJy@P",
+                        null,
                         polylineUpdatedAt,
                         Instant.now());
 
@@ -323,6 +327,7 @@ class TripPlanControllerTest {
                 new GeoLocation(0.0, 0.0),
                 new GeoLocation(0.0, 0.0),
                 List.of(),
+                null,
                 null,
                 null,
                 Instant.now());
