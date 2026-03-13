@@ -51,7 +51,7 @@ public class UserQueryServiceImpl implements UserQueryService {
     public UserResponse getUserByUsername(String username) {
         var user =
                 userRepository
-                        .findByUsername(username.toLowerCase())
+                        .findByUsername(username.toLowerCase(java.util.Locale.ROOT))
                         .orElseThrow(() -> new EntityNotFoundException("User not found"));
         return toUserResponse(user);
     }

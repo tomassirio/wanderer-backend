@@ -31,7 +31,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UUID createUser(UserCreationRequest request) {
-        String normalizedUsername = request.username().toLowerCase();
+        String normalizedUsername = request.username().toLowerCase(java.util.Locale.ROOT);
         log.info("Creating user with username={} email={}", normalizedUsername, request.email());
 
         log.debug("Checking username uniqueness for {}", normalizedUsername);

@@ -45,7 +45,7 @@ public class AuthServiceImpl implements AuthService {
      */
     public LoginResponse login(String username, String password) {
         // Lookup user via query service (read side) — normalize to lowercase
-        String normalizedUsername = username.toLowerCase();
+        String normalizedUsername = username.toLowerCase(java.util.Locale.ROOT);
         User user;
         try {
             user = wandererQueryClient.getUserByUsername(normalizedUsername);
@@ -96,7 +96,7 @@ public class AuthServiceImpl implements AuthService {
      */
     public RegisterPendingResponse register(RegisterRequest request) {
         // Normalize username to lowercase for case-insensitive uniqueness
-        String normalizedUsername = request.username().toLowerCase();
+        String normalizedUsername = request.username().toLowerCase(java.util.Locale.ROOT);
 
         // Check if email is already in use
         if (credentialRepository.findByEmail(request.email()).isPresent()) {
