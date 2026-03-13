@@ -9,6 +9,6 @@ databaseChangeLog:
         users who registered before this change.
       changes:
         - sql:
-            sql: UPDATE users SET display_name = username WHERE display_name IS NULL AND username <> LOWER(username)
+            sql: UPDATE users SET display_name = username WHERE display_name IS NULL
         - sql:
             sql: UPDATE users SET username = LOWER(username) WHERE username <> LOWER(username)
