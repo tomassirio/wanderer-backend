@@ -163,12 +163,12 @@ class AuthServiceImplTest {
                         null);
 
         when(credentialRepository.findByEmail(request.email())).thenReturn(Optional.empty());
-        when(wandererQueryClient.getUserByUsername(request.username()))
+        when(wandererQueryClient.getUserByUsername("testuser"))
                 .thenThrow(
                         new NotFound("User not found", dummyRequest, null, null)); // 404 expected
         when(passwordEncoder.encode(request.password())).thenReturn("hashedPassword");
         when(tokenService.createEmailVerificationToken(
-                        request.email(), request.username(), "hashedPassword"))
+                        request.email(), "testuser", "hashedPassword"))
                 .thenReturn(verificationToken);
 
         RegisterPendingResponse result = authService.register(request);
@@ -176,9 +176,41 @@ class AuthServiceImplTest {
         assertEquals(
                 "Registration pending. Please check your email to verify your account.",
                 result.message());
-        verify(emailService)
-                .sendVerificationEmail(request.email(), request.username(), verificationToken);
+        verify(emailService).sendVerificationEmail(request.email(), "testuser", verificationToken);
         verify(wandererCommandClient, never()).createUser(any());
+    }
+
+    @Test
+    void register_whenMixedCaseUsername_shouldNormalizeToLowercase() {
+        RegisterRequest request =
+                new RegisterRequest("TestUser", "test@example.com", "password123");
+        String verificationToken = "verification.token";
+        Request dummyRequest =
+                Request.create(
+                        Request.HttpMethod.GET,
+                        "http://dummy",
+                        Map.of(),
+                        null,
+                        StandardCharsets.UTF_8,
+                        null);
+
+        when(credentialRepository.findByEmail(request.email())).thenReturn(Optional.empty());
+        when(wandererQueryClient.getUserByUsername("testuser"))
+                .thenThrow(new NotFound("User not found", dummyRequest, null, null));
+        when(passwordEncoder.encode(request.password())).thenReturn("hashedPassword");
+        when(tokenService.createEmailVerificationToken(
+                        request.email(), "testuser", "hashedPassword"))
+                .thenReturn(verificationToken);
+
+        RegisterPendingResponse result = authService.register(request);
+
+        assertEquals(
+                "Registration pending. Please check your email to verify your account.",
+                result.message());
+        verify(wandererQueryClient).getUserByUsername("testuser");
+        verify(tokenService)
+                .createEmailVerificationToken(request.email(), "testuser", "hashedPassword");
+        verify(emailService).sendVerificationEmail(request.email(), "testuser", verificationToken);
     }
 
     @Test
@@ -200,7 +232,7 @@ class AuthServiceImplTest {
                 new RegisterRequest("existinguser", "test@example.com", "password123");
 
         when(credentialRepository.findByEmail(request.email())).thenReturn(Optional.empty());
-        when(wandererQueryClient.getUserByUsername(request.username())).thenReturn(testUser);
+        when(wandererQueryClient.getUserByUsername("existinguser")).thenReturn(testUser);
 
         assertThrows(IllegalArgumentException.class, () -> authService.register(request));
         verify(tokenService, never()).createEmailVerificationToken(any(), any(), any());
@@ -463,5 +495,27 @@ class AuthServiceImplTest {
         assertEquals("Failed to contact user query service", exception.getMessage());
         assertEquals(serverError, exception.getCause());
         verify(credentialRepository, never()).findById(any());
+    }
+
+    @Test
+    void login_whenMixedCaseUsername_shouldNormalizeToLowercase() {
+        String password = "password123";
+        String accessToken = "jwt.access.token";
+        String refreshToken = "refresh.token";
+        long expiresIn = 3600000L;
+
+        when(wandererQueryClient.getUserByUsername("testuser")).thenReturn(testUser);
+        when(credentialRepository.findById(testUser.getId()))
+                .thenReturn(Optional.of(testCredential));
+        when(passwordEncoder.matches(password, testCredential.getPasswordHash())).thenReturn(true);
+        when(jwtService.generateTokenWithJti(any(), any(), any())).thenReturn(accessToken);
+        when(tokenService.createRefreshToken(testUser.getId())).thenReturn(refreshToken);
+        when(jwtService.getExpirationMs()).thenReturn(expiresIn);
+
+        // Login with mixed case "TestUser" — should be normalized to "testuser"
+        LoginResponse result = authService.login("TestUser", password);
+
+        assertEquals(accessToken, result.accessToken());
+        verify(wandererQueryClient).getUserByUsername("testuser");
     }
 }

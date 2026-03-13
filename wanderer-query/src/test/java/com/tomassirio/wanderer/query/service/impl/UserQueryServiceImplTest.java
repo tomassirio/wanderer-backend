@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.tomassirio.wanderer.commons.domain.User;
@@ -76,6 +77,17 @@ class UserQueryServiceImplTest {
 
         assertEquals(testUser.getId(), result.id());
         assertEquals(testUser.getUsername(), result.username());
+    }
+
+    @Test
+    void getUserByUsername_whenMixedCaseInput_shouldNormalizeToLowercase() {
+        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(testUser));
+
+        UserResponse result = userQueryService.getUserByUsername("TestUser");
+
+        assertEquals(testUser.getId(), result.id());
+        assertEquals(testUser.getUsername(), result.username());
+        verify(userRepository).findByUsername("testuser");
     }
 
     @Test

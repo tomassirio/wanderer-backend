@@ -44,10 +44,11 @@ public class AuthServiceImpl implements AuthService {
      * @throws IllegalArgumentException when credentials are invalid
      */
     public LoginResponse login(String username, String password) {
-        // Lookup user via query service (read side)
+        // Lookup user via query service (read side) — normalize to lowercase
+        String normalizedUsername = username.toLowerCase();
         User user;
         try {
-            user = wandererQueryClient.getUserByUsername(username);
+            user = wandererQueryClient.getUserByUsername(normalizedUsername);
         } catch (FeignException e) {
             if (e.status() == 404) {
                 throw new IllegalArgumentException("Invalid credentials");
@@ -94,6 +95,9 @@ public class AuthServiceImpl implements AuthService {
      * only created after email verification.
      */
     public RegisterPendingResponse register(RegisterRequest request) {
+        // Normalize username to lowercase for case-insensitive uniqueness
+        String normalizedUsername = request.username().toLowerCase();
+
         // Check if email is already in use
         if (credentialRepository.findByEmail(request.email()).isPresent()) {
             throw new IllegalArgumentException("Email already in use: " + request.email());
@@ -101,9 +105,9 @@ public class AuthServiceImpl implements AuthService {
 
         // Check if username is already taken by querying the read side
         try {
-            User existingUser = wandererQueryClient.getUserByUsername(request.username());
+            User existingUser = wandererQueryClient.getUserByUsername(normalizedUsername);
             if (existingUser != null) {
-                throw new IllegalArgumentException("Username already taken: " + request.username());
+                throw new IllegalArgumentException("Username already taken: " + normalizedUsername);
             }
         } catch (FeignException e) {
             // 404 is expected if username doesn't exist - this is good
@@ -115,13 +119,13 @@ public class AuthServiceImpl implements AuthService {
         // Hash the password
         String passwordHash = passwordEncoder.encode(request.password());
 
-        // Create email verification token
+        // Create email verification token with lowercase username
         String verificationToken =
                 tokenService.createEmailVerificationToken(
-                        request.email(), request.username(), passwordHash);
+                        request.email(), normalizedUsername, passwordHash);
 
         // Send verification email
-        emailService.sendVerificationEmail(request.email(), request.username(), verificationToken);
+        emailService.sendVerificationEmail(request.email(), normalizedUsername, verificationToken);
 
         return new RegisterPendingResponse(
                 "Registration pending. Please check your email to verify your account.");

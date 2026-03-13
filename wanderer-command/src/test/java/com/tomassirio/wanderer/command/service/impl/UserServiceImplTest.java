@@ -46,7 +46,7 @@ class UserServiceImplTest {
     void createUser_whenValid_shouldPublishEventAndReturnUserId() {
         // Given
         UserCreationRequest req = new UserCreationRequest("johndoe", "john@example.com");
-        when(userRepository.findByUsername(req.username())).thenReturn(Optional.empty());
+        when(userRepository.findByUsername("johndoe")).thenReturn(Optional.empty());
 
         // When
         UUID result = userService.createUser(req);
@@ -64,11 +64,47 @@ class UserServiceImplTest {
     }
 
     @Test
+    void createUser_whenMixedCaseUsername_shouldStoreLowercaseUsername() {
+        // Given
+        UserCreationRequest req = new UserCreationRequest("JohnDoe", "john@example.com");
+        when(userRepository.findByUsername("johndoe")).thenReturn(Optional.empty());
+
+        // When
+        UUID result = userService.createUser(req);
+
+        // Then
+        assertThat(result).isNotNull();
+
+        ArgumentCaptor<UserCreatedEvent> eventCaptor =
+                ArgumentCaptor.forClass(UserCreatedEvent.class);
+        verify(eventPublisher).publishEvent(eventCaptor.capture());
+
+        UserCreatedEvent event = eventCaptor.getValue();
+        assertThat(event.getUsername()).isEqualTo("johndoe");
+        verify(userRepository).findByUsername("johndoe");
+    }
+
+    @Test
     void createUser_whenUsernameExists_shouldThrowException() {
         // Given
         UserCreationRequest req = new UserCreationRequest("johndoe", "john@example.com");
         User existing = User.builder().id(UUID.randomUUID()).username("johndoe").build();
-        when(userRepository.findByUsername(req.username())).thenReturn(Optional.of(existing));
+        when(userRepository.findByUsername("johndoe")).thenReturn(Optional.of(existing));
+
+        // When & Then
+        assertThatThrownBy(() -> userService.createUser(req))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Username already in use");
+
+        verify(eventPublisher, never()).publishEvent(any(UserCreatedEvent.class));
+    }
+
+    @Test
+    void createUser_whenMixedCaseUsernameExists_shouldThrowException() {
+        // Given — request with uppercase, existing stored as lowercase
+        UserCreationRequest req = new UserCreationRequest("JohnDoe", "john@example.com");
+        User existing = User.builder().id(UUID.randomUUID()).username("johndoe").build();
+        when(userRepository.findByUsername("johndoe")).thenReturn(Optional.of(existing));
 
         // When & Then
         assertThatThrownBy(() -> userService.createUser(req))
