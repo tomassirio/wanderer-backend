@@ -14,8 +14,8 @@ import org.springframework.stereotype.Component;
  * <p>Enforces the business rule that a user can have only one trip in progress at a time.
  *
  * <ul>
- *   <li>When status becomes IN_PROGRESS, PAUSED, or RESTING: adds or updates the active trip
- *       record (these are all "ongoing" states where the trip has not ended)
+ *   <li>When status becomes IN_PROGRESS, PAUSED, or RESTING: adds or updates the active trip record
+ *       (these are all "ongoing" states where the trip has not ended)
  *   <li>When status becomes FINISHED or CREATED: removes the active trip record
  * </ul>
  */
@@ -61,8 +61,7 @@ public class ActiveTripManager {
 
     /**
      * Returns whether the given status represents an ongoing trip that should keep the active trip
-     * record. IN_PROGRESS, PAUSED, and RESTING are all ongoing — only FINISHED and CREATED are
-     * not.
+     * record. IN_PROGRESS, PAUSED, and RESTING are all ongoing — only FINISHED and CREATED are not.
      */
     private boolean isOngoingStatus(TripStatus status) {
         return status == TripStatus.IN_PROGRESS
@@ -70,4 +69,3 @@ public class ActiveTripManager {
                 || status == TripStatus.RESTING;
     }
 }
-

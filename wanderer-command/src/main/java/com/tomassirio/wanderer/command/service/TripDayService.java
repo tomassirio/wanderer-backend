@@ -32,4 +32,3 @@ public interface TripDayService {
      */
     UUID toggleDay(UUID userId, UUID id);
 }
-

@@ -14,6 +14,7 @@ import com.tomassirio.wanderer.auth.service.TokenService;
 import com.tomassirio.wanderer.commons.domain.User;
 import com.tomassirio.wanderer.commons.security.Role;
 import feign.FeignException;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -45,7 +46,7 @@ public class AuthServiceImpl implements AuthService {
      */
     public LoginResponse login(String username, String password) {
         // Lookup user via query service (read side) — normalize to lowercase
-        String normalizedUsername = username.toLowerCase(java.util.Locale.ROOT);
+        String normalizedUsername = username.toLowerCase(Locale.ROOT);
         User user;
         try {
             user = wandererQueryClient.getUserByUsername(normalizedUsername);
@@ -96,7 +97,7 @@ public class AuthServiceImpl implements AuthService {
      */
     public RegisterPendingResponse register(RegisterRequest request) {
         // Normalize username to lowercase for case-insensitive uniqueness
-        String normalizedUsername = request.username().toLowerCase(java.util.Locale.ROOT);
+        String normalizedUsername = request.username().toLowerCase(Locale.ROOT);
 
         // Check if email is already in use
         if (credentialRepository.findByEmail(request.email()).isPresent()) {

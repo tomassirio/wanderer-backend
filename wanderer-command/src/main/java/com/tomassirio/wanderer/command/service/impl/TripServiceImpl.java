@@ -260,7 +260,6 @@ public class TripServiceImpl implements TripService {
         return id;
     }
 
-
     private TripModality deriveModalityFromPlanType(TripPlanType planType) {
         return TripPlanType.MULTI_DAY.equals(planType)
                 ? TripModality.MULTI_DAY

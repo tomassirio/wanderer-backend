@@ -11,6 +11,7 @@ import com.tomassirio.wanderer.command.service.UserService;
 import com.tomassirio.wanderer.commons.domain.User;
 import feign.FeignException;
 import jakarta.persistence.EntityNotFoundException;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.UUID;
 import lombok.AllArgsConstructor;
@@ -31,7 +32,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UUID createUser(UserCreationRequest request) {
-        String normalizedUsername = request.username().toLowerCase(java.util.Locale.ROOT);
+        String normalizedUsername = request.username().toLowerCase(Locale.ROOT);
         log.info("Creating user with username={} email={}", normalizedUsername, request.email());
 
         log.debug("Checking username uniqueness for {}", normalizedUsername);

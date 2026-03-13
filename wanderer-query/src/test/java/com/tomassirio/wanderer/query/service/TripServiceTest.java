@@ -443,8 +443,7 @@ class TripServiceTest {
         assertThat(result.get(1).tripSettings().tripStatus()).isEqualTo(TripStatus.IN_PROGRESS);
 
         verify(tripRepository)
-                .findByVisibilityAndStatusIn(
-                        TripVisibility.PUBLIC, TripStatus.getActiveStatuses());
+                .findByVisibilityAndStatusIn(TripVisibility.PUBLIC, TripStatus.getActiveStatuses());
     }
 
     @Test
@@ -462,8 +461,7 @@ class TripServiceTest {
         assertThat(result).isEmpty();
 
         verify(tripRepository)
-                .findByVisibilityAndStatusIn(
-                        TripVisibility.PUBLIC, TripStatus.getActiveStatuses());
+                .findByVisibilityAndStatusIn(TripVisibility.PUBLIC, TripStatus.getActiveStatuses());
     }
 
     @Test
@@ -490,8 +488,7 @@ class TripServiceTest {
         assertThat(result.get(0).tripSettings().tripStatus()).isEqualTo(TripStatus.IN_PROGRESS);
 
         verify(tripRepository)
-                .findByVisibilityAndStatusIn(
-                        TripVisibility.PUBLIC, TripStatus.getActiveStatuses());
+                .findByVisibilityAndStatusIn(TripVisibility.PUBLIC, TripStatus.getActiveStatuses());
     }
 
     @Test
@@ -556,8 +553,7 @@ class TripServiceTest {
         assertThat(result.get(2).name()).isEqualTo("Not Followed Trip");
 
         verify(tripRepository)
-                .findByVisibilityAndStatusIn(
-                        TripVisibility.PUBLIC, TripStatus.getActiveStatuses());
+                .findByVisibilityAndStatusIn(TripVisibility.PUBLIC, TripStatus.getActiveStatuses());
         verify(userFollowRepository).findByFollowerId(requestingUserId);
     }
 
@@ -592,8 +588,7 @@ class TripServiceTest {
         assertThat(result.get(1).name()).isEqualTo("Trip 2");
 
         verify(tripRepository)
-                .findByVisibilityAndStatusIn(
-                        TripVisibility.PUBLIC, TripStatus.getActiveStatuses());
+                .findByVisibilityAndStatusIn(TripVisibility.PUBLIC, TripStatus.getActiveStatuses());
         verify(userFollowRepository).findByFollowerId(requestingUserId);
     }
 
@@ -650,8 +645,7 @@ class TripServiceTest {
         assertThat(result.get(1).name()).isEqualTo("Followed Trip 2");
 
         verify(tripRepository)
-                .findByVisibilityAndStatusIn(
-                        TripVisibility.PUBLIC, TripStatus.getActiveStatuses());
+                .findByVisibilityAndStatusIn(TripVisibility.PUBLIC, TripStatus.getActiveStatuses());
         verify(userFollowRepository).findByFollowerId(requestingUserId);
     }
 
@@ -701,8 +695,7 @@ class TripServiceTest {
         assertThat(result.get(1).name()).isEqualTo("Not Followed Trip 2");
 
         verify(tripRepository)
-                .findByVisibilityAndStatusIn(
-                        TripVisibility.PUBLIC, TripStatus.getActiveStatuses());
+                .findByVisibilityAndStatusIn(TripVisibility.PUBLIC, TripStatus.getActiveStatuses());
         verify(userFollowRepository).findByFollowerId(requestingUserId);
     }
 

@@ -303,7 +303,14 @@ class TripPlanControllerTest {
 
         TripPlanCreationRequest request =
                 new TripPlanCreationRequest(
-                        "Valid Name", startDate, endDate, location, location, List.of(), null, null);
+                        "Valid Name",
+                        startDate,
+                        endDate,
+                        location,
+                        location,
+                        List.of(),
+                        null,
+                        null);
 
         // When & Then
         mockMvc.perform(
