@@ -120,13 +120,13 @@ public class AuthServiceImpl implements AuthService {
         // Hash the password
         String passwordHash = passwordEncoder.encode(request.password());
 
-        // Create email verification token with lowercase username
+        // Create email verification token with original username preserved
         String verificationToken =
                 tokenService.createEmailVerificationToken(
-                        request.email(), normalizedUsername, passwordHash);
+                        request.email(), request.username(), passwordHash);
 
-        // Send verification email
-        emailService.sendVerificationEmail(request.email(), normalizedUsername, verificationToken);
+        // Send verification email with original-cased username
+        emailService.sendVerificationEmail(request.email(), request.username(), verificationToken);
 
         return new RegisterPendingResponse(
                 "Registration pending. Please check your email to verify your account.");
@@ -140,8 +140,11 @@ public class AuthServiceImpl implements AuthService {
         // Validate the verification token and get registration data
         String[] verificationData = tokenService.validateEmailVerificationToken(token);
         String email = verificationData[0];
-        String username = verificationData[1];
+        String originalUsername = verificationData[1];
         String passwordHash = verificationData[2];
+
+        // Normalize username to lowercase; keep original casing as displayName
+        String username = originalUsername.toLowerCase(Locale.ROOT);
 
         // Double-check that email is still available
         if (credentialRepository.findByEmail(email).isPresent()) {
@@ -149,7 +152,7 @@ public class AuthServiceImpl implements AuthService {
         }
 
         // 1) Create the domain user via the command service (returns UUID)
-        var payload = Map.of("username", username, "email", email);
+        var payload = Map.of("username", username, "email", email, "displayName", originalUsername);
         UUID createdUserId;
         try {
             createdUserId = wandererCommandClient.createUser(payload);

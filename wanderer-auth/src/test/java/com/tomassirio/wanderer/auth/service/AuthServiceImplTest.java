@@ -28,6 +28,7 @@ import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -199,7 +200,7 @@ class AuthServiceImplTest {
                 .thenThrow(new NotFound("User not found", dummyRequest, null, null));
         when(passwordEncoder.encode(request.password())).thenReturn("hashedPassword");
         when(tokenService.createEmailVerificationToken(
-                        request.email(), "testuser", "hashedPassword"))
+                        request.email(), "TestUser", "hashedPassword"))
                 .thenReturn(verificationToken);
 
         RegisterPendingResponse result = authService.register(request);
@@ -207,10 +208,12 @@ class AuthServiceImplTest {
         assertEquals(
                 "Registration pending. Please check your email to verify your account.",
                 result.message());
+        // Uniqueness check should use lowercase
         verify(wandererQueryClient).getUserByUsername("testuser");
+        // Token and email should preserve original casing for displayName
         verify(tokenService)
-                .createEmailVerificationToken(request.email(), "testuser", "hashedPassword");
-        verify(emailService).sendVerificationEmail(request.email(), "testuser", verificationToken);
+                .createEmailVerificationToken(request.email(), "TestUser", "hashedPassword");
+        verify(emailService).sendVerificationEmail(request.email(), "TestUser", verificationToken);
     }
 
     @Test
@@ -267,6 +270,36 @@ class AuthServiceImplTest {
         verify(credentialRepository).save(any(Credential.class));
         verify(tokenService).markEmailVerificationTokenAsVerified(verificationToken);
         verify(wandererCommandClient, never()).deleteUser(any());
+    }
+
+    @Test
+    void verifyEmail_whenMixedCaseUsername_shouldPassDisplayNameToCommandService() {
+        String verificationToken = "verification.token";
+        // Token stores the original-cased username from registration
+        String[] verificationData = new String[] {"test@example.com", "TestUser", "hashedPassword"};
+        String accessToken = "jwt.access.token";
+        String refreshToken = "refresh.token";
+        long expiresIn = 3600000L;
+
+        when(tokenService.validateEmailVerificationToken(verificationToken))
+                .thenReturn(verificationData);
+        when(credentialRepository.findByEmail(verificationData[0])).thenReturn(Optional.empty());
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<Map<String, String>> payloadCaptor = ArgumentCaptor.forClass(Map.class);
+        when(wandererCommandClient.createUser(payloadCaptor.capture()))
+                .thenReturn(testUser.getId());
+        when(wandererQueryClient.getUserById(testUser.getId())).thenReturn(testUser);
+        when(credentialRepository.findById(testUser.getId())).thenReturn(Optional.empty());
+        when(jwtService.generateTokenWithJti(any(), any(), any())).thenReturn(accessToken);
+        when(tokenService.createRefreshToken(testUser.getId())).thenReturn(refreshToken);
+        when(jwtService.getExpirationMs()).thenReturn(expiresIn);
+
+        authService.verifyEmail(verificationToken);
+
+        // Verify the payload sent to the command service
+        Map<String, String> payload = payloadCaptor.getValue();
+        assertEquals("testuser", payload.get("username"));
+        assertEquals("TestUser", payload.get("displayName"));
     }
 
     @Test

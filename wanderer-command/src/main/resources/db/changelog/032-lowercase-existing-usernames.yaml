@@ -3,9 +3,12 @@ databaseChangeLog:
       id: 032-lowercase-existing-usernames
       author: tomassirio
       comment: >
-        Normalize all existing usernames to lowercase so that the new
-        case-insensitive lookup works for users who registered before
-        this change.
+        Preserve the original-cased username as display_name for users
+        who don't already have one, then normalize all existing usernames
+        to lowercase so that the new case-insensitive lookup works for
+        users who registered before this change.
       changes:
+        - sql:
+            sql: UPDATE users SET display_name = username WHERE display_name IS NULL AND username <> LOWER(username)
         - sql:
             sql: UPDATE users SET username = LOWER(username) WHERE username <> LOWER(username)

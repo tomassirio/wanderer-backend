@@ -56,7 +56,7 @@ class UserControllerTest {
 
     @Test
     void createUser_whenValidRequest_shouldReturnCreated() throws Exception {
-        UserCreationRequest req = new UserCreationRequest("johndoe", "john@example.com");
+        UserCreationRequest req = new UserCreationRequest("johndoe", "john@example.com", null);
         UUID id = UUID.randomUUID();
 
         doReturn(id).when(userService).createUser(any(UserCreationRequest.class));
@@ -71,7 +71,7 @@ class UserControllerTest {
 
     @Test
     void createUser_whenUsernameTooShort_shouldReturnBadRequest() throws Exception {
-        UserCreationRequest req = new UserCreationRequest("ab", "john@example.com");
+        UserCreationRequest req = new UserCreationRequest("ab", "john@example.com", null);
 
         mockMvc.perform(
                         post("/api/1/users")
@@ -82,7 +82,7 @@ class UserControllerTest {
 
     @Test
     void createUser_whenEmailInvalid_shouldReturnBadRequest() throws Exception {
-        UserCreationRequest req = new UserCreationRequest("johndoe", "not-an-email");
+        UserCreationRequest req = new UserCreationRequest("johndoe", "not-an-email", null);
 
         mockMvc.perform(
                         post("/api/1/users")
@@ -93,7 +93,7 @@ class UserControllerTest {
 
     @Test
     void createUser_whenServiceThrowsIllegalArgument_shouldReturnBadRequest() throws Exception {
-        UserCreationRequest req = new UserCreationRequest("johndoe", "john@example.com");
+        UserCreationRequest req = new UserCreationRequest("johndoe", "john@example.com", null);
         when(userService.createUser(any(UserCreationRequest.class)))
                 .thenThrow(new IllegalArgumentException("Username already in use"));
 

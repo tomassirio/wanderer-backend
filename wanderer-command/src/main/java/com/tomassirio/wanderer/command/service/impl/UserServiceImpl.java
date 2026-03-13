@@ -47,7 +47,11 @@ public class UserServiceImpl implements UserService {
 
         // Publish event - persistence handler will write to DB
         eventPublisher.publishEvent(
-                UserCreatedEvent.builder().userId(userId).username(normalizedUsername).build());
+                UserCreatedEvent.builder()
+                        .userId(userId)
+                        .username(normalizedUsername)
+                        .displayName(request.displayName())
+                        .build());
 
         log.info("User created with id={}", userId);
         return userId;

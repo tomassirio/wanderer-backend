@@ -13,4 +13,5 @@ import lombok.NoArgsConstructor;
 public class UserCreatedEvent implements DomainEvent {
     private UUID userId;
     private String username;
+    private String displayName;
 }
