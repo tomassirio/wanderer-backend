@@ -61,3 +61,5 @@ databaseChangeLog:
       file: db/changelog/030-make-trip-update-location-nullable.yaml
   - include:
       file: db/changelog/031-add-planned-polyline.yaml
+  - include:
+      file: db/changelog/032-lowercase-existing-usernames.yaml
