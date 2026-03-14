@@ -112,6 +112,25 @@ class UserQueryServiceTest {
     }
 
     @Test
+    void getUserByUsername_whenMixedCaseInput_shouldNormalizeToLowercase() {
+        // Given
+        UUID userId = UUID.randomUUID();
+        User user = createUser(userId, "alice");
+
+        when(userRepository.findByUsername("alice")).thenReturn(Optional.of(user));
+
+        // When
+        UserResponse result = userQueryService.getUserByUsername("Alice");
+
+        // Then
+        assertThat(result).isNotNull();
+        assertThat(result.id()).isEqualTo(userId);
+        assertThat(result.username()).isEqualTo("alice");
+
+        verify(userRepository).findByUsername("alice");
+    }
+
+    @Test
     void getUserByUsername_whenUserDoesNotExist_shouldThrowEntityNotFoundException() {
         // Given
         String nonExistentUsername = "unknownuser";
@@ -154,7 +173,7 @@ class UserQueryServiceTest {
     void getUserByUsername_shouldMapUserFieldsCorrectly() {
         // Given
         UUID userId = UUID.randomUUID();
-        String username = "detailedUser";
+        String username = "detaileduser";
         User user = createUser(userId, username);
 
         when(userRepository.findByUsername(username)).thenReturn(Optional.of(user));

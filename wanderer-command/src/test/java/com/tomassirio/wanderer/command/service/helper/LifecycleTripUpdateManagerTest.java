@@ -127,7 +127,6 @@ class LifecycleTripUpdateManagerTest {
         verify(tripUpdateRepository, never()).save(any(TripUpdate.class));
     }
 
-
     // --- Helper methods ---
 
     private Trip createTrip() {
@@ -145,4 +144,3 @@ class LifecycleTripUpdateManagerTest {
                 .build();
     }
 }
-

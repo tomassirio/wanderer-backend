@@ -1216,7 +1216,6 @@ class TripServiceImplTest {
         verify(eventPublisher, never()).publishEvent(any());
     }
 
-
     // --- changeStatus transition validation tests ---
 
     @Test
@@ -1365,11 +1364,7 @@ class TripServiceImplTest {
                         .build();
 
         Trip newTrip =
-                Trip.builder()
-                        .id(newTripId)
-                        .userId(USER_ID)
-                        .tripSettings(newTripSettings)
-                        .build();
+                Trip.builder().id(newTripId).userId(USER_ID).tripSettings(newTripSettings).build();
 
         com.tomassirio.wanderer.commons.domain.ActiveTrip activeTrip =
                 com.tomassirio.wanderer.commons.domain.ActiveTrip.builder()
@@ -1402,11 +1397,7 @@ class TripServiceImplTest {
                         .build();
 
         Trip newTrip =
-                Trip.builder()
-                        .id(newTripId)
-                        .userId(USER_ID)
-                        .tripSettings(newTripSettings)
-                        .build();
+                Trip.builder().id(newTripId).userId(USER_ID).tripSettings(newTripSettings).build();
 
         com.tomassirio.wanderer.commons.domain.ActiveTrip activeTrip =
                 com.tomassirio.wanderer.commons.domain.ActiveTrip.builder()

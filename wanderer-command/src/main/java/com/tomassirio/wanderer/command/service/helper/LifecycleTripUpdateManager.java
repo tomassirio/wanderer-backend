@@ -79,4 +79,3 @@ public class LifecycleTripUpdateManager {
         return null;
     }
 }
-

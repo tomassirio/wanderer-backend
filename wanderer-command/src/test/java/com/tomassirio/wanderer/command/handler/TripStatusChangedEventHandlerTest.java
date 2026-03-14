@@ -81,10 +81,8 @@ class TripStatusChangedEventHandlerTest {
                 .handleStatusTransition(trip, TripStatus.CREATED, TripStatus.IN_PROGRESS);
         verify(lifecycleTripUpdateManager)
                 .createLifecycleTripUpdate(trip, TripStatus.CREATED, TripStatus.IN_PROGRESS);
-        verify(tripDayManager)
-                .manageTripDays(trip, TripStatus.CREATED, TripStatus.IN_PROGRESS);
-        verify(activeTripManager)
-                .manageActiveTrip(userId, tripId, TripStatus.IN_PROGRESS);
+        verify(tripDayManager).manageTripDays(trip, TripStatus.CREATED, TripStatus.IN_PROGRESS);
+        verify(activeTripManager).manageActiveTrip(userId, tripId, TripStatus.IN_PROGRESS);
 
         // Entity is managed, no need to verify save
         assertThat(trip.getTripSettings().getTripStatus()).isEqualTo(TripStatus.IN_PROGRESS);
@@ -186,8 +184,7 @@ class TripStatusChangedEventHandlerTest {
         handler.handle(event);
 
         // Then
-        verify(tripDayManager)
-                .manageTripDays(trip, TripStatus.CREATED, TripStatus.IN_PROGRESS);
+        verify(tripDayManager).manageTripDays(trip, TripStatus.CREATED, TripStatus.IN_PROGRESS);
     }
 
     @Test
@@ -209,8 +206,7 @@ class TripStatusChangedEventHandlerTest {
         handler.handle(event);
 
         // Then
-        verify(activeTripManager)
-                .manageActiveTrip(userId, tripId, TripStatus.IN_PROGRESS);
+        verify(activeTripManager).manageActiveTrip(userId, tripId, TripStatus.IN_PROGRESS);
     }
 
     // --- Helper methods ---

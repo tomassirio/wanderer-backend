@@ -3,6 +3,7 @@ package com.tomassirio.wanderer.command.handler;
 import com.tomassirio.wanderer.command.event.UserCreatedEvent;
 import com.tomassirio.wanderer.command.repository.UserRepository;
 import com.tomassirio.wanderer.commons.domain.User;
+import com.tomassirio.wanderer.commons.domain.UserDetails;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
@@ -23,9 +24,14 @@ public class UserCreatedEventHandler implements EventHandler<UserCreatedEvent> {
     public void handle(UserCreatedEvent event) {
         log.debug("Persisting UserCreatedEvent for user: {}", event.getUserId());
 
-        User user = User.builder().id(event.getUserId()).username(event.getUsername()).build();
+        User.UserBuilder builder =
+                User.builder().id(event.getUserId()).username(event.getUsername());
 
-        userRepository.save(user);
+        if (event.getDisplayName() != null) {
+            builder.userDetails(UserDetails.builder().displayName(event.getDisplayName()).build());
+        }
+
+        userRepository.save(builder.build());
         log.info("User created and persisted: {}", event.getUserId());
     }
 }

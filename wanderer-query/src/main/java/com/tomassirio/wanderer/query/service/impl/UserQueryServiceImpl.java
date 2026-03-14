@@ -11,6 +11,7 @@ import com.tomassirio.wanderer.query.repository.UserFollowRepository;
 import com.tomassirio.wanderer.query.repository.UserRepository;
 import com.tomassirio.wanderer.query.service.UserQueryService;
 import jakarta.persistence.EntityNotFoundException;
+import java.util.Locale;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -51,7 +52,7 @@ public class UserQueryServiceImpl implements UserQueryService {
     public UserResponse getUserByUsername(String username) {
         var user =
                 userRepository
-                        .findByUsername(username)
+                        .findByUsername(username.toLowerCase(Locale.ROOT))
                         .orElseThrow(() -> new EntityNotFoundException("User not found"));
         return toUserResponse(user);
     }

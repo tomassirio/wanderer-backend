@@ -254,8 +254,7 @@ class TripDayServiceImplTest {
                         .tripDetails(TripDetails.builder().currentDay(1).build())
                         .build();
 
-        ActiveTrip activeTrip =
-                ActiveTrip.builder().userId(USER_ID).tripId(otherTripId).build();
+        ActiveTrip activeTrip = ActiveTrip.builder().userId(USER_ID).tripId(otherTripId).build();
 
         when(tripRepository.findById(tripId)).thenReturn(Optional.of(existingTrip));
         when(activeTripRepository.findById(USER_ID)).thenReturn(Optional.of(activeTrip));
@@ -268,4 +267,3 @@ class TripDayServiceImplTest {
         verify(eventPublisher, never()).publishEvent(any(TripStatusChangedEvent.class));
     }
 }
-

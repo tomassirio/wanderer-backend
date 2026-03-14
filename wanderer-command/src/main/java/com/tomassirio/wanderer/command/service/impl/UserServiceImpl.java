@@ -11,6 +11,7 @@ import com.tomassirio.wanderer.command.service.UserService;
 import com.tomassirio.wanderer.commons.domain.User;
 import feign.FeignException;
 import jakarta.persistence.EntityNotFoundException;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.UUID;
 import lombok.AllArgsConstructor;
@@ -31,12 +32,13 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UUID createUser(UserCreationRequest request) {
-        log.info("Creating user with username={} email={}", request.username(), request.email());
+        String normalizedUsername = request.username().toLowerCase(Locale.ROOT);
+        log.info("Creating user with username={} email={}", normalizedUsername, request.email());
 
-        log.debug("Checking username uniqueness for {}", request.username());
-        Optional<User> byUsername = userRepository.findByUsername(request.username());
+        log.debug("Checking username uniqueness for {}", normalizedUsername);
+        Optional<User> byUsername = userRepository.findByUsername(normalizedUsername);
         if (byUsername.isPresent()) {
-            log.warn("Username already in use: {}", request.username());
+            log.warn("Username already in use: {}", normalizedUsername);
             throw new IllegalArgumentException("Username already in use");
         }
 
@@ -45,7 +47,11 @@ public class UserServiceImpl implements UserService {
 
         // Publish event - persistence handler will write to DB
         eventPublisher.publishEvent(
-                UserCreatedEvent.builder().userId(userId).username(request.username()).build());
+                UserCreatedEvent.builder()
+                        .userId(userId)
+                        .username(normalizedUsername)
+                        .displayName(request.displayName())
+                        .build());
 
         log.info("User created with id={}", userId);
         return userId;

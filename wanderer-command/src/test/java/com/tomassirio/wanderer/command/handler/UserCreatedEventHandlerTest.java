@@ -37,5 +37,31 @@ class UserCreatedEventHandlerTest {
         User saved = captor.getValue();
         assertThat(saved.getId()).isEqualTo(userId);
         assertThat(saved.getUsername()).isEqualTo(username);
+        assertThat(saved.getUserDetails()).isNull();
+    }
+
+    @Test
+    void handle_whenDisplayNameProvided_shouldPersistUserWithDisplayName() {
+        UUID userId = UUID.randomUUID();
+        String username = "johndoe";
+        String displayName = "JohnDoe";
+
+        UserCreatedEvent event =
+                UserCreatedEvent.builder()
+                        .userId(userId)
+                        .username(username)
+                        .displayName(displayName)
+                        .build();
+
+        handler.handle(event);
+
+        ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
+        verify(userRepository).save(captor.capture());
+
+        User saved = captor.getValue();
+        assertThat(saved.getId()).isEqualTo(userId);
+        assertThat(saved.getUsername()).isEqualTo(username);
+        assertThat(saved.getUserDetails()).isNotNull();
+        assertThat(saved.getUserDetails().getDisplayName()).isEqualTo(displayName);
     }
 }

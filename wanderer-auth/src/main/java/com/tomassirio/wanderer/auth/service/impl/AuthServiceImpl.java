@@ -14,6 +14,7 @@ import com.tomassirio.wanderer.auth.service.TokenService;
 import com.tomassirio.wanderer.commons.domain.User;
 import com.tomassirio.wanderer.commons.security.Role;
 import feign.FeignException;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -44,10 +45,11 @@ public class AuthServiceImpl implements AuthService {
      * @throws IllegalArgumentException when credentials are invalid
      */
     public LoginResponse login(String username, String password) {
-        // Lookup user via query service (read side)
+        // Lookup user via query service (read side) — normalize to lowercase
+        String normalizedUsername = username.toLowerCase(Locale.ROOT);
         User user;
         try {
-            user = wandererQueryClient.getUserByUsername(username);
+            user = wandererQueryClient.getUserByUsername(normalizedUsername);
         } catch (FeignException e) {
             if (e.status() == 404) {
                 throw new IllegalArgumentException("Invalid credentials");
@@ -94,6 +96,9 @@ public class AuthServiceImpl implements AuthService {
      * only created after email verification.
      */
     public RegisterPendingResponse register(RegisterRequest request) {
+        // Normalize username to lowercase for case-insensitive uniqueness
+        String normalizedUsername = request.username().toLowerCase(Locale.ROOT);
+
         // Check if email is already in use
         if (credentialRepository.findByEmail(request.email()).isPresent()) {
             throw new IllegalArgumentException("Email already in use: " + request.email());
@@ -101,9 +106,9 @@ public class AuthServiceImpl implements AuthService {
 
         // Check if username is already taken by querying the read side
         try {
-            User existingUser = wandererQueryClient.getUserByUsername(request.username());
+            User existingUser = wandererQueryClient.getUserByUsername(normalizedUsername);
             if (existingUser != null) {
-                throw new IllegalArgumentException("Username already taken: " + request.username());
+                throw new IllegalArgumentException("Username already taken: " + normalizedUsername);
             }
         } catch (FeignException e) {
             // 404 is expected if username doesn't exist - this is good
@@ -115,12 +120,12 @@ public class AuthServiceImpl implements AuthService {
         // Hash the password
         String passwordHash = passwordEncoder.encode(request.password());
 
-        // Create email verification token
+        // Create email verification token with original username preserved
         String verificationToken =
                 tokenService.createEmailVerificationToken(
                         request.email(), request.username(), passwordHash);
 
-        // Send verification email
+        // Send verification email with original-cased username
         emailService.sendVerificationEmail(request.email(), request.username(), verificationToken);
 
         return new RegisterPendingResponse(
@@ -135,8 +140,11 @@ public class AuthServiceImpl implements AuthService {
         // Validate the verification token and get registration data
         String[] verificationData = tokenService.validateEmailVerificationToken(token);
         String email = verificationData[0];
-        String username = verificationData[1];
+        String originalUsername = verificationData[1];
         String passwordHash = verificationData[2];
+
+        // Normalize username to lowercase; keep original casing as displayName
+        String username = originalUsername.toLowerCase(Locale.ROOT);
 
         // Double-check that email is still available
         if (credentialRepository.findByEmail(email).isPresent()) {
@@ -144,7 +152,7 @@ public class AuthServiceImpl implements AuthService {
         }
 
         // 1) Create the domain user via the command service (returns UUID)
-        var payload = Map.of("username", username, "email", email);
+        var payload = Map.of("username", username, "email", email, "displayName", originalUsername);
         UUID createdUserId;
         try {
             createdUserId = wandererCommandClient.createUser(payload);
