@@ -1,0 +1,70 @@
+databaseChangeLog:
+  - changeSet:
+      id: 033-create-notifications-table
+      author: tomassirio
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - tableExists:
+                tableName: notifications
+      changes:
+        - createTable:
+            tableName: notifications
+            columns:
+              - column:
+                  name: id
+                  type: uuid
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: recipient_id
+                  type: uuid
+                  constraints:
+                    nullable: false
+              - column:
+                  name: actor_id
+                  type: uuid
+              - column:
+                  name: type
+                  type: varchar(50)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: reference_id
+                  type: uuid
+              - column:
+                  name: message
+                  type: text
+                  constraints:
+                    nullable: false
+              - column:
+                  name: is_read
+                  type: boolean
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: timestamp with time zone
+                  constraints:
+                    nullable: false
+        - addForeignKeyConstraint:
+            baseTableName: notifications
+            baseColumnNames: recipient_id
+            referencedTableName: users
+            referencedColumnNames: id
+            constraintName: fk_notifications_recipient_id
+            onDelete: CASCADE
+        - createIndex:
+            indexName: idx_notifications_recipient_read_created
+            tableName: notifications
+            columns:
+              - column:
+                  name: recipient_id
+              - column:
+                  name: is_read
+              - column:
+                  name: created_at
+                  descending: true
+
