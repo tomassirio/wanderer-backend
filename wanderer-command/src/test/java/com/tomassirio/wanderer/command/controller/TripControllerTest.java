@@ -107,7 +107,7 @@ class TripControllerTest {
     @Test
     void createTrip_whenNameIsTooShort_shouldReturnBadRequest() throws Exception {
         // Given
-        TripCreationRequest request = new TripCreationRequest("AB", TripVisibility.PUBLIC, null);
+        TripCreationRequest request = new TripCreationRequest("AB", TripVisibility.PUBLIC, null, null, null);
 
         // When & Then
         mockMvc.perform(
@@ -120,7 +120,7 @@ class TripControllerTest {
     @Test
     void createTrip_whenNameIsBlank_shouldReturnBadRequest() throws Exception {
         // Given
-        TripCreationRequest request = new TripCreationRequest("", TripVisibility.PUBLIC, null);
+        TripCreationRequest request = new TripCreationRequest("", TripVisibility.PUBLIC, null, null, null);
 
         // When & Then
         mockMvc.perform(
@@ -135,7 +135,7 @@ class TripControllerTest {
         // Given - name with more than 100 characters
         String longName = "A".repeat(101);
         TripCreationRequest request =
-                new TripCreationRequest(longName, TripVisibility.PUBLIC, null);
+                new TripCreationRequest(longName, TripVisibility.PUBLIC, null, null, null);
 
         // When & Then
         mockMvc.perform(
@@ -148,7 +148,21 @@ class TripControllerTest {
     @Test
     void createTrip_whenVisibilityIsNull_shouldReturnBadRequest() throws Exception {
         // Given
-        TripCreationRequest request = new TripCreationRequest("Summer Road Trip", null, null);
+        TripCreationRequest request = new TripCreationRequest("Summer Road Trip", null, null, null, null);
+
+        // When & Then
+        mockMvc.perform(
+                        post(TRIPS_BASE_URL)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void createTrip_whenUpdateRefreshBelowMinimum_shouldReturnBadRequest() throws Exception {
+        // Given - updateRefresh is 10, below the minimum of 15
+        TripCreationRequest request =
+                new TripCreationRequest("Summer Road Trip", TripVisibility.PUBLIC, null, null, 10);
 
         // When & Then
         mockMvc.perform(
