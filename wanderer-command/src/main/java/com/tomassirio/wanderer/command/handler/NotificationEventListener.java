@@ -21,6 +21,7 @@ import com.tomassirio.wanderer.commons.domain.Notification;
 import com.tomassirio.wanderer.commons.domain.NotificationType;
 import com.tomassirio.wanderer.commons.domain.Trip;
 import com.tomassirio.wanderer.commons.domain.TripStatus;
+import com.tomassirio.wanderer.commons.domain.TripVisibility;
 import com.tomassirio.wanderer.commons.domain.UpdateType;
 import com.tomassirio.wanderer.commons.domain.User;
 import com.tomassirio.wanderer.commons.domain.UserFollow;
@@ -284,6 +285,12 @@ public class NotificationEventListener {
         Optional<Trip> tripOpt = tripRepository.findById(event.getTripId());
         tripOpt.ifPresent(
                 trip -> {
+                    TripVisibility visibility = trip.getTripSettings().getVisibility();
+                    if (visibility == TripVisibility.PRIVATE) {
+                        log.debug("Skipping notifications for private trip {}", event.getTripId());
+                        return;
+                    }
+
                     UUID ownerId = trip.getUserId();
                     String ownerName = resolveUsername(ownerId);
                     String statusLabel =
@@ -298,7 +305,7 @@ public class NotificationEventListener {
                                     + trip.getName()
                                     + "\"";
 
-                    Set<UUID> recipientIds = collectFollowersAndFriends(ownerId);
+                    Set<UUID> recipientIds = collectRecipientsByVisibility(ownerId, visibility);
                     saveForRecipients(
                             recipientIds,
                             ownerId,
@@ -325,6 +332,12 @@ public class NotificationEventListener {
         Optional<Trip> tripOpt = tripRepository.findById(event.getTripId());
         tripOpt.ifPresent(
                 trip -> {
+                    TripVisibility visibility = trip.getTripSettings().getVisibility();
+                    if (visibility == TripVisibility.PRIVATE) {
+                        log.debug("Skipping notifications for private trip {}", event.getTripId());
+                        return;
+                    }
+
                     UUID ownerId = trip.getUserId();
                     String ownerName = resolveUsername(ownerId);
                     String message =
@@ -333,7 +346,7 @@ public class NotificationEventListener {
                                     + trip.getName()
                                     + "\"";
 
-                    Set<UUID> recipientIds = collectFollowersAndFriends(ownerId);
+                    Set<UUID> recipientIds = collectRecipientsByVisibility(ownerId, visibility);
                     saveForRecipients(
                             recipientIds,
                             ownerId,
@@ -346,23 +359,32 @@ public class NotificationEventListener {
     // ==================== HELPERS ====================
 
     /**
-     * Collects unique user IDs of all followers and friends for a given user.
+     * Collects recipient user IDs based on trip visibility.
      *
-     * @param userId the user whose followers/friends to find
+     * <ul>
+     *   <li>{@code PRIVATE} — no recipients (caller should skip before reaching this method)
+     *   <li>{@code PROTECTED} — friends only
+     *   <li>{@code PUBLIC} — followers + friends
+     * </ul>
+     *
+     * @param userId the trip owner whose followers/friends to find
+     * @param visibility the trip's visibility setting
      * @return set of unique recipient user IDs (excludes the user themselves)
      */
-    private Set<UUID> collectFollowersAndFriends(UUID userId) {
+    private Set<UUID> collectRecipientsByVisibility(UUID userId, TripVisibility visibility) {
         Set<UUID> recipients = new HashSet<>();
 
-        // Followers (people who follow this user)
-        userFollowRepository.findByFollowedId(userId).stream()
-                .map(UserFollow::getFollowerId)
-                .forEach(recipients::add);
-
-        // Friends (bidirectional)
+        // Friends are notified for both PROTECTED and PUBLIC trips
         friendshipRepository.findByUserId(userId).stream()
                 .map(Friendship::getFriendId)
                 .forEach(recipients::add);
+
+        // Followers are only notified for PUBLIC trips
+        if (visibility == TripVisibility.PUBLIC) {
+            userFollowRepository.findByFollowedId(userId).stream()
+                    .map(UserFollow::getFollowerId)
+                    .forEach(recipients::add);
+        }
 
         // Never include the user themselves
         recipients.remove(userId);

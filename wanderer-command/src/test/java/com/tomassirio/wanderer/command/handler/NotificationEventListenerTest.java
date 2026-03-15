@@ -26,6 +26,8 @@ import com.tomassirio.wanderer.commons.domain.Notification;
 import com.tomassirio.wanderer.commons.domain.NotificationType;
 import com.tomassirio.wanderer.commons.domain.Trip;
 import com.tomassirio.wanderer.commons.domain.TripStatus;
+import com.tomassirio.wanderer.commons.domain.TripSettings;
+import com.tomassirio.wanderer.commons.domain.TripVisibility;
 import com.tomassirio.wanderer.commons.domain.UpdateType;
 import com.tomassirio.wanderer.commons.domain.User;
 import com.tomassirio.wanderer.commons.domain.UserFollow;
@@ -360,8 +362,19 @@ class NotificationEventListenerTest {
     // ==================== TRIP STATUS CHANGED TESTS ====================
 
     @Test
-    void onTripStatusChanged_InProgress_NotifiesFollowersAndFriends() {
-        Trip trip = Trip.builder().id(tripId).userId(tripOwnerId).name("Camino").build();
+    void onTripStatusChanged_PublicTrip_NotifiesFollowersAndFriends() {
+        TripSettings settings =
+                TripSettings.builder()
+                        .tripStatus(TripStatus.IN_PROGRESS)
+                        .visibility(TripVisibility.PUBLIC)
+                        .build();
+        Trip trip =
+                Trip.builder()
+                        .id(tripId)
+                        .userId(tripOwnerId)
+                        .name("Camino")
+                        .tripSettings(settings)
+                        .build();
         when(tripRepository.findById(tripId)).thenReturn(Optional.of(trip));
         when(userRepository.findById(tripOwnerId))
                 .thenReturn(
@@ -399,6 +412,82 @@ class NotificationEventListenerTest {
         listener.onTripStatusChanged(event);
 
         verify(notificationRepository).saveAll(anyList());
+        verify(userFollowRepository).findByFollowedId(tripOwnerId);
+        verify(friendshipRepository).findByUserId(tripOwnerId);
+    }
+
+    @Test
+    void onTripStatusChanged_ProtectedTrip_NotifiesFriendsOnly() {
+        TripSettings settings =
+                TripSettings.builder()
+                        .tripStatus(TripStatus.IN_PROGRESS)
+                        .visibility(TripVisibility.PROTECTED)
+                        .build();
+        Trip trip =
+                Trip.builder()
+                        .id(tripId)
+                        .userId(tripOwnerId)
+                        .name("Camino")
+                        .tripSettings(settings)
+                        .build();
+        when(tripRepository.findById(tripId)).thenReturn(Optional.of(trip));
+        when(userRepository.findById(tripOwnerId))
+                .thenReturn(
+                        Optional.of(
+                                User.builder().id(tripOwnerId).username("walker").build()));
+
+        UUID friendId = UUID.randomUUID();
+        when(friendshipRepository.findByUserId(tripOwnerId))
+                .thenReturn(
+                        List.of(
+                                Friendship.builder()
+                                        .id(UUID.randomUUID())
+                                        .userId(tripOwnerId)
+                                        .friendId(friendId)
+                                        .createdAt(Instant.now())
+                                        .build()));
+
+        TripStatusChangedEvent event =
+                TripStatusChangedEvent.builder()
+                        .tripId(tripId)
+                        .newStatus(TripStatus.IN_PROGRESS.name())
+                        .previousStatus(TripStatus.CREATED.name())
+                        .build();
+
+        listener.onTripStatusChanged(event);
+
+        verify(notificationRepository).saveAll(anyList());
+        verify(friendshipRepository).findByUserId(tripOwnerId);
+        verify(userFollowRepository, never()).findByFollowedId(any());
+    }
+
+    @Test
+    void onTripStatusChanged_PrivateTrip_DoesNotNotify() {
+        TripSettings settings =
+                TripSettings.builder()
+                        .tripStatus(TripStatus.IN_PROGRESS)
+                        .visibility(TripVisibility.PRIVATE)
+                        .build();
+        Trip trip =
+                Trip.builder()
+                        .id(tripId)
+                        .userId(tripOwnerId)
+                        .name("Camino")
+                        .tripSettings(settings)
+                        .build();
+        when(tripRepository.findById(tripId)).thenReturn(Optional.of(trip));
+
+        TripStatusChangedEvent event =
+                TripStatusChangedEvent.builder()
+                        .tripId(tripId)
+                        .newStatus(TripStatus.IN_PROGRESS.name())
+                        .previousStatus(TripStatus.CREATED.name())
+                        .build();
+
+        listener.onTripStatusChanged(event);
+
+        verify(notificationRepository, never()).save(any());
+        verify(notificationRepository, never()).saveAll(anyList());
     }
 
     @Test
@@ -419,8 +508,19 @@ class NotificationEventListenerTest {
     // ==================== TRIP UPDATED TESTS ====================
 
     @Test
-    void onTripUpdated_WithMessage_NotifiesFollowersAndFriends() {
-        Trip trip = Trip.builder().id(tripId).userId(tripOwnerId).name("Camino").build();
+    void onTripUpdated_PublicTrip_NotifiesFollowersAndFriends() {
+        TripSettings settings =
+                TripSettings.builder()
+                        .tripStatus(TripStatus.IN_PROGRESS)
+                        .visibility(TripVisibility.PUBLIC)
+                        .build();
+        Trip trip =
+                Trip.builder()
+                        .id(tripId)
+                        .userId(tripOwnerId)
+                        .name("Camino")
+                        .tripSettings(settings)
+                        .build();
         when(tripRepository.findById(tripId)).thenReturn(Optional.of(trip));
         when(userRepository.findById(tripOwnerId))
                 .thenReturn(
@@ -451,6 +551,85 @@ class NotificationEventListenerTest {
         listener.onTripUpdated(event);
 
         verify(notificationRepository).saveAll(anyList());
+        verify(userFollowRepository).findByFollowedId(tripOwnerId);
+    }
+
+    @Test
+    void onTripUpdated_ProtectedTrip_NotifiesFriendsOnly() {
+        TripSettings settings =
+                TripSettings.builder()
+                        .tripStatus(TripStatus.IN_PROGRESS)
+                        .visibility(TripVisibility.PROTECTED)
+                        .build();
+        Trip trip =
+                Trip.builder()
+                        .id(tripId)
+                        .userId(tripOwnerId)
+                        .name("Camino")
+                        .tripSettings(settings)
+                        .build();
+        when(tripRepository.findById(tripId)).thenReturn(Optional.of(trip));
+        when(userRepository.findById(tripOwnerId))
+                .thenReturn(
+                        Optional.of(
+                                User.builder().id(tripOwnerId).username("walker").build()));
+
+        UUID friendId = UUID.randomUUID();
+        when(friendshipRepository.findByUserId(tripOwnerId))
+                .thenReturn(
+                        List.of(
+                                Friendship.builder()
+                                        .id(UUID.randomUUID())
+                                        .userId(tripOwnerId)
+                                        .friendId(friendId)
+                                        .createdAt(Instant.now())
+                                        .build()));
+
+        TripUpdatedEvent event =
+                TripUpdatedEvent.builder()
+                        .tripUpdateId(UUID.randomUUID())
+                        .tripId(tripId)
+                        .message("Having a great time!")
+                        .updateType(UpdateType.REGULAR)
+                        .timestamp(Instant.now())
+                        .build();
+
+        listener.onTripUpdated(event);
+
+        verify(notificationRepository).saveAll(anyList());
+        verify(friendshipRepository).findByUserId(tripOwnerId);
+        verify(userFollowRepository, never()).findByFollowedId(any());
+    }
+
+    @Test
+    void onTripUpdated_PrivateTrip_DoesNotNotify() {
+        TripSettings settings =
+                TripSettings.builder()
+                        .tripStatus(TripStatus.IN_PROGRESS)
+                        .visibility(TripVisibility.PRIVATE)
+                        .build();
+        Trip trip =
+                Trip.builder()
+                        .id(tripId)
+                        .userId(tripOwnerId)
+                        .name("Camino")
+                        .tripSettings(settings)
+                        .build();
+        when(tripRepository.findById(tripId)).thenReturn(Optional.of(trip));
+
+        TripUpdatedEvent event =
+                TripUpdatedEvent.builder()
+                        .tripUpdateId(UUID.randomUUID())
+                        .tripId(tripId)
+                        .message("Having a great time!")
+                        .updateType(UpdateType.REGULAR)
+                        .timestamp(Instant.now())
+                        .build();
+
+        listener.onTripUpdated(event);
+
+        verify(notificationRepository, never()).save(any());
+        verify(notificationRepository, never()).saveAll(anyList());
     }
 
     @Test
