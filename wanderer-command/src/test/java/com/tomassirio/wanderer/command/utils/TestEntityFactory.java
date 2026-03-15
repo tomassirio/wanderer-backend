@@ -24,7 +24,7 @@ public class TestEntityFactory extends BaseTestEntityFactory {
 
     public static TripCreationRequest createTripCreationRequest(
             String name, TripVisibility tripVisibility) {
-        return new TripCreationRequest(name, tripVisibility, null);
+        return new TripCreationRequest(name, tripVisibility, null, null, null);
     }
 
     // TripUpdateRequest factory methods

@@ -65,6 +65,8 @@ public class TripServiceImpl implements TripService {
                         .tripPlanId(null)
                         .creationTimestamp(creationTimestamp)
                         .tripModality(request.tripModality())
+                        .automaticUpdates(request.automaticUpdates())
+                        .updateRefresh(request.updateRefresh())
                         .build());
 
         return tripId;
