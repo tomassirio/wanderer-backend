@@ -57,6 +57,13 @@ public class TripCreatedEventHandler implements EventHandler<TripCreatedEvent> {
                         .enabled(true)
                         .build();
 
+        if (event.getAutomaticUpdates() != null) {
+            trip.getTripSettings().setAutomaticUpdates(event.getAutomaticUpdates());
+        }
+        if (event.getUpdateRefresh() != null) {
+            trip.getTripSettings().setUpdateRefresh(event.getUpdateRefresh());
+        }
+
         tripRepository.save(trip);
         log.info("Trip created and persisted: {}", event.getTripId());
     }

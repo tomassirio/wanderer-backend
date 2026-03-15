@@ -164,6 +164,16 @@ public final class ApiConstants {
     public static final String COMMENT_REACTIONS_ENDPOINT = "/{commentId}/reactions";
 
     // ============================================================
+    // Notification endpoints
+    // ============================================================
+
+    public static final String NOTIFICATIONS_PATH = API_V1 + "/notifications";
+    public static final String NOTIFICATIONS_ME_ENDPOINT = ME_SUFFIX;
+    public static final String NOTIFICATIONS_UNREAD_COUNT_ENDPOINT = ME_SUFFIX + "/unread-count";
+    public static final String NOTIFICATION_READ_ENDPOINT = "/{id}/read";
+    public static final String NOTIFICATIONS_READ_ALL_ENDPOINT = ME_SUFFIX + "/read-all";
+
+    // ============================================================
     // Achievement endpoints
     // ============================================================
 

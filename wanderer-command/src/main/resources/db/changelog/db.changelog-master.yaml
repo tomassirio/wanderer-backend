@@ -63,3 +63,5 @@ databaseChangeLog:
       file: db/changelog/031-add-planned-polyline.yaml
   - include:
       file: db/changelog/032-lowercase-existing-usernames.yaml
+  - include:
+      file: db/changelog/033-create-notifications-table.yaml

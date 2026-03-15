@@ -10,6 +10,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.tomassirio.wanderer.command.controller.request.TripCreationRequest;
+import com.tomassirio.wanderer.command.controller.request.TripFromPlanRequest;
 import com.tomassirio.wanderer.command.controller.request.TripUpdateRequest;
 import com.tomassirio.wanderer.command.event.TripCreatedEvent;
 import com.tomassirio.wanderer.command.event.TripDeletedEvent;
@@ -781,8 +782,11 @@ class TripServiceImplTest {
 
         when(tripPlanRepository.findById(tripPlanId)).thenReturn(Optional.of(tripPlan));
 
+        TripFromPlanRequest request =
+                new TripFromPlanRequest(TripVisibility.PUBLIC, null, null, null);
+
         // When
-        UUID result = tripService.createTripFromPlan(USER_ID, tripPlanId, TripVisibility.PUBLIC);
+        UUID result = tripService.createTripFromPlan(USER_ID, tripPlanId, request);
 
         // Then
         assertThat(result).isNotNull();
@@ -813,8 +817,11 @@ class TripServiceImplTest {
 
         when(tripPlanRepository.findById(tripPlanId)).thenReturn(Optional.of(tripPlan));
 
+        TripFromPlanRequest request =
+                new TripFromPlanRequest(TripVisibility.PRIVATE, null, null, null);
+
         // When
-        UUID result = tripService.createTripFromPlan(USER_ID, tripPlanId, TripVisibility.PRIVATE);
+        UUID result = tripService.createTripFromPlan(USER_ID, tripPlanId, request);
 
         // Then
         assertThat(result).isNotNull();
@@ -829,11 +836,14 @@ class TripServiceImplTest {
 
         when(tripPlanRepository.findById(nonExistentPlanId)).thenReturn(Optional.empty());
 
+        TripFromPlanRequest request =
+                new TripFromPlanRequest(TripVisibility.PUBLIC, null, null, null);
+
         // When & Then
         assertThatThrownBy(
                         () ->
                                 tripService.createTripFromPlan(
-                                        USER_ID, nonExistentPlanId, TripVisibility.PUBLIC))
+                                        USER_ID, nonExistentPlanId, request))
                 .isInstanceOf(EntityNotFoundException.class)
                 .hasMessage("Trip plan not found");
 
@@ -856,11 +866,14 @@ class TripServiceImplTest {
 
         when(tripPlanRepository.findById(tripPlanId)).thenReturn(Optional.of(tripPlan));
 
+        TripFromPlanRequest request =
+                new TripFromPlanRequest(TripVisibility.PUBLIC, null, null, null);
+
         // When & Then
         assertThatThrownBy(
                         () ->
                                 tripService.createTripFromPlan(
-                                        USER_ID, tripPlanId, TripVisibility.PUBLIC))
+                                        USER_ID, tripPlanId, request))
                 .isInstanceOf(AccessDeniedException.class);
 
         verify(tripPlanRepository).findById(tripPlanId);
@@ -875,11 +888,14 @@ class TripServiceImplTest {
 
         when(userRepository.findById(nonExistentUserId)).thenReturn(Optional.empty());
 
+        TripFromPlanRequest request =
+                new TripFromPlanRequest(TripVisibility.PUBLIC, null, null, null);
+
         // When & Then
         assertThatThrownBy(
                         () ->
                                 tripService.createTripFromPlan(
-                                        nonExistentUserId, tripPlanId, TripVisibility.PUBLIC))
+                                        nonExistentUserId, tripPlanId, request))
                 .isInstanceOf(EntityNotFoundException.class)
                 .hasMessage("User not found");
 
@@ -920,8 +936,11 @@ class TripServiceImplTest {
 
         when(tripPlanRepository.findById(tripPlanId)).thenReturn(Optional.of(tripPlan));
 
+        TripFromPlanRequest request =
+                new TripFromPlanRequest(TripVisibility.PUBLIC, null, null, null);
+
         // When
-        UUID result = tripService.createTripFromPlan(USER_ID, tripPlanId, TripVisibility.PUBLIC);
+        UUID result = tripService.createTripFromPlan(USER_ID, tripPlanId, request);
 
         // Then
         assertThat(result).isNotNull();
