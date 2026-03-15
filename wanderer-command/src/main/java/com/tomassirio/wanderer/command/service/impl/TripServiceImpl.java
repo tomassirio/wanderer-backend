@@ -1,6 +1,7 @@
 package com.tomassirio.wanderer.command.service.impl;
 
 import com.tomassirio.wanderer.command.controller.request.TripCreationRequest;
+import com.tomassirio.wanderer.command.controller.request.TripFromPlanRequest;
 import com.tomassirio.wanderer.command.controller.request.TripUpdateRequest;
 import com.tomassirio.wanderer.command.event.TripCreatedEvent;
 import com.tomassirio.wanderer.command.event.TripDeletedEvent;
@@ -188,7 +189,7 @@ public class TripServiceImpl implements TripService {
     }
 
     @Override
-    public UUID createTripFromPlan(UUID userId, UUID tripPlanId, TripVisibility visibility) {
+    public UUID createTripFromPlan(UUID userId, UUID tripPlanId, TripFromPlanRequest request) {
         // Validate user exists
         userRepository
                 .findById(userId)
@@ -207,13 +208,19 @@ public class TripServiceImpl implements TripService {
         UUID tripId = UUID.randomUUID();
         Instant creationTimestamp = Instant.now();
 
+        // Use request modality if provided, otherwise derive from plan type
+        TripModality modality =
+                request.tripModality() != null
+                        ? request.tripModality()
+                        : deriveModalityFromPlanType(tripPlan.getPlanType());
+
         // Publish event - persistence handler will write to DB
         eventPublisher.publishEvent(
                 TripCreatedEvent.builder()
                         .tripId(tripId)
                         .tripName(tripPlan.getName())
                         .ownerId(userId)
-                        .visibility(visibility.name())
+                        .visibility(request.visibility().name())
                         .tripPlanId(tripPlanId)
                         .creationTimestamp(creationTimestamp)
                         .startLocation(tripPlan.getStartLocation())
@@ -226,8 +233,10 @@ public class TripServiceImpl implements TripService {
                                 tripPlan.getStartDate().atStartOfDay().toInstant(ZoneOffset.UTC))
                         .endTimestamp(
                                 tripPlan.getEndDate().atStartOfDay().toInstant(ZoneOffset.UTC))
-                        .tripModality(deriveModalityFromPlanType(tripPlan.getPlanType()))
+                        .tripModality(modality)
                         .plannedPolyline(tripPlan.getPlannedPolyline())
+                        .automaticUpdates(request.automaticUpdates())
+                        .updateRefresh(request.updateRefresh())
                         .build());
 
         return tripId;
