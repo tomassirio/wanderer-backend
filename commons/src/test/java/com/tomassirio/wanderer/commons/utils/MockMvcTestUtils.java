@@ -1,10 +1,15 @@
 package com.tomassirio.wanderer.commons.utils;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.tomassirio.wanderer.commons.security.CurrentUserId;
 import java.util.UUID;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.core.MethodParameter;
+import org.springframework.data.web.PageableHandlerMethodArgumentResolver;
+import org.springframework.data.web.config.EnableSpringDataWebSupport;
+import org.springframework.data.web.config.SpringDataJacksonConfiguration;
+import org.springframework.data.web.config.SpringDataWebSettings;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
@@ -53,14 +58,25 @@ public class MockMvcTestUtils {
         if (controllerAdvice != null && controllerAdvice.length > 0) {
             builder = builder.setControllerAdvice(controllerAdvice);
         }
-        builder = builder.setCustomArgumentResolvers(currentUserResolver);
+        builder =
+                builder.setCustomArgumentResolvers(
+                        currentUserResolver, new PageableHandlerMethodArgumentResolver());
 
-        if (objectMapper != null) {
-            MappingJackson2HttpMessageConverter messageConverter =
-                    new MappingJackson2HttpMessageConverter();
-            messageConverter.setObjectMapper(objectMapper);
-            builder = builder.setMessageConverters(messageConverter);
+        // Always configure a message converter so Page objects serialise correctly.
+        // Spring Data's PageModule handles PageImpl serialisation (which otherwise
+        // fails because Pageable.unpaged() throws on getPageNumber()/getPageSize()).
+        if (objectMapper == null) {
+            objectMapper = new ObjectMapper();
+            objectMapper.registerModule(new JavaTimeModule());
         }
+        objectMapper.registerModule(
+                new SpringDataJacksonConfiguration.PageModule(
+                        new SpringDataWebSettings(
+                                EnableSpringDataWebSupport.PageSerializationMode.DIRECT)));
+        MappingJackson2HttpMessageConverter messageConverter =
+                new MappingJackson2HttpMessageConverter();
+        messageConverter.setObjectMapper(objectMapper);
+        builder = builder.setMessageConverters(messageConverter);
 
         return builder.build();
     }

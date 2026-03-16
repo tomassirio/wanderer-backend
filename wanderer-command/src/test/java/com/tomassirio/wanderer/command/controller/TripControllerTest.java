@@ -108,7 +108,8 @@ class TripControllerTest {
     @Test
     void createTrip_whenNameIsTooShort_shouldReturnBadRequest() throws Exception {
         // Given
-        TripCreationRequest request = new TripCreationRequest("AB", TripVisibility.PUBLIC, null, null, null);
+        TripCreationRequest request =
+                new TripCreationRequest("AB", TripVisibility.PUBLIC, null, null, null);
 
         // When & Then
         mockMvc.perform(
@@ -121,7 +122,8 @@ class TripControllerTest {
     @Test
     void createTrip_whenNameIsBlank_shouldReturnBadRequest() throws Exception {
         // Given
-        TripCreationRequest request = new TripCreationRequest("", TripVisibility.PUBLIC, null, null, null);
+        TripCreationRequest request =
+                new TripCreationRequest("", TripVisibility.PUBLIC, null, null, null);
 
         // When & Then
         mockMvc.perform(
@@ -149,7 +151,8 @@ class TripControllerTest {
     @Test
     void createTrip_whenVisibilityIsNull_shouldReturnBadRequest() throws Exception {
         // Given
-        TripCreationRequest request = new TripCreationRequest("Summer Road Trip", null, null, null, null);
+        TripCreationRequest request =
+                new TripCreationRequest("Summer Road Trip", null, null, null, null);
 
         // When & Then
         mockMvc.perform(

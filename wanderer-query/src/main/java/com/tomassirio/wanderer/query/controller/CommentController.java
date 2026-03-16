@@ -4,11 +4,15 @@ import com.tomassirio.wanderer.commons.constants.ApiConstants;
 import com.tomassirio.wanderer.commons.dto.CommentDTO;
 import com.tomassirio.wanderer.query.service.CommentService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -48,13 +52,29 @@ public class CommentController {
             produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(
             summary = "Get all comments for a trip",
-            description = "Retrieves all top-level comments with their replies for a specific trip")
-    public ResponseEntity<List<CommentDTO>> getCommentsForTrip(@PathVariable UUID tripId) {
-        log.info("Received request to retrieve comments for trip: {}", tripId);
+            description =
+                    "Retrieves top-level comments with their replies for a specific trip "
+                            + "with pagination and sorting. Defaults to most recent first. "
+                            + "Use query parameters: page, size, sort (e.g., sort=timestamp,desc)")
+    public ResponseEntity<Page<CommentDTO>> getCommentsForTrip(
+            @PathVariable UUID tripId,
+            @Parameter(description = "Pagination and sorting parameters")
+                    @PageableDefault(size = 20, sort = "timestamp", direction = Sort.Direction.DESC)
+                    Pageable pageable) {
+        log.info(
+                "Received request to retrieve comments for trip: {}, page: {}, size: {}",
+                tripId,
+                pageable.getPageNumber(),
+                pageable.getPageSize());
 
-        List<CommentDTO> comments = commentService.getCommentsForTrip(tripId);
+        Page<CommentDTO> comments = commentService.getCommentsForTrip(tripId, pageable);
 
-        log.info("Successfully retrieved {} comments for trip {}", comments.size(), tripId);
+        log.info(
+                "Successfully retrieved {} comments for trip {} (page {} of {})",
+                comments.getNumberOfElements(),
+                tripId,
+                comments.getNumber() + 1,
+                comments.getTotalPages());
         return ResponseEntity.ok(comments);
     }
 }

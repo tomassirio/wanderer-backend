@@ -11,6 +11,10 @@ import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -46,13 +50,30 @@ public class TripController {
 
     @GetMapping
     @PreAuthorize("hasAnyRole('ADMIN')")
-    @Operation(summary = "Get all trips", description = "Retrieves all trips (admin only)")
-    public ResponseEntity<List<TripDTO>> getAllTrips() {
-        log.info("Received request to retrieve all trips");
+    @Operation(
+            summary = "Get all trips",
+            description =
+                    "Retrieves all trips with pagination and sorting (admin only). "
+                            + "Use query parameters: page, size, sort (e.g., sort=creationTimestamp,desc)")
+    public ResponseEntity<Page<TripDTO>> getAllTrips(
+            @Parameter(description = "Pagination and sorting parameters")
+                    @PageableDefault(
+                            size = 20,
+                            sort = "creationTimestamp",
+                            direction = Sort.Direction.DESC)
+                    Pageable pageable) {
+        log.info(
+                "Received request to retrieve all trips, page: {}, size: {}",
+                pageable.getPageNumber(),
+                pageable.getPageSize());
 
-        List<TripDTO> trips = tripService.getAllTrips();
+        Page<TripDTO> trips = tripService.getAllTrips(pageable);
 
-        log.info("Successfully retrieved {} trips", trips.size());
+        log.info(
+                "Successfully retrieved {} trips (page {} of {})",
+                trips.getNumberOfElements(),
+                trips.getNumber() + 1,
+                trips.getTotalPages());
         return ResponseEntity.ok(trips);
     }
 
@@ -76,17 +97,33 @@ public class TripController {
     @Operation(
             summary = "Get all available trips for current user",
             description =
-                    "Retrieves all trips available to the authenticated user. This includes: "
-                            + "all trips owned by the user (regardless of visibility), "
+                    "Retrieves all trips available to the authenticated user with pagination. "
+                            + "This includes: all trips owned by the user (regardless of visibility), "
                             + "all public trips from other users, "
-                            + "and all protected trips from friends")
-    public ResponseEntity<List<TripDTO>> getAllAvailableTrips(
-            @Parameter(hidden = true) @CurrentUserId UUID userId) {
-        log.info("Received request to retrieve all available trips for user: {}", userId);
+                            + "and all protected trips from friends. "
+                            + "Use query parameters: page, size, sort (e.g., sort=creationTimestamp,desc)")
+    public ResponseEntity<Page<TripDTO>> getAllAvailableTrips(
+            @Parameter(hidden = true) @CurrentUserId UUID userId,
+            @Parameter(description = "Pagination and sorting parameters")
+                    @PageableDefault(
+                            size = 20,
+                            sort = "creationTimestamp",
+                            direction = Sort.Direction.DESC)
+                    Pageable pageable) {
+        log.info(
+                "Received request to retrieve all available trips for user: {}, page: {}, size: {}",
+                userId,
+                pageable.getPageNumber(),
+                pageable.getPageSize());
 
-        List<TripDTO> trips = tripService.getAllAvailableTripsForUser(userId);
+        Page<TripDTO> trips = tripService.getAllAvailableTripsForUser(userId, pageable);
 
-        log.info("Successfully retrieved {} available trips for user {}", trips.size(), userId);
+        log.info(
+                "Successfully retrieved {} available trips for user {} (page {} of {})",
+                trips.getNumberOfElements(),
+                userId,
+                trips.getNumber() + 1,
+                trips.getTotalPages());
         return ResponseEntity.ok(trips);
     }
 
@@ -114,15 +151,30 @@ public class TripController {
     @Operation(
             summary = "Get ongoing public trips",
             description =
-                    "Retrieves all public trips that are currently in progress, prioritizing followed users if authenticated")
-    public ResponseEntity<List<TripDTO>> getOngoingPublicTrips(
-            @Parameter(hidden = true) @CurrentUserId(required = false) UUID requestingUserId) {
+                    "Retrieves public trips that are currently in progress with pagination, "
+                            + "prioritizing followed users if authenticated. "
+                            + "Use query parameters: page, size, sort (e.g., sort=creationTimestamp,desc)")
+    public ResponseEntity<Page<TripDTO>> getOngoingPublicTrips(
+            @Parameter(hidden = true) @CurrentUserId(required = false) UUID requestingUserId,
+            @Parameter(description = "Pagination and sorting parameters")
+                    @PageableDefault(
+                            size = 20,
+                            sort = "creationTimestamp",
+                            direction = Sort.Direction.DESC)
+                    Pageable pageable) {
         log.info(
-                "Received request to retrieve ongoing public trips from user {}", requestingUserId);
+                "Received request to retrieve ongoing public trips from user {}, page: {}, size: {}",
+                requestingUserId,
+                pageable.getPageNumber(),
+                pageable.getPageSize());
 
-        List<TripDTO> trips = tripService.getOngoingPublicTrips(requestingUserId);
+        Page<TripDTO> trips = tripService.getOngoingPublicTrips(requestingUserId, pageable);
 
-        log.info("Successfully retrieved {} ongoing public trips", trips.size());
+        log.info(
+                "Successfully retrieved {} ongoing public trips (page {} of {})",
+                trips.getNumberOfElements(),
+                trips.getNumber() + 1,
+                trips.getTotalPages());
         return ResponseEntity.ok(trips);
     }
 }

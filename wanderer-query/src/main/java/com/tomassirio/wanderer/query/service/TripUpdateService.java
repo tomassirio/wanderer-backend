@@ -1,8 +1,11 @@
 package com.tomassirio.wanderer.query.service;
 
 import com.tomassirio.wanderer.commons.dto.TripUpdateDTO;
+import com.tomassirio.wanderer.query.dto.TripUpdateLocationDTO;
 import java.util.List;
 import java.util.UUID;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 /**
  * Service interface for querying trip update data in the query side of the CQRS architecture.
@@ -26,12 +29,24 @@ public interface TripUpdateService {
     TripUpdateDTO getTripUpdate(UUID id);
 
     /**
-     * Retrieves all trip updates for a specific trip, ordered by timestamp descending (most recent
-     * first).
+     * Retrieves trip updates for a specific trip with pagination and sorting support.
      *
      * @param tripId the UUID of the trip
-     * @return a list of {@link TripUpdateDTO} objects representing the trip updates, or an empty
-     *     list if none exist
+     * @param pageable pagination and sorting parameters
+     * @return a page of {@link TripUpdateDTO} objects representing the trip updates
      */
-    List<TripUpdateDTO> getTripUpdatesForTrip(UUID tripId);
+    Page<TripUpdateDTO> getTripUpdatesForTrip(UUID tripId, Pageable pageable);
+
+    /**
+     * Retrieves lightweight location and timeline data for all trip updates of a specific trip.
+     * Returns the fields needed for map marker rendering and timeline display (id, lat, lon,
+     * timestamp, updateType, battery, city, country, temperatureCelsius, weatherCondition).
+     *
+     * <p>This endpoint is not paginated because the map requires all location points to render the
+     * complete route. Heavy fields (message, reactions) are excluded to keep the payload small.
+     *
+     * @param tripId the UUID of the trip
+     * @return a list of {@link TripUpdateLocationDTO} ordered by timestamp ascending
+     */
+    List<TripUpdateLocationDTO> getTripUpdateLocations(UUID tripId);
 }

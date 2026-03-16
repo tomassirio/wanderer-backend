@@ -2,13 +2,19 @@ package com.tomassirio.wanderer.query.controller;
 
 import com.tomassirio.wanderer.commons.constants.ApiConstants;
 import com.tomassirio.wanderer.commons.dto.TripUpdateDTO;
+import com.tomassirio.wanderer.query.dto.TripUpdateLocationDTO;
 import com.tomassirio.wanderer.query.service.TripUpdateService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -47,13 +53,49 @@ public class TripUpdateQueryController {
     @Operation(
             summary = "Get all trip updates for a trip",
             description =
-                    "Retrieves all trip updates for a specific trip, ordered by timestamp descending (most recent first)")
-    public ResponseEntity<List<TripUpdateDTO>> getTripUpdatesForTrip(@PathVariable UUID tripId) {
-        log.info("Received request to retrieve trip updates for trip: {}", tripId);
+                    "Retrieves trip updates for a specific trip with pagination and sorting. "
+                            + "Defaults to most recent first (timestamp descending). "
+                            + "Use query parameters: page, size, sort (e.g., sort=timestamp,desc)")
+    public ResponseEntity<Page<TripUpdateDTO>> getTripUpdatesForTrip(
+            @PathVariable UUID tripId,
+            @Parameter(description = "Pagination and sorting parameters")
+                    @PageableDefault(size = 20, sort = "timestamp", direction = Sort.Direction.DESC)
+                    Pageable pageable) {
+        log.info(
+                "Received request to retrieve trip updates for trip: {}, page: {}, size: {}",
+                tripId,
+                pageable.getPageNumber(),
+                pageable.getPageSize());
 
-        List<TripUpdateDTO> tripUpdates = tripUpdateService.getTripUpdatesForTrip(tripId);
+        Page<TripUpdateDTO> tripUpdates = tripUpdateService.getTripUpdatesForTrip(tripId, pageable);
 
-        log.info("Successfully retrieved {} trip updates for trip {}", tripUpdates.size(), tripId);
+        log.info(
+                "Successfully retrieved {} trip updates for trip {} (page {} of {})",
+                tripUpdates.getNumberOfElements(),
+                tripId,
+                tripUpdates.getNumber() + 1,
+                tripUpdates.getTotalPages());
         return ResponseEntity.ok(tripUpdates);
+    }
+
+    @GetMapping(ApiConstants.TRIP_UPDATE_LOCATIONS_ENDPOINT)
+    @Operation(
+            summary = "Get all trip update locations for a map and timeline",
+            description =
+                    "Retrieves lightweight location data for all trip updates of a specific trip. "
+                            + "Returns the fields needed for map marker rendering and timeline "
+                            + "display (id, lat, lon, timestamp, updateType, battery, city, "
+                            + "country, temperatureCelsius, weatherCondition). Not paginated "
+                            + "because the map requires all points to render the complete route. "
+                            + "Heavy fields (message, reactions) are excluded. "
+                            + "Results are cached and ordered by timestamp ascending.")
+    public ResponseEntity<List<TripUpdateLocationDTO>> getTripUpdateLocations(
+            @PathVariable UUID tripId) {
+        log.info("Received request to retrieve trip update locations for trip: {}", tripId);
+
+        List<TripUpdateLocationDTO> locations = tripUpdateService.getTripUpdateLocations(tripId);
+
+        log.info("Successfully retrieved {} locations for trip {}", locations.size(), tripId);
+        return ResponseEntity.ok(locations);
     }
 }

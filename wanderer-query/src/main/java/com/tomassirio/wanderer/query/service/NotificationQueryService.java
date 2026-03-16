@@ -30,4 +30,3 @@ public interface NotificationQueryService {
      */
     long getUnreadCount(UUID recipientId);
 }
-

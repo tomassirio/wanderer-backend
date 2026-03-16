@@ -2,7 +2,9 @@ package com.tomassirio.wanderer.query.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyCollection;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -30,6 +32,11 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 
 @ExtendWith(MockitoExtension.class)
 class TripServiceTest {
@@ -84,67 +91,80 @@ class TripServiceTest {
     }
 
     @Test
-    void getAllTrips_whenTripsExist_shouldReturnListOfTripDTOs() {
+    void getAllTrips_whenTripsExist_shouldReturnPageOfTripDTOs() {
         // Given
+        Pageable pageable =
+                PageRequest.of(0, 20, Sort.by(Sort.Direction.DESC, "creationTimestamp"));
         Trip trip1 =
                 TestEntityFactory.createTrip(UUID.randomUUID(), "Trip 1", TripVisibility.PUBLIC);
         Trip trip2 =
                 TestEntityFactory.createTrip(UUID.randomUUID(), "Trip 2", TripVisibility.PRIVATE);
 
         List<Trip> trips = List.of(trip1, trip2);
-        when(tripRepository.findAll()).thenReturn(trips);
+        when(tripRepository.findAll(pageable))
+                .thenReturn(new PageImpl<>(trips, pageable, trips.size()));
         when(userRepository.findAllById(anyCollection()))
                 .thenReturn(List.of(TestEntityFactory.createUser()));
 
         // When
-        List<TripDTO> result = tripService.getAllTrips();
+        Page<TripDTO> result = tripService.getAllTrips(pageable);
 
         // Then
         assertThat(result).isNotNull();
-        assertThat(result).hasSize(2);
-        assertThat(result.getFirst().name()).isEqualTo("Trip 1");
-        assertThat(result.get(0).tripSettings().visibility()).isEqualTo(TripVisibility.PUBLIC);
-        assertThat(result.get(0).tripSettings().tripStatus()).isEqualTo(TripStatus.CREATED);
-        assertThat(result.get(1).name()).isEqualTo("Trip 2");
-        assertThat(result.get(1).tripSettings().visibility()).isEqualTo(TripVisibility.PRIVATE);
-        assertThat(result.get(1).tripSettings().tripStatus()).isEqualTo(TripStatus.CREATED);
+        assertThat(result.getContent()).hasSize(2);
+        assertThat(result.getTotalElements()).isEqualTo(2);
+        assertThat(result.getContent().getFirst().name()).isEqualTo("Trip 1");
+        assertThat(result.getContent().get(0).tripSettings().visibility())
+                .isEqualTo(TripVisibility.PUBLIC);
+        assertThat(result.getContent().get(0).tripSettings().tripStatus())
+                .isEqualTo(TripStatus.CREATED);
+        assertThat(result.getContent().get(1).name()).isEqualTo("Trip 2");
+        assertThat(result.getContent().get(1).tripSettings().visibility())
+                .isEqualTo(TripVisibility.PRIVATE);
 
-        verify(tripRepository).findAll();
+        verify(tripRepository).findAll(pageable);
     }
 
     @Test
-    void getAllTrips_whenNoTripsExist_shouldReturnEmptyList() {
+    void getAllTrips_whenNoTripsExist_shouldReturnEmptyPage() {
         // Given
-        when(tripRepository.findAll()).thenReturn(Collections.emptyList());
+        Pageable pageable =
+                PageRequest.of(0, 20, Sort.by(Sort.Direction.DESC, "creationTimestamp"));
+        when(tripRepository.findAll(pageable))
+                .thenReturn(new PageImpl<>(Collections.emptyList(), pageable, 0));
 
         // When
-        List<TripDTO> result = tripService.getAllTrips();
+        Page<TripDTO> result = tripService.getAllTrips(pageable);
 
         // Then
         assertThat(result).isNotNull();
-        assertThat(result).isEmpty();
+        assertThat(result.getContent()).isEmpty();
+        assertThat(result.getTotalElements()).isZero();
 
-        verify(tripRepository).findAll();
+        verify(tripRepository).findAll(pageable);
     }
 
     @Test
     void getAllTrips_shouldMapAllFieldsCorrectly() {
         // Given
+        Pageable pageable =
+                PageRequest.of(0, 20, Sort.by(Sort.Direction.DESC, "creationTimestamp"));
         UUID tripId = UUID.randomUUID();
 
         Trip trip =
                 TestEntityFactory.createTrip(tripId, "Summer Road Trip", TripVisibility.PROTECTED);
 
-        when(tripRepository.findAll()).thenReturn(List.of(trip));
+        when(tripRepository.findAll(pageable))
+                .thenReturn(new PageImpl<>(List.of(trip), pageable, 1));
         when(userRepository.findAllById(anyCollection()))
                 .thenReturn(List.of(TestEntityFactory.createUser()));
 
         // When
-        List<TripDTO> result = tripService.getAllTrips();
+        Page<TripDTO> result = tripService.getAllTrips(pageable);
 
         // Then
-        assertThat(result).hasSize(1);
-        TripDTO tripDTO = result.getFirst();
+        assertThat(result.getContent()).hasSize(1);
+        TripDTO tripDTO = result.getContent().getFirst();
         assertThat(tripDTO.id()).isEqualTo(tripId.toString());
         assertThat(tripDTO.name()).isEqualTo("Summer Road Trip");
         assertThat(tripDTO.userId()).isEqualTo(TestEntityFactory.USER_ID.toString());
@@ -153,7 +173,7 @@ class TripServiceTest {
         assertThat(tripDTO.enabled()).isTrue();
         assertThat(tripDTO.creationTimestamp()).isNotNull();
 
-        verify(tripRepository).findAll();
+        verify(tripRepository).findAll(pageable);
     }
 
     @Test
@@ -414,6 +434,8 @@ class TripServiceTest {
     @Test
     void getOngoingPublicTrips_whenOngoingTripsExist_shouldReturnOngoingPublicTrips() {
         // Given
+        Pageable pageable =
+                PageRequest.of(0, 20, Sort.by(Sort.Direction.DESC, "creationTimestamp"));
         Trip ongoingTrip1 =
                 TestEntityFactory.createTrip(
                         UUID.randomUUID(), "Ongoing Trip 1", TripVisibility.PUBLIC);
@@ -424,77 +446,93 @@ class TripServiceTest {
                         UUID.randomUUID(), "Ongoing Trip 2", TripVisibility.PUBLIC);
         ongoingTrip2.getTripSettings().setTripStatus(TripStatus.IN_PROGRESS);
 
+        List<Trip> trips = List.of(ongoingTrip1, ongoingTrip2);
         when(tripRepository.findByVisibilityAndStatusIn(
-                        TripVisibility.PUBLIC, TripStatus.getActiveStatuses()))
-                .thenReturn(List.of(ongoingTrip1, ongoingTrip2));
+                        TripVisibility.PUBLIC, TripStatus.getActiveStatuses(), pageable))
+                .thenReturn(new PageImpl<>(trips, pageable, trips.size()));
         when(userRepository.findAllById(anyCollection()))
                 .thenReturn(List.of(TestEntityFactory.createUser()));
 
         // When
-        List<TripDTO> result = tripService.getOngoingPublicTrips(null);
+        Page<TripDTO> result = tripService.getOngoingPublicTrips(null, pageable);
 
         // Then
         assertThat(result).isNotNull();
-        assertThat(result).hasSize(2);
-        assertThat(result.get(0).name()).isEqualTo("Ongoing Trip 1");
-        assertThat(result.get(0).tripSettings().visibility()).isEqualTo(TripVisibility.PUBLIC);
-        assertThat(result.get(0).tripSettings().tripStatus()).isEqualTo(TripStatus.IN_PROGRESS);
-        assertThat(result.get(1).name()).isEqualTo("Ongoing Trip 2");
-        assertThat(result.get(1).tripSettings().tripStatus()).isEqualTo(TripStatus.IN_PROGRESS);
+        assertThat(result.getContent()).hasSize(2);
+        assertThat(result.getContent().get(0).name()).isEqualTo("Ongoing Trip 1");
+        assertThat(result.getContent().get(0).tripSettings().visibility())
+                .isEqualTo(TripVisibility.PUBLIC);
+        assertThat(result.getContent().get(0).tripSettings().tripStatus())
+                .isEqualTo(TripStatus.IN_PROGRESS);
+        assertThat(result.getContent().get(1).name()).isEqualTo("Ongoing Trip 2");
+        assertThat(result.getContent().get(1).tripSettings().tripStatus())
+                .isEqualTo(TripStatus.IN_PROGRESS);
 
         verify(tripRepository)
-                .findByVisibilityAndStatusIn(TripVisibility.PUBLIC, TripStatus.getActiveStatuses());
+                .findByVisibilityAndStatusIn(
+                        TripVisibility.PUBLIC, TripStatus.getActiveStatuses(), pageable);
     }
 
     @Test
-    void getOngoingPublicTrips_whenNoOngoingTripsExist_shouldReturnEmptyList() {
+    void getOngoingPublicTrips_whenNoOngoingTripsExist_shouldReturnEmptyPage() {
         // Given
+        Pageable pageable =
+                PageRequest.of(0, 20, Sort.by(Sort.Direction.DESC, "creationTimestamp"));
         when(tripRepository.findByVisibilityAndStatusIn(
-                        TripVisibility.PUBLIC, TripStatus.getActiveStatuses()))
-                .thenReturn(Collections.emptyList());
+                        TripVisibility.PUBLIC, TripStatus.getActiveStatuses(), pageable))
+                .thenReturn(new PageImpl<>(Collections.emptyList(), pageable, 0));
 
         // When
-        List<TripDTO> result = tripService.getOngoingPublicTrips(null);
+        Page<TripDTO> result = tripService.getOngoingPublicTrips(null, pageable);
 
         // Then
         assertThat(result).isNotNull();
-        assertThat(result).isEmpty();
+        assertThat(result.getContent()).isEmpty();
+        assertThat(result.getTotalElements()).isZero();
 
         verify(tripRepository)
-                .findByVisibilityAndStatusIn(TripVisibility.PUBLIC, TripStatus.getActiveStatuses());
+                .findByVisibilityAndStatusIn(
+                        TripVisibility.PUBLIC, TripStatus.getActiveStatuses(), pageable);
     }
 
     @Test
     void getOngoingPublicTrips_shouldOnlyReturnInProgressPublicTrips() {
         // Given
+        Pageable pageable =
+                PageRequest.of(0, 20, Sort.by(Sort.Direction.DESC, "creationTimestamp"));
         Trip ongoingPublicTrip =
                 TestEntityFactory.createTrip(
                         UUID.randomUUID(), "Ongoing Public", TripVisibility.PUBLIC);
         ongoingPublicTrip.getTripSettings().setTripStatus(TripStatus.IN_PROGRESS);
 
         when(tripRepository.findByVisibilityAndStatusIn(
-                        TripVisibility.PUBLIC, TripStatus.getActiveStatuses()))
-                .thenReturn(List.of(ongoingPublicTrip));
+                        TripVisibility.PUBLIC, TripStatus.getActiveStatuses(), pageable))
+                .thenReturn(new PageImpl<>(List.of(ongoingPublicTrip), pageable, 1));
         when(userRepository.findAllById(anyCollection()))
                 .thenReturn(List.of(TestEntityFactory.createUser()));
 
         // When
-        List<TripDTO> result = tripService.getOngoingPublicTrips(null);
+        Page<TripDTO> result = tripService.getOngoingPublicTrips(null, pageable);
 
         // Then
         assertThat(result).isNotNull();
-        assertThat(result).hasSize(1);
-        assertThat(result.get(0).tripSettings().visibility()).isEqualTo(TripVisibility.PUBLIC);
-        assertThat(result.get(0).tripSettings().tripStatus()).isEqualTo(TripStatus.IN_PROGRESS);
+        assertThat(result.getContent()).hasSize(1);
+        assertThat(result.getContent().get(0).tripSettings().visibility())
+                .isEqualTo(TripVisibility.PUBLIC);
+        assertThat(result.getContent().get(0).tripSettings().tripStatus())
+                .isEqualTo(TripStatus.IN_PROGRESS);
 
         verify(tripRepository)
-                .findByVisibilityAndStatusIn(TripVisibility.PUBLIC, TripStatus.getActiveStatuses());
+                .findByVisibilityAndStatusIn(
+                        TripVisibility.PUBLIC, TripStatus.getActiveStatuses(), pageable);
     }
 
     @Test
     void
             getOngoingPublicTrips_withRequestingUserId_whenUserFollowsSomeUsers_shouldPrioritizeFollowedUsers() {
         // Given
+        Pageable pageable =
+                PageRequest.of(0, 20, Sort.by(Sort.Direction.DESC, "creationTimestamp"));
         UUID requestingUserId = UUID.randomUUID();
         UUID followedUserId1 = UUID.randomUUID();
         UUID followedUserId2 = UUID.randomUUID();
@@ -529,11 +567,15 @@ class TripServiceTest {
                         .followedId(followedUserId2)
                         .build();
 
-        when(tripRepository.findByVisibilityAndStatusIn(
-                        TripVisibility.PUBLIC, TripStatus.getActiveStatuses()))
-                .thenReturn(List.of(notFollowedTrip, followedTrip1, followedTrip2));
+        List<Trip> trips = List.of(followedTrip1, followedTrip2, notFollowedTrip);
         when(userFollowRepository.findByFollowerId(requestingUserId))
                 .thenReturn(List.of(follow1, follow2));
+        when(tripRepository.findPublicActiveTripsWithFollowedPriority(
+                        eq(TripVisibility.PUBLIC),
+                        eq(TripStatus.getActiveStatuses()),
+                        any(),
+                        any(Pageable.class)))
+                .thenReturn(new PageImpl<>(trips, PageRequest.of(0, 20), trips.size()));
         when(userRepository.findAllById(anyCollection()))
                 .thenReturn(
                         List.of(
@@ -542,24 +584,29 @@ class TripServiceTest {
                                 TestEntityFactory.createUser(notFollowedUserId, "user3")));
 
         // When
-        List<TripDTO> result = tripService.getOngoingPublicTrips(requestingUserId);
+        Page<TripDTO> result = tripService.getOngoingPublicTrips(requestingUserId, pageable);
 
         // Then
         assertThat(result).isNotNull();
-        assertThat(result).hasSize(3);
-        // Followed trips should come first
-        assertThat(result.get(0).name()).isEqualTo("Followed Trip 1");
-        assertThat(result.get(1).name()).isEqualTo("Followed Trip 2");
-        assertThat(result.get(2).name()).isEqualTo("Not Followed Trip");
+        assertThat(result.getContent()).hasSize(3);
+        assertThat(result.getContent().get(0).name()).isEqualTo("Followed Trip 1");
+        assertThat(result.getContent().get(1).name()).isEqualTo("Followed Trip 2");
+        assertThat(result.getContent().get(2).name()).isEqualTo("Not Followed Trip");
 
-        verify(tripRepository)
-                .findByVisibilityAndStatusIn(TripVisibility.PUBLIC, TripStatus.getActiveStatuses());
         verify(userFollowRepository).findByFollowerId(requestingUserId);
+        verify(tripRepository)
+                .findPublicActiveTripsWithFollowedPriority(
+                        eq(TripVisibility.PUBLIC),
+                        eq(TripStatus.getActiveStatuses()),
+                        any(),
+                        any(Pageable.class));
     }
 
     @Test
     void getOngoingPublicTrips_withRequestingUserId_whenUserFollowsNoOne_shouldReturnAllTrips() {
         // Given
+        Pageable pageable =
+                PageRequest.of(0, 20, Sort.by(Sort.Direction.DESC, "creationTimestamp"));
         UUID requestingUserId = UUID.randomUUID();
 
         Trip trip1 =
@@ -570,25 +617,27 @@ class TripServiceTest {
                 TestEntityFactory.createTrip(UUID.randomUUID(), "Trip 2", TripVisibility.PUBLIC);
         trip2.getTripSettings().setTripStatus(TripStatus.IN_PROGRESS);
 
+        List<Trip> trips = List.of(trip1, trip2);
         when(tripRepository.findByVisibilityAndStatusIn(
-                        TripVisibility.PUBLIC, TripStatus.getActiveStatuses()))
-                .thenReturn(List.of(trip1, trip2));
+                        TripVisibility.PUBLIC, TripStatus.getActiveStatuses(), pageable))
+                .thenReturn(new PageImpl<>(trips, pageable, trips.size()));
         when(userFollowRepository.findByFollowerId(requestingUserId))
                 .thenReturn(Collections.emptyList());
         when(userRepository.findAllById(anyCollection()))
                 .thenReturn(List.of(TestEntityFactory.createUser()));
 
         // When
-        List<TripDTO> result = tripService.getOngoingPublicTrips(requestingUserId);
+        Page<TripDTO> result = tripService.getOngoingPublicTrips(requestingUserId, pageable);
 
         // Then
         assertThat(result).isNotNull();
-        assertThat(result).hasSize(2);
-        assertThat(result.get(0).name()).isEqualTo("Trip 1");
-        assertThat(result.get(1).name()).isEqualTo("Trip 2");
+        assertThat(result.getContent()).hasSize(2);
+        assertThat(result.getContent().get(0).name()).isEqualTo("Trip 1");
+        assertThat(result.getContent().get(1).name()).isEqualTo("Trip 2");
 
         verify(tripRepository)
-                .findByVisibilityAndStatusIn(TripVisibility.PUBLIC, TripStatus.getActiveStatuses());
+                .findByVisibilityAndStatusIn(
+                        TripVisibility.PUBLIC, TripStatus.getActiveStatuses(), pageable);
         verify(userFollowRepository).findByFollowerId(requestingUserId);
     }
 
@@ -596,6 +645,8 @@ class TripServiceTest {
     void
             getOngoingPublicTrips_withRequestingUserId_whenAllTripsAreFromFollowedUsers_shouldReturnAllInOrder() {
         // Given
+        Pageable pageable =
+                PageRequest.of(0, 20, Sort.by(Sort.Direction.DESC, "creationTimestamp"));
         UUID requestingUserId = UUID.randomUUID();
         UUID followedUserId1 = UUID.randomUUID();
         UUID followedUserId2 = UUID.randomUUID();
@@ -624,11 +675,15 @@ class TripServiceTest {
                         .followedId(followedUserId2)
                         .build();
 
-        when(tripRepository.findByVisibilityAndStatusIn(
-                        TripVisibility.PUBLIC, TripStatus.getActiveStatuses()))
-                .thenReturn(List.of(followedTrip1, followedTrip2));
+        List<Trip> trips = List.of(followedTrip1, followedTrip2);
         when(userFollowRepository.findByFollowerId(requestingUserId))
                 .thenReturn(List.of(follow1, follow2));
+        when(tripRepository.findPublicActiveTripsWithFollowedPriority(
+                        eq(TripVisibility.PUBLIC),
+                        eq(TripStatus.getActiveStatuses()),
+                        any(),
+                        any(Pageable.class)))
+                .thenReturn(new PageImpl<>(trips, PageRequest.of(0, 20), trips.size()));
         when(userRepository.findAllById(anyCollection()))
                 .thenReturn(
                         List.of(
@@ -636,16 +691,14 @@ class TripServiceTest {
                                 TestEntityFactory.createUser(followedUserId2, "user2")));
 
         // When
-        List<TripDTO> result = tripService.getOngoingPublicTrips(requestingUserId);
+        Page<TripDTO> result = tripService.getOngoingPublicTrips(requestingUserId, pageable);
 
         // Then
         assertThat(result).isNotNull();
-        assertThat(result).hasSize(2);
-        assertThat(result.get(0).name()).isEqualTo("Followed Trip 1");
-        assertThat(result.get(1).name()).isEqualTo("Followed Trip 2");
+        assertThat(result.getContent()).hasSize(2);
+        assertThat(result.getContent().get(0).name()).isEqualTo("Followed Trip 1");
+        assertThat(result.getContent().get(1).name()).isEqualTo("Followed Trip 2");
 
-        verify(tripRepository)
-                .findByVisibilityAndStatusIn(TripVisibility.PUBLIC, TripStatus.getActiveStatuses());
         verify(userFollowRepository).findByFollowerId(requestingUserId);
     }
 
@@ -653,6 +706,8 @@ class TripServiceTest {
     void
             getOngoingPublicTrips_withRequestingUserId_whenNoTripsFromFollowedUsers_shouldReturnAllTrips() {
         // Given
+        Pageable pageable =
+                PageRequest.of(0, 20, Sort.by(Sort.Direction.DESC, "creationTimestamp"));
         UUID requestingUserId = UUID.randomUUID();
         UUID followedUserId = UUID.randomUUID();
         UUID notFollowedUserId1 = UUID.randomUUID();
@@ -675,10 +730,14 @@ class TripServiceTest {
                         .followedId(followedUserId)
                         .build();
 
-        when(tripRepository.findByVisibilityAndStatusIn(
-                        TripVisibility.PUBLIC, TripStatus.getActiveStatuses()))
-                .thenReturn(List.of(notFollowedTrip1, notFollowedTrip2));
+        List<Trip> trips = List.of(notFollowedTrip1, notFollowedTrip2);
         when(userFollowRepository.findByFollowerId(requestingUserId)).thenReturn(List.of(follow));
+        when(tripRepository.findPublicActiveTripsWithFollowedPriority(
+                        eq(TripVisibility.PUBLIC),
+                        eq(TripStatus.getActiveStatuses()),
+                        any(),
+                        any(Pageable.class)))
+                .thenReturn(new PageImpl<>(trips, PageRequest.of(0, 20), trips.size()));
         when(userRepository.findAllById(anyCollection()))
                 .thenReturn(
                         List.of(
@@ -686,22 +745,22 @@ class TripServiceTest {
                                 TestEntityFactory.createUser(notFollowedUserId2, "user2")));
 
         // When
-        List<TripDTO> result = tripService.getOngoingPublicTrips(requestingUserId);
+        Page<TripDTO> result = tripService.getOngoingPublicTrips(requestingUserId, pageable);
 
         // Then
         assertThat(result).isNotNull();
-        assertThat(result).hasSize(2);
-        assertThat(result.get(0).name()).isEqualTo("Not Followed Trip 1");
-        assertThat(result.get(1).name()).isEqualTo("Not Followed Trip 2");
+        assertThat(result.getContent()).hasSize(2);
+        assertThat(result.getContent().get(0).name()).isEqualTo("Not Followed Trip 1");
+        assertThat(result.getContent().get(1).name()).isEqualTo("Not Followed Trip 2");
 
-        verify(tripRepository)
-                .findByVisibilityAndStatusIn(TripVisibility.PUBLIC, TripStatus.getActiveStatuses());
         verify(userFollowRepository).findByFollowerId(requestingUserId);
     }
 
     @Test
     void getAllAvailableTripsForUser_whenUserHasOwnTripsAndPublicTrips_shouldReturnAll() {
         // Given
+        Pageable pageable =
+                PageRequest.of(0, 20, Sort.by(Sort.Direction.DESC, "creationTimestamp"));
         UUID userId = UUID.randomUUID();
         UUID friendId = UUID.randomUUID();
         UUID publicUserId = UUID.randomUUID();
@@ -716,6 +775,7 @@ class TripServiceTest {
                 TestEntityFactory.createTripWithUser(
                         UUID.randomUUID(), friendId, "Friend Trip", TripVisibility.PROTECTED);
 
+        List<Trip> trips = List.of(ownTrip, publicTrip, friendTrip);
         when(friendshipRepository.findByUserId(userId))
                 .thenReturn(
                         List.of(
@@ -724,8 +784,8 @@ class TripServiceTest {
                                         .userId(userId)
                                         .friendId(friendId)
                                         .build()));
-        when(tripRepository.findAllAvailableTripsForUser(userId, List.of(friendId)))
-                .thenReturn(List.of(ownTrip, publicTrip, friendTrip));
+        when(tripRepository.findAllAvailableTripsForUser(userId, List.of(friendId), pageable))
+                .thenReturn(new PageImpl<>(trips, pageable, trips.size()));
         when(userRepository.findAllById(anyCollection()))
                 .thenReturn(
                         List.of(
@@ -734,25 +794,26 @@ class TripServiceTest {
                                 TestEntityFactory.createUser(friendId, "frienduser")));
 
         // When
-        List<TripDTO> result = tripService.getAllAvailableTripsForUser(userId);
+        Page<TripDTO> result = tripService.getAllAvailableTripsForUser(userId, pageable);
 
         // Then
         assertThat(result).isNotNull();
-        assertThat(result).hasSize(3);
-        assertThat(result.get(0).name()).isEqualTo("My Trip");
-        assertThat(result.get(0).tripSettings().visibility()).isEqualTo(TripVisibility.PRIVATE);
-        assertThat(result.get(1).name()).isEqualTo("Public Trip");
-        assertThat(result.get(1).tripSettings().visibility()).isEqualTo(TripVisibility.PUBLIC);
-        assertThat(result.get(2).name()).isEqualTo("Friend Trip");
-        assertThat(result.get(2).tripSettings().visibility()).isEqualTo(TripVisibility.PROTECTED);
+        assertThat(result.getContent()).hasSize(3);
+        assertThat(result.getContent().get(0).name()).isEqualTo("My Trip");
+        assertThat(result.getContent().get(0).tripSettings().visibility())
+                .isEqualTo(TripVisibility.PRIVATE);
+        assertThat(result.getContent().get(1).name()).isEqualTo("Public Trip");
+        assertThat(result.getContent().get(2).name()).isEqualTo("Friend Trip");
 
         verify(friendshipRepository).findByUserId(userId);
-        verify(tripRepository).findAllAvailableTripsForUser(userId, List.of(friendId));
+        verify(tripRepository).findAllAvailableTripsForUser(userId, List.of(friendId), pageable);
     }
 
     @Test
     void getAllAvailableTripsForUser_whenUserHasNoFriends_shouldReturnOwnAndPublicTrips() {
         // Given
+        Pageable pageable =
+                PageRequest.of(0, 20, Sort.by(Sort.Direction.DESC, "creationTimestamp"));
         UUID userId = UUID.randomUUID();
         UUID publicUserId = UUID.randomUUID();
 
@@ -763,9 +824,10 @@ class TripServiceTest {
                 TestEntityFactory.createTripWithUser(
                         UUID.randomUUID(), publicUserId, "Public Trip", TripVisibility.PUBLIC);
 
+        List<Trip> trips = List.of(ownTrip, publicTrip);
         when(friendshipRepository.findByUserId(userId)).thenReturn(Collections.emptyList());
-        when(tripRepository.findAllAvailableTripsForUser(userId, Collections.emptyList()))
-                .thenReturn(List.of(ownTrip, publicTrip));
+        when(tripRepository.findAllAvailableTripsForUser(userId, Collections.emptyList(), pageable))
+                .thenReturn(new PageImpl<>(trips, pageable, trips.size()));
         when(userRepository.findAllById(anyCollection()))
                 .thenReturn(
                         List.of(
@@ -773,41 +835,48 @@ class TripServiceTest {
                                 TestEntityFactory.createUser(publicUserId, "publicuser")));
 
         // When
-        List<TripDTO> result = tripService.getAllAvailableTripsForUser(userId);
+        Page<TripDTO> result = tripService.getAllAvailableTripsForUser(userId, pageable);
 
         // Then
         assertThat(result).isNotNull();
-        assertThat(result).hasSize(2);
-        assertThat(result.get(0).name()).isEqualTo("My Trip");
-        assertThat(result.get(1).name()).isEqualTo("Public Trip");
+        assertThat(result.getContent()).hasSize(2);
+        assertThat(result.getContent().get(0).name()).isEqualTo("My Trip");
+        assertThat(result.getContent().get(1).name()).isEqualTo("Public Trip");
 
         verify(friendshipRepository).findByUserId(userId);
-        verify(tripRepository).findAllAvailableTripsForUser(userId, Collections.emptyList());
+        verify(tripRepository)
+                .findAllAvailableTripsForUser(userId, Collections.emptyList(), pageable);
     }
 
     @Test
-    void getAllAvailableTripsForUser_whenNoTripsAvailable_shouldReturnEmptyList() {
+    void getAllAvailableTripsForUser_whenNoTripsAvailable_shouldReturnEmptyPage() {
         // Given
+        Pageable pageable =
+                PageRequest.of(0, 20, Sort.by(Sort.Direction.DESC, "creationTimestamp"));
         UUID userId = UUID.randomUUID();
 
         when(friendshipRepository.findByUserId(userId)).thenReturn(Collections.emptyList());
-        when(tripRepository.findAllAvailableTripsForUser(userId, Collections.emptyList()))
-                .thenReturn(Collections.emptyList());
+        when(tripRepository.findAllAvailableTripsForUser(userId, Collections.emptyList(), pageable))
+                .thenReturn(new PageImpl<>(Collections.emptyList(), pageable, 0));
 
         // When
-        List<TripDTO> result = tripService.getAllAvailableTripsForUser(userId);
+        Page<TripDTO> result = tripService.getAllAvailableTripsForUser(userId, pageable);
 
         // Then
         assertThat(result).isNotNull();
-        assertThat(result).isEmpty();
+        assertThat(result.getContent()).isEmpty();
+        assertThat(result.getTotalElements()).isZero();
 
         verify(friendshipRepository).findByUserId(userId);
-        verify(tripRepository).findAllAvailableTripsForUser(userId, Collections.emptyList());
+        verify(tripRepository)
+                .findAllAvailableTripsForUser(userId, Collections.emptyList(), pageable);
     }
 
     @Test
     void getAllAvailableTripsForUser_shouldIncludeOwnPrivateTrips() {
         // Given
+        Pageable pageable =
+                PageRequest.of(0, 20, Sort.by(Sort.Direction.DESC, "creationTimestamp"));
         UUID userId = UUID.randomUUID();
 
         Trip privateTrip =
@@ -815,27 +884,31 @@ class TripServiceTest {
                         UUID.randomUUID(), userId, "My Private Trip", TripVisibility.PRIVATE);
 
         when(friendshipRepository.findByUserId(userId)).thenReturn(Collections.emptyList());
-        when(tripRepository.findAllAvailableTripsForUser(userId, Collections.emptyList()))
-                .thenReturn(List.of(privateTrip));
+        when(tripRepository.findAllAvailableTripsForUser(userId, Collections.emptyList(), pageable))
+                .thenReturn(new PageImpl<>(List.of(privateTrip), pageable, 1));
         when(userRepository.findAllById(anyCollection()))
                 .thenReturn(List.of(TestEntityFactory.createUser(userId, "myuser")));
 
         // When
-        List<TripDTO> result = tripService.getAllAvailableTripsForUser(userId);
+        Page<TripDTO> result = tripService.getAllAvailableTripsForUser(userId, pageable);
 
         // Then
         assertThat(result).isNotNull();
-        assertThat(result).hasSize(1);
-        assertThat(result.get(0).name()).isEqualTo("My Private Trip");
-        assertThat(result.get(0).tripSettings().visibility()).isEqualTo(TripVisibility.PRIVATE);
+        assertThat(result.getContent()).hasSize(1);
+        assertThat(result.getContent().get(0).name()).isEqualTo("My Private Trip");
+        assertThat(result.getContent().get(0).tripSettings().visibility())
+                .isEqualTo(TripVisibility.PRIVATE);
 
         verify(friendshipRepository).findByUserId(userId);
-        verify(tripRepository).findAllAvailableTripsForUser(userId, Collections.emptyList());
+        verify(tripRepository)
+                .findAllAvailableTripsForUser(userId, Collections.emptyList(), pageable);
     }
 
     @Test
     void getAllAvailableTripsForUser_shouldIncludePublicTripsFromOtherUsers() {
         // Given
+        Pageable pageable =
+                PageRequest.of(0, 20, Sort.by(Sort.Direction.DESC, "creationTimestamp"));
         UUID userId = UUID.randomUUID();
         UUID otherUserId = UUID.randomUUID();
 
@@ -847,27 +920,31 @@ class TripServiceTest {
                         TripVisibility.PUBLIC);
 
         when(friendshipRepository.findByUserId(userId)).thenReturn(Collections.emptyList());
-        when(tripRepository.findAllAvailableTripsForUser(userId, Collections.emptyList()))
-                .thenReturn(List.of(publicTrip));
+        when(tripRepository.findAllAvailableTripsForUser(userId, Collections.emptyList(), pageable))
+                .thenReturn(new PageImpl<>(List.of(publicTrip), pageable, 1));
         when(userRepository.findAllById(anyCollection()))
                 .thenReturn(List.of(TestEntityFactory.createUser(otherUserId, "otheruser")));
 
         // When
-        List<TripDTO> result = tripService.getAllAvailableTripsForUser(userId);
+        Page<TripDTO> result = tripService.getAllAvailableTripsForUser(userId, pageable);
 
         // Then
         assertThat(result).isNotNull();
-        assertThat(result).hasSize(1);
-        assertThat(result.get(0).name()).isEqualTo("Other User Public Trip");
-        assertThat(result.get(0).tripSettings().visibility()).isEqualTo(TripVisibility.PUBLIC);
+        assertThat(result.getContent()).hasSize(1);
+        assertThat(result.getContent().get(0).name()).isEqualTo("Other User Public Trip");
+        assertThat(result.getContent().get(0).tripSettings().visibility())
+                .isEqualTo(TripVisibility.PUBLIC);
 
         verify(friendshipRepository).findByUserId(userId);
-        verify(tripRepository).findAllAvailableTripsForUser(userId, Collections.emptyList());
+        verify(tripRepository)
+                .findAllAvailableTripsForUser(userId, Collections.emptyList(), pageable);
     }
 
     @Test
     void getAllAvailableTripsForUser_shouldIncludeProtectedTripsFromFriends() {
         // Given
+        Pageable pageable =
+                PageRequest.of(0, 20, Sort.by(Sort.Direction.DESC, "creationTimestamp"));
         UUID userId = UUID.randomUUID();
         UUID friendId = UUID.randomUUID();
 
@@ -881,32 +958,33 @@ class TripServiceTest {
         when(friendshipRepository.findByUserId(userId))
                 .thenReturn(
                         List.of(
-                                com.tomassirio.wanderer.commons.domain.Friendship.builder()
+                                Friendship.builder()
                                         .id(UUID.randomUUID())
                                         .userId(userId)
                                         .friendId(friendId)
                                         .build()));
-        when(tripRepository.findAllAvailableTripsForUser(userId, List.of(friendId)))
-                .thenReturn(List.of(friendProtectedTrip));
+        when(tripRepository.findAllAvailableTripsForUser(userId, List.of(friendId), pageable))
+                .thenReturn(new PageImpl<>(List.of(friendProtectedTrip), pageable, 1));
         when(userRepository.findAllById(anyCollection()))
                 .thenReturn(List.of(TestEntityFactory.createUser(friendId, "frienduser")));
 
         // When
-        List<TripDTO> result = tripService.getAllAvailableTripsForUser(userId);
+        Page<TripDTO> result = tripService.getAllAvailableTripsForUser(userId, pageable);
 
         // Then
         assertThat(result).isNotNull();
-        assertThat(result).hasSize(1);
-        assertThat(result.get(0).name()).isEqualTo("Friend Protected Trip");
-        assertThat(result.get(0).tripSettings().visibility()).isEqualTo(TripVisibility.PROTECTED);
+        assertThat(result.getContent()).hasSize(1);
+        assertThat(result.getContent().get(0).name()).isEqualTo("Friend Protected Trip");
 
         verify(friendshipRepository).findByUserId(userId);
-        verify(tripRepository).findAllAvailableTripsForUser(userId, List.of(friendId));
+        verify(tripRepository).findAllAvailableTripsForUser(userId, List.of(friendId), pageable);
     }
 
     @Test
     void getAllAvailableTripsForUser_shouldNotIncludeProtectedTripsFromNonFriends() {
         // Given
+        Pageable pageable =
+                PageRequest.of(0, 20, Sort.by(Sort.Direction.DESC, "creationTimestamp"));
         UUID userId = UUID.randomUUID();
         UUID publicUserId = UUID.randomUUID();
 
@@ -915,19 +993,19 @@ class TripServiceTest {
                         UUID.randomUUID(), publicUserId, "Public Trip", TripVisibility.PUBLIC);
 
         when(friendshipRepository.findByUserId(userId)).thenReturn(Collections.emptyList());
-        when(tripRepository.findAllAvailableTripsForUser(userId, Collections.emptyList()))
-                .thenReturn(List.of(publicTrip));
+        when(tripRepository.findAllAvailableTripsForUser(userId, Collections.emptyList(), pageable))
+                .thenReturn(new PageImpl<>(List.of(publicTrip), pageable, 1));
         when(userRepository.findAllById(anyCollection()))
                 .thenReturn(List.of(TestEntityFactory.createUser(publicUserId, "publicuser")));
 
         // When
-        List<TripDTO> result = tripService.getAllAvailableTripsForUser(userId);
+        Page<TripDTO> result = tripService.getAllAvailableTripsForUser(userId, pageable);
 
         // Then
         assertThat(result).isNotNull();
-        assertThat(result).hasSize(1);
+        assertThat(result.getContent()).hasSize(1);
         assertThat(
-                        result.stream()
+                        result.getContent().stream()
                                 .noneMatch(
                                         dto ->
                                                 dto.tripSettings().visibility()
@@ -935,12 +1013,15 @@ class TripServiceTest {
                 .isTrue();
 
         verify(friendshipRepository).findByUserId(userId);
-        verify(tripRepository).findAllAvailableTripsForUser(userId, Collections.emptyList());
+        verify(tripRepository)
+                .findAllAvailableTripsForUser(userId, Collections.emptyList(), pageable);
     }
 
     @Test
     void getAllAvailableTripsForUser_withMultipleFriends_shouldReturnAllAvailableTrips() {
         // Given
+        Pageable pageable =
+                PageRequest.of(0, 20, Sort.by(Sort.Direction.DESC, "creationTimestamp"));
         UUID userId = UUID.randomUUID();
         UUID friendId1 = UUID.randomUUID();
         UUID friendId2 = UUID.randomUUID();
@@ -959,21 +1040,23 @@ class TripServiceTest {
                 TestEntityFactory.createTripWithUser(
                         UUID.randomUUID(), friendId2, "Friend 2 Trip", TripVisibility.PROTECTED);
 
+        List<Trip> trips = List.of(ownTrip, publicTrip, friend1Trip, friend2Trip);
         when(friendshipRepository.findByUserId(userId))
                 .thenReturn(
                         List.of(
-                                com.tomassirio.wanderer.commons.domain.Friendship.builder()
+                                Friendship.builder()
                                         .id(UUID.randomUUID())
                                         .userId(userId)
                                         .friendId(friendId1)
                                         .build(),
-                                com.tomassirio.wanderer.commons.domain.Friendship.builder()
+                                Friendship.builder()
                                         .id(UUID.randomUUID())
                                         .userId(userId)
                                         .friendId(friendId2)
                                         .build()));
-        when(tripRepository.findAllAvailableTripsForUser(userId, List.of(friendId1, friendId2)))
-                .thenReturn(List.of(ownTrip, publicTrip, friend1Trip, friend2Trip));
+        when(tripRepository.findAllAvailableTripsForUser(
+                        userId, List.of(friendId1, friendId2), pageable))
+                .thenReturn(new PageImpl<>(trips, pageable, trips.size()));
         when(userRepository.findAllById(anyCollection()))
                 .thenReturn(
                         List.of(
@@ -983,23 +1066,26 @@ class TripServiceTest {
                                 TestEntityFactory.createUser(friendId2, "friend2")));
 
         // When
-        List<TripDTO> result = tripService.getAllAvailableTripsForUser(userId);
+        Page<TripDTO> result = tripService.getAllAvailableTripsForUser(userId, pageable);
 
         // Then
         assertThat(result).isNotNull();
-        assertThat(result).hasSize(4);
-        assertThat(result.get(0).name()).isEqualTo("My Trip");
-        assertThat(result.get(1).name()).isEqualTo("Public Trip");
-        assertThat(result.get(2).name()).isEqualTo("Friend 1 Trip");
-        assertThat(result.get(3).name()).isEqualTo("Friend 2 Trip");
+        assertThat(result.getContent()).hasSize(4);
+        assertThat(result.getContent().get(0).name()).isEqualTo("My Trip");
+        assertThat(result.getContent().get(1).name()).isEqualTo("Public Trip");
+        assertThat(result.getContent().get(2).name()).isEqualTo("Friend 1 Trip");
+        assertThat(result.getContent().get(3).name()).isEqualTo("Friend 2 Trip");
 
         verify(friendshipRepository).findByUserId(userId);
-        verify(tripRepository).findAllAvailableTripsForUser(userId, List.of(friendId1, friendId2));
+        verify(tripRepository)
+                .findAllAvailableTripsForUser(userId, List.of(friendId1, friendId2), pageable);
     }
 
     @Test
     void getAllAvailableTripsForUser_shouldMapAllFieldsCorrectly() {
         // Given
+        Pageable pageable =
+                PageRequest.of(0, 20, Sort.by(Sort.Direction.DESC, "creationTimestamp"));
         UUID userId = UUID.randomUUID();
         UUID tripId = UUID.randomUUID();
 
@@ -1008,17 +1094,17 @@ class TripServiceTest {
                         tripId, userId, "Test Trip", TripVisibility.PUBLIC);
 
         when(friendshipRepository.findByUserId(userId)).thenReturn(Collections.emptyList());
-        when(tripRepository.findAllAvailableTripsForUser(userId, Collections.emptyList()))
-                .thenReturn(List.of(trip));
+        when(tripRepository.findAllAvailableTripsForUser(userId, Collections.emptyList(), pageable))
+                .thenReturn(new PageImpl<>(List.of(trip), pageable, 1));
         when(userRepository.findAllById(anyCollection()))
                 .thenReturn(List.of(TestEntityFactory.createUser(userId, "testuser")));
 
         // When
-        List<TripDTO> result = tripService.getAllAvailableTripsForUser(userId);
+        Page<TripDTO> result = tripService.getAllAvailableTripsForUser(userId, pageable);
 
         // Then
-        assertThat(result).hasSize(1);
-        TripDTO tripDTO = result.getFirst();
+        assertThat(result.getContent()).hasSize(1);
+        TripDTO tripDTO = result.getContent().getFirst();
         assertThat(tripDTO.id()).isEqualTo(tripId.toString());
         assertThat(tripDTO.name()).isEqualTo("Test Trip");
         assertThat(tripDTO.userId()).isEqualTo(userId.toString());
@@ -1028,7 +1114,8 @@ class TripServiceTest {
         assertThat(tripDTO.creationTimestamp()).isNotNull();
 
         verify(friendshipRepository).findByUserId(userId);
-        verify(tripRepository).findAllAvailableTripsForUser(userId, Collections.emptyList());
+        verify(tripRepository)
+                .findAllAvailableTripsForUser(userId, Collections.emptyList(), pageable);
     }
 
     // ========================================================================

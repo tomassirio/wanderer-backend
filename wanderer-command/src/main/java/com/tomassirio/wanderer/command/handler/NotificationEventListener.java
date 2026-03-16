@@ -88,8 +88,7 @@ public class NotificationEventListener {
     @EventListener
     @Transactional(propagation = Propagation.MANDATORY)
     public void onFriendRequestAccepted(FriendRequestAcceptedEvent event) {
-        log.debug(
-                "Creating notification for FriendRequestAcceptedEvent: {}", event.getRequestId());
+        log.debug("Creating notification for FriendRequestAcceptedEvent: {}", event.getRequestId());
 
         String actorName = resolveUsername(event.getReceiverId());
 
@@ -108,8 +107,7 @@ public class NotificationEventListener {
     @EventListener
     @Transactional(propagation = Propagation.MANDATORY)
     public void onFriendRequestDeclined(FriendRequestDeclinedEvent event) {
-        log.debug(
-                "Creating notification for FriendRequestDeclinedEvent: {}", event.getRequestId());
+        log.debug("Creating notification for FriendRequestDeclinedEvent: {}", event.getRequestId());
 
         save(
                 Notification.builder()
@@ -166,8 +164,7 @@ public class NotificationEventListener {
                         // Skip if replying to own comment or if parent author is trip owner
                         // (already notified)
                         if (!parentAuthorId.equals(event.getUserId())
-                                && tripOpt
-                                        .map(trip -> !parentAuthorId.equals(trip.getUserId()))
+                                && tripOpt.map(trip -> !parentAuthorId.equals(trip.getUserId()))
                                         .orElse(true)) {
                             save(
                                     Notification.builder()
@@ -176,8 +173,7 @@ public class NotificationEventListener {
                                             .actorId(event.getUserId())
                                             .type(NotificationType.REPLY_TO_COMMENT)
                                             .referenceId(event.getParentCommentId())
-                                            .message(
-                                                    actorName + " replied to your comment")
+                                            .message(actorName + " replied to your comment")
                                             .createdAt(Instant.now())
                                             .build());
                         }
@@ -212,9 +208,7 @@ public class NotificationEventListener {
                                         .actorId(event.getUserId())
                                         .type(NotificationType.COMMENT_REACTION)
                                         .referenceId(event.getCommentId())
-                                        .message(
-                                                actorName
-                                                        + " reacted to your comment")
+                                        .message(actorName + " reacted to your comment")
                                         .createdAt(Instant.now())
                                         .build());
                     }
@@ -326,8 +320,7 @@ public class NotificationEventListener {
             return; // System-generated updates (DAY_START, etc.) don't warrant extra notifications
         }
 
-        log.debug(
-                "Creating notifications for TripUpdatedEvent: trip={}", event.getTripId());
+        log.debug("Creating notifications for TripUpdatedEvent: trip={}", event.getTripId());
 
         Optional<Trip> tripOpt = tripRepository.findById(event.getTripId());
         tripOpt.ifPresent(
@@ -340,11 +333,7 @@ public class NotificationEventListener {
 
                     UUID ownerId = trip.getUserId();
                     String ownerName = resolveUsername(ownerId);
-                    String message =
-                            ownerName
-                                    + " posted an update on \""
-                                    + trip.getName()
-                                    + "\"";
+                    String message = ownerName + " posted an update on \"" + trip.getName() + "\"";
 
                     Set<UUID> recipientIds = collectRecipientsByVisibility(ownerId, visibility);
                     saveForRecipients(
@@ -391,9 +380,7 @@ public class NotificationEventListener {
         return recipients;
     }
 
-    /**
-     * Creates and saves notifications for multiple recipients in a batch.
-     */
+    /** Creates and saves notifications for multiple recipients in a batch. */
     private void saveForRecipients(
             Set<UUID> recipientIds,
             UUID actorId,
@@ -428,15 +415,13 @@ public class NotificationEventListener {
 
     private void save(Notification notification) {
         notificationRepository.save(notification);
-        log.debug("Notification created: type={}, recipient={}", notification.getType(),
+        log.debug(
+                "Notification created: type={}, recipient={}",
+                notification.getType(),
                 notification.getRecipientId());
     }
 
     private String resolveUsername(UUID userId) {
-        return userRepository
-                .findById(userId)
-                .map(User::getUsername)
-                .orElse("Someone");
+        return userRepository.findById(userId).map(User::getUsername).orElse("Someone");
     }
 }
-

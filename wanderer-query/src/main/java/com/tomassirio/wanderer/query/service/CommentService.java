@@ -1,8 +1,9 @@
 package com.tomassirio.wanderer.query.service;
 
 import com.tomassirio.wanderer.commons.dto.CommentDTO;
-import java.util.List;
 import java.util.UUID;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 /**
  * Service interface for querying comment data.
@@ -21,11 +22,13 @@ public interface CommentService {
     CommentDTO getComment(UUID commentId);
 
     /**
-     * Retrieves all top-level comments for a trip (with their replies).
+     * Retrieves top-level comments for a trip with pagination and sorting support. Each comment
+     * includes its replies.
      *
      * @param tripId the UUID of the trip
-     * @return a list of {@link CommentDTO} objects representing top-level comments with their
+     * @param pageable pagination and sorting parameters
+     * @return a page of {@link CommentDTO} objects representing top-level comments with their
      *     replies
      */
-    List<CommentDTO> getCommentsForTrip(UUID tripId);
+    Page<CommentDTO> getCommentsForTrip(UUID tripId, Pageable pageable);
 }

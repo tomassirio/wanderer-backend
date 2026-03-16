@@ -28,6 +28,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.test.web.servlet.MockMvc;
 
 @ExtendWith(MockitoExtension.class)
@@ -114,7 +117,7 @@ class TripControllerTest {
     }
 
     @Test
-    void getAllTrips_whenTripsExist_shouldReturnListOfTrips() throws Exception {
+    void getAllTrips_whenTripsExist_shouldReturnPageOfTrips() throws Exception {
         // Given
         UUID tripId1 = UUID.randomUUID();
         UUID tripId2 = UUID.randomUUID();
@@ -122,31 +125,33 @@ class TripControllerTest {
         TripDTO trip1 = createTripDTO(tripId1, "Trip 1", TripVisibility.PUBLIC);
         TripDTO trip2 = createTripDTO(tripId2, "Trip 2", TripVisibility.PRIVATE);
 
-        when(tripService.getAllTrips()).thenReturn(List.of(trip1, trip2));
+        Page<TripDTO> page = new PageImpl<>(List.of(trip1, trip2));
+        when(tripService.getAllTrips(any(Pageable.class))).thenReturn(page);
 
         // When & Then
         mockMvc.perform(get(TRIPS_BASE_URL))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$").isArray())
-                .andExpect(jsonPath("$.length()").value(2))
-                .andExpect(jsonPath("$[0].id").value(tripId1.toString()))
-                .andExpect(jsonPath("$[0].name").value("Trip 1"))
-                .andExpect(jsonPath("$[0].tripSettings.visibility").value("PUBLIC"))
-                .andExpect(jsonPath("$[1].id").value(tripId2.toString()))
-                .andExpect(jsonPath("$[1].name").value("Trip 2"))
-                .andExpect(jsonPath("$[1].tripSettings.visibility").value("PRIVATE"));
+                .andExpect(jsonPath("$.content").isArray())
+                .andExpect(jsonPath("$.content.length()").value(2))
+                .andExpect(jsonPath("$.content[0].id").value(tripId1.toString()))
+                .andExpect(jsonPath("$.content[0].name").value("Trip 1"))
+                .andExpect(jsonPath("$.content[1].id").value(tripId2.toString()))
+                .andExpect(jsonPath("$.content[1].name").value("Trip 2"))
+                .andExpect(jsonPath("$.totalElements").value(2));
     }
 
     @Test
-    void getAllTrips_whenNoTripsExist_shouldReturnEmptyList() throws Exception {
+    void getAllTrips_whenNoTripsExist_shouldReturnEmptyPage() throws Exception {
         // Given
-        when(tripService.getAllTrips()).thenReturn(List.of());
+        Page<TripDTO> page = new PageImpl<>(List.of());
+        when(tripService.getAllTrips(any(Pageable.class))).thenReturn(page);
 
         // When & Then
         mockMvc.perform(get(TRIPS_BASE_URL))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$").isArray())
-                .andExpect(jsonPath("$.length()").value(0));
+                .andExpect(jsonPath("$.content").isArray())
+                .andExpect(jsonPath("$.content.length()").value(0))
+                .andExpect(jsonPath("$.totalElements").value(0));
     }
 
     @Test
@@ -160,13 +165,14 @@ class TripControllerTest {
                         createTripDTO(UUID.randomUUID(), "Trip D", TripVisibility.PUBLIC),
                         createTripDTO(UUID.randomUUID(), "Trip E", TripVisibility.PUBLIC));
 
-        when(tripService.getAllTrips()).thenReturn(trips);
+        when(tripService.getAllTrips(any(Pageable.class))).thenReturn(new PageImpl<>(trips));
 
         // When & Then
         mockMvc.perform(get(TRIPS_BASE_URL))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$").isArray())
-                .andExpect(jsonPath("$.length()").value(5));
+                .andExpect(jsonPath("$.content").isArray())
+                .andExpect(jsonPath("$.content.length()").value(5))
+                .andExpect(jsonPath("$.totalElements").value(5));
     }
 
     @Test
@@ -285,30 +291,32 @@ class TripControllerTest {
                                 "Ongoing Trip 2",
                                 TripVisibility.PUBLIC,
                                 TripStatus.IN_PROGRESS));
-        when(tripService.getOngoingPublicTrips(any())).thenReturn(ongoingTrips);
+        when(tripService.getOngoingPublicTrips(any(), any(Pageable.class)))
+                .thenReturn(new PageImpl<>(ongoingTrips));
 
         // When & Then
         mockMvc.perform(get(TRIPS_BASE_URL + "/public"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$").isArray())
-                .andExpect(jsonPath("$.length()").value(2))
-                .andExpect(jsonPath("$[0].name").value("Ongoing Trip 1"))
-                .andExpect(jsonPath("$[0].tripSettings.visibility").value("PUBLIC"))
-                .andExpect(jsonPath("$[0].tripSettings.tripStatus").value("IN_PROGRESS"))
-                .andExpect(jsonPath("$[1].name").value("Ongoing Trip 2"))
-                .andExpect(jsonPath("$[1].tripSettings.tripStatus").value("IN_PROGRESS"));
+                .andExpect(jsonPath("$.content").isArray())
+                .andExpect(jsonPath("$.content.length()").value(2))
+                .andExpect(jsonPath("$.content[0].name").value("Ongoing Trip 1"))
+                .andExpect(jsonPath("$.content[0].tripSettings.visibility").value("PUBLIC"))
+                .andExpect(jsonPath("$.content[0].tripSettings.tripStatus").value("IN_PROGRESS"))
+                .andExpect(jsonPath("$.content[1].name").value("Ongoing Trip 2"))
+                .andExpect(jsonPath("$.content[1].tripSettings.tripStatus").value("IN_PROGRESS"));
     }
 
     @Test
-    void getOngoingPublicTrips_whenNoOngoingTripsExist_shouldReturnEmptyList() throws Exception {
+    void getOngoingPublicTrips_whenNoOngoingTripsExist_shouldReturnEmptyPage() throws Exception {
         // Given
-        when(tripService.getOngoingPublicTrips(any())).thenReturn(List.of());
+        when(tripService.getOngoingPublicTrips(any(), any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of()));
 
         // When & Then
         mockMvc.perform(get(TRIPS_BASE_URL + "/public"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$").isArray())
-                .andExpect(jsonPath("$.length()").value(0));
+                .andExpect(jsonPath("$.content").isArray())
+                .andExpect(jsonPath("$.content.length()").value(0));
     }
 
     @Test
@@ -321,14 +329,15 @@ class TripControllerTest {
                                 "Public Ongoing",
                                 TripVisibility.PUBLIC,
                                 TripStatus.IN_PROGRESS));
-        when(tripService.getOngoingPublicTrips(any())).thenReturn(ongoingTrips);
+        when(tripService.getOngoingPublicTrips(any(), any(Pageable.class)))
+                .thenReturn(new PageImpl<>(ongoingTrips));
 
         // When & Then
         mockMvc.perform(get(TRIPS_BASE_URL + "/public"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$").isArray())
-                .andExpect(jsonPath("$.length()").value(1))
-                .andExpect(jsonPath("$[0].tripSettings.visibility").value("PUBLIC"));
+                .andExpect(jsonPath("$.content").isArray())
+                .andExpect(jsonPath("$.content.length()").value(1))
+                .andExpect(jsonPath("$.content[0].tripSettings.visibility").value("PUBLIC"));
     }
 
     @Test
@@ -340,31 +349,33 @@ class TripControllerTest {
                         createTripDTO(UUID.randomUUID(), "My Trip", TripVisibility.PRIVATE),
                         createTripDTO(UUID.randomUUID(), "Public Trip", TripVisibility.PUBLIC),
                         createTripDTO(UUID.randomUUID(), "Friend Trip", TripVisibility.PROTECTED));
-        when(tripService.getAllAvailableTripsForUser(any(UUID.class))).thenReturn(availableTrips);
+        when(tripService.getAllAvailableTripsForUser(any(UUID.class), any(Pageable.class)))
+                .thenReturn(new PageImpl<>(availableTrips));
 
         // When & Then
         mockMvc.perform(get(TRIPS_BASE_URL + "/me/available"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$").isArray())
-                .andExpect(jsonPath("$.length()").value(3))
-                .andExpect(jsonPath("$[0].name").value("My Trip"))
-                .andExpect(jsonPath("$[0].tripSettings.visibility").value("PRIVATE"))
-                .andExpect(jsonPath("$[1].name").value("Public Trip"))
-                .andExpect(jsonPath("$[1].tripSettings.visibility").value("PUBLIC"))
-                .andExpect(jsonPath("$[2].name").value("Friend Trip"))
-                .andExpect(jsonPath("$[2].tripSettings.visibility").value("PROTECTED"));
+                .andExpect(jsonPath("$.content").isArray())
+                .andExpect(jsonPath("$.content.length()").value(3))
+                .andExpect(jsonPath("$.content[0].name").value("My Trip"))
+                .andExpect(jsonPath("$.content[0].tripSettings.visibility").value("PRIVATE"))
+                .andExpect(jsonPath("$.content[1].name").value("Public Trip"))
+                .andExpect(jsonPath("$.content[1].tripSettings.visibility").value("PUBLIC"))
+                .andExpect(jsonPath("$.content[2].name").value("Friend Trip"))
+                .andExpect(jsonPath("$.content[2].tripSettings.visibility").value("PROTECTED"));
     }
 
     @Test
-    void getAllAvailableTrips_whenNoAvailableTripsExist_shouldReturnEmptyList() throws Exception {
+    void getAllAvailableTrips_whenNoAvailableTripsExist_shouldReturnEmptyPage() throws Exception {
         // Given
-        when(tripService.getAllAvailableTripsForUser(any(UUID.class))).thenReturn(List.of());
+        when(tripService.getAllAvailableTripsForUser(any(UUID.class), any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of()));
 
         // When & Then
         mockMvc.perform(get(TRIPS_BASE_URL + "/me/available"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$").isArray())
-                .andExpect(jsonPath("$.length()").value(0));
+                .andExpect(jsonPath("$.content").isArray())
+                .andExpect(jsonPath("$.content.length()").value(0));
     }
 
     @Test
@@ -374,15 +385,16 @@ class TripControllerTest {
                 List.of(
                         createTripDTO(
                                 UUID.randomUUID(), "My Private Trip", TripVisibility.PRIVATE));
-        when(tripService.getAllAvailableTripsForUser(any(UUID.class))).thenReturn(availableTrips);
+        when(tripService.getAllAvailableTripsForUser(any(UUID.class), any(Pageable.class)))
+                .thenReturn(new PageImpl<>(availableTrips));
 
         // When & Then
         mockMvc.perform(get(TRIPS_BASE_URL + "/me/available"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$").isArray())
-                .andExpect(jsonPath("$.length()").value(1))
-                .andExpect(jsonPath("$[0].name").value("My Private Trip"))
-                .andExpect(jsonPath("$[0].tripSettings.visibility").value("PRIVATE"));
+                .andExpect(jsonPath("$.content").isArray())
+                .andExpect(jsonPath("$.content.length()").value(1))
+                .andExpect(jsonPath("$.content[0].name").value("My Private Trip"))
+                .andExpect(jsonPath("$.content[0].tripSettings.visibility").value("PRIVATE"));
     }
 
     @Test
@@ -392,15 +404,16 @@ class TripControllerTest {
                 List.of(
                         createTripDTO(
                                 UUID.randomUUID(), "Other User Public", TripVisibility.PUBLIC));
-        when(tripService.getAllAvailableTripsForUser(any(UUID.class))).thenReturn(availableTrips);
+        when(tripService.getAllAvailableTripsForUser(any(UUID.class), any(Pageable.class)))
+                .thenReturn(new PageImpl<>(availableTrips));
 
         // When & Then
         mockMvc.perform(get(TRIPS_BASE_URL + "/me/available"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$").isArray())
-                .andExpect(jsonPath("$.length()").value(1))
-                .andExpect(jsonPath("$[0].name").value("Other User Public"))
-                .andExpect(jsonPath("$[0].tripSettings.visibility").value("PUBLIC"));
+                .andExpect(jsonPath("$.content").isArray())
+                .andExpect(jsonPath("$.content.length()").value(1))
+                .andExpect(jsonPath("$.content[0].name").value("Other User Public"))
+                .andExpect(jsonPath("$.content[0].tripSettings.visibility").value("PUBLIC"));
     }
 
     @Test
@@ -410,15 +423,16 @@ class TripControllerTest {
                 List.of(
                         createTripDTO(
                                 UUID.randomUUID(), "Friend Protected", TripVisibility.PROTECTED));
-        when(tripService.getAllAvailableTripsForUser(any(UUID.class))).thenReturn(availableTrips);
+        when(tripService.getAllAvailableTripsForUser(any(UUID.class), any(Pageable.class)))
+                .thenReturn(new PageImpl<>(availableTrips));
 
         // When & Then
         mockMvc.perform(get(TRIPS_BASE_URL + "/me/available"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$").isArray())
-                .andExpect(jsonPath("$.length()").value(1))
-                .andExpect(jsonPath("$[0].name").value("Friend Protected"))
-                .andExpect(jsonPath("$[0].tripSettings.visibility").value("PROTECTED"));
+                .andExpect(jsonPath("$.content").isArray())
+                .andExpect(jsonPath("$.content.length()").value(1))
+                .andExpect(jsonPath("$.content[0].name").value("Friend Protected"))
+                .andExpect(jsonPath("$.content[0].tripSettings.visibility").value("PROTECTED"));
     }
 
     @Test
@@ -431,24 +445,26 @@ class TripControllerTest {
                         createTripDTO(UUID.randomUUID(), "Trip 3", TripVisibility.PROTECTED),
                         createTripDTO(UUID.randomUUID(), "Trip 4", TripVisibility.PUBLIC),
                         createTripDTO(UUID.randomUUID(), "Trip 5", TripVisibility.PROTECTED));
-        when(tripService.getAllAvailableTripsForUser(any(UUID.class))).thenReturn(availableTrips);
+        when(tripService.getAllAvailableTripsForUser(any(UUID.class), any(Pageable.class)))
+                .thenReturn(new PageImpl<>(availableTrips));
 
         // When & Then
         mockMvc.perform(get(TRIPS_BASE_URL + "/me/available"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$").isArray())
-                .andExpect(jsonPath("$.length()").value(5));
+                .andExpect(jsonPath("$.content").isArray())
+                .andExpect(jsonPath("$.content.length()").value(5));
     }
 
     @Test
     void getAllAvailableTrips_shouldCallServiceWithCorrectUserId() throws Exception {
         // Given
-        when(tripService.getAllAvailableTripsForUser(USER_ID)).thenReturn(List.of());
+        when(tripService.getAllAvailableTripsForUser(eq(USER_ID), any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of()));
 
         // When & Then
         mockMvc.perform(get(TRIPS_BASE_URL + "/me/available")).andExpect(status().isOk());
 
-        verify(tripService).getAllAvailableTripsForUser(USER_ID);
+        verify(tripService).getAllAvailableTripsForUser(eq(USER_ID), any(Pageable.class));
     }
 
     private TripDTO createTripDTO(UUID tripId, String name, TripVisibility visibility) {

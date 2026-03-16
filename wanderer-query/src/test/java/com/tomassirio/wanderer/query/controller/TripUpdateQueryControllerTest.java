@@ -1,5 +1,7 @@
 package com.tomassirio.wanderer.query.controller;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -7,13 +9,16 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.tomassirio.wanderer.commons.domain.GeoLocation;
 import com.tomassirio.wanderer.commons.domain.Reactions;
+import com.tomassirio.wanderer.commons.domain.UpdateType;
 import com.tomassirio.wanderer.commons.domain.WeatherCondition;
 import com.tomassirio.wanderer.commons.dto.TripUpdateDTO;
 import com.tomassirio.wanderer.commons.exception.GlobalExceptionHandler;
 import com.tomassirio.wanderer.commons.utils.MockMvcTestUtils;
+import com.tomassirio.wanderer.query.dto.TripUpdateLocationDTO;
 import com.tomassirio.wanderer.query.service.TripUpdateService;
 import jakarta.persistence.EntityNotFoundException;
 import java.time.Instant;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -22,6 +27,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.test.web.servlet.MockMvc;
 
 @ExtendWith(MockitoExtension.class)
@@ -29,6 +36,8 @@ class TripUpdateQueryControllerTest {
 
     private static final String TRIP_UPDATE_BY_ID_URL = "/api/1/trips/updates/{id}";
     private static final String TRIP_UPDATES_FOR_TRIP_URL = "/api/1/trips/{tripId}/updates";
+    private static final String TRIP_UPDATE_LOCATIONS_URL =
+            "/api/1/trips/{tripId}/updates/locations";
 
     private MockMvc mockMvc;
 
@@ -126,38 +135,39 @@ class TripUpdateQueryControllerTest {
         TripUpdateDTO update2 = createTripUpdateDTO(updateId2, tripId, 85, "Second update");
         TripUpdateDTO update3 = createTripUpdateDTO(updateId3, tripId, 80, "Third update");
 
-        when(tripUpdateService.getTripUpdatesForTrip(tripId))
-                .thenReturn(List.of(update1, update2, update3));
+        when(tripUpdateService.getTripUpdatesForTrip(eq(tripId), any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of(update1, update2, update3)));
 
         // When & Then
         mockMvc.perform(get(TRIP_UPDATES_FOR_TRIP_URL, tripId))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$").isArray())
-                .andExpect(jsonPath("$.length()").value(3))
-                .andExpect(jsonPath("$[0].id").value(updateId1.toString()))
-                .andExpect(jsonPath("$[0].message").value("First update"))
-                .andExpect(jsonPath("$[0].battery").value(90))
-                .andExpect(jsonPath("$[0].city").value("Santiago de Compostela"))
-                .andExpect(jsonPath("$[0].country").value("Spain"))
-                .andExpect(jsonPath("$[1].id").value(updateId2.toString()))
-                .andExpect(jsonPath("$[1].message").value("Second update"))
-                .andExpect(jsonPath("$[1].battery").value(85))
-                .andExpect(jsonPath("$[2].id").value(updateId3.toString()))
-                .andExpect(jsonPath("$[2].message").value("Third update"))
-                .andExpect(jsonPath("$[2].battery").value(80));
+                .andExpect(jsonPath("$.content").isArray())
+                .andExpect(jsonPath("$.content.length()").value(3))
+                .andExpect(jsonPath("$.content[0].id").value(updateId1.toString()))
+                .andExpect(jsonPath("$.content[0].message").value("First update"))
+                .andExpect(jsonPath("$.content[0].battery").value(90))
+                .andExpect(jsonPath("$.content[0].city").value("Santiago de Compostela"))
+                .andExpect(jsonPath("$.content[0].country").value("Spain"))
+                .andExpect(jsonPath("$.content[1].id").value(updateId2.toString()))
+                .andExpect(jsonPath("$.content[1].message").value("Second update"))
+                .andExpect(jsonPath("$.content[1].battery").value(85))
+                .andExpect(jsonPath("$.content[2].id").value(updateId3.toString()))
+                .andExpect(jsonPath("$.content[2].message").value("Third update"))
+                .andExpect(jsonPath("$.content[2].battery").value(80));
     }
 
     @Test
-    void getTripUpdatesForTrip_whenNoTripUpdatesExist_shouldReturnEmptyList() throws Exception {
+    void getTripUpdatesForTrip_whenNoTripUpdatesExist_shouldReturnEmptyPage() throws Exception {
         // Given
         UUID tripId = UUID.randomUUID();
-        when(tripUpdateService.getTripUpdatesForTrip(tripId)).thenReturn(List.of());
+        when(tripUpdateService.getTripUpdatesForTrip(eq(tripId), any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of()));
 
         // When & Then
         mockMvc.perform(get(TRIP_UPDATES_FOR_TRIP_URL, tripId))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$").isArray())
-                .andExpect(jsonPath("$.length()").value(0));
+                .andExpect(jsonPath("$.content").isArray())
+                .andExpect(jsonPath("$.content.length()").value(0));
     }
 
     @Test
@@ -165,7 +175,7 @@ class TripUpdateQueryControllerTest {
         // Given
         UUID nonExistentTripId = UUID.randomUUID();
 
-        when(tripUpdateService.getTripUpdatesForTrip(nonExistentTripId))
+        when(tripUpdateService.getTripUpdatesForTrip(eq(nonExistentTripId), any(Pageable.class)))
                 .thenThrow(new EntityNotFoundException("Trip not found"));
 
         // When & Then
@@ -192,17 +202,17 @@ class TripUpdateQueryControllerTest {
         TripUpdateDTO oldUpdate =
                 createTripUpdateDTOWithTimestamp(updateId3, tripId, 80, "Old", earliest);
 
-        when(tripUpdateService.getTripUpdatesForTrip(tripId))
-                .thenReturn(List.of(recentUpdate, middleUpdate, oldUpdate));
+        when(tripUpdateService.getTripUpdatesForTrip(eq(tripId), any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of(recentUpdate, middleUpdate, oldUpdate)));
 
         // When & Then
         mockMvc.perform(get(TRIP_UPDATES_FOR_TRIP_URL, tripId))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$").isArray())
-                .andExpect(jsonPath("$.length()").value(3))
-                .andExpect(jsonPath("$[0].message").value("Recent"))
-                .andExpect(jsonPath("$[1].message").value("Middle"))
-                .andExpect(jsonPath("$[2].message").value("Old"));
+                .andExpect(jsonPath("$.content").isArray())
+                .andExpect(jsonPath("$.content.length()").value(3))
+                .andExpect(jsonPath("$.content[0].message").value("Recent"))
+                .andExpect(jsonPath("$.content[1].message").value("Middle"))
+                .andExpect(jsonPath("$.content[2].message").value("Old"));
     }
 
     @Test
@@ -220,16 +230,16 @@ class TripUpdateQueryControllerTest {
         TripUpdateDTO update3 = createTripUpdateDTO(updateId3, tripId, 10, "Low battery");
         TripUpdateDTO update4 = createTripUpdateDTO(updateId4, tripId, null, "No battery info");
 
-        when(tripUpdateService.getTripUpdatesForTrip(tripId))
-                .thenReturn(List.of(update1, update2, update3, update4));
+        when(tripUpdateService.getTripUpdatesForTrip(eq(tripId), any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of(update1, update2, update3, update4)));
 
         // When & Then
         mockMvc.perform(get(TRIP_UPDATES_FOR_TRIP_URL, tripId))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].battery").value(100))
-                .andExpect(jsonPath("$[1].battery").value(50))
-                .andExpect(jsonPath("$[2].battery").value(10))
-                .andExpect(jsonPath("$[3].battery").isEmpty());
+                .andExpect(jsonPath("$.content[0].battery").value(100))
+                .andExpect(jsonPath("$.content[1].battery").value(50))
+                .andExpect(jsonPath("$.content[2].battery").value(10))
+                .andExpect(jsonPath("$.content[3].battery").isEmpty());
     }
 
     @Test
@@ -273,17 +283,122 @@ class TripUpdateQueryControllerTest {
                         null,
                         Instant.now());
 
-        when(tripUpdateService.getTripUpdatesForTrip(tripId)).thenReturn(List.of(update1, update2));
+        when(tripUpdateService.getTripUpdatesForTrip(eq(tripId), any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of(update1, update2)));
 
         // When & Then
         mockMvc.perform(get(TRIP_UPDATES_FOR_TRIP_URL, tripId))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].location.lat").value(42.3601))
-                .andExpect(jsonPath("$[0].location.lon").value(-71.0589))
-                .andExpect(jsonPath("$[0].message").value("Boston"))
-                .andExpect(jsonPath("$[1].location.lat").value(40.7128))
-                .andExpect(jsonPath("$[1].location.lon").value(-74.0060))
-                .andExpect(jsonPath("$[1].message").value("New York"));
+                .andExpect(jsonPath("$.content[0].location.lat").value(42.3601))
+                .andExpect(jsonPath("$.content[0].location.lon").value(-71.0589))
+                .andExpect(jsonPath("$.content[0].message").value("Boston"))
+                .andExpect(jsonPath("$.content[1].location.lat").value(40.7128))
+                .andExpect(jsonPath("$.content[1].location.lon").value(-74.0060))
+                .andExpect(jsonPath("$.content[1].message").value("New York"));
+    }
+
+    // ============================================================
+    // getTripUpdateLocations tests
+    // ============================================================
+
+    @Test
+    void getTripUpdateLocations_whenLocationsExist_shouldReturnLocationList() throws Exception {
+        // Given
+        UUID tripId = UUID.randomUUID();
+        Instant now = Instant.now();
+        List<TripUpdateLocationDTO> locations =
+                List.of(
+                        new TripUpdateLocationDTO(
+                                UUID.randomUUID().toString(),
+                                42.8805,
+                                -8.5449,
+                                now.minusSeconds(3600),
+                                UpdateType.DAY_START,
+                                85,
+                                "Santiago de Compostela",
+                                "Spain",
+                                18.5,
+                                WeatherCondition.PARTLY_CLOUDY),
+                        new TripUpdateLocationDTO(
+                                UUID.randomUUID().toString(),
+                                42.9000,
+                                -8.5000,
+                                now,
+                                UpdateType.REGULAR,
+                                71,
+                                "Utrecht",
+                                "Netherlands",
+                                8.7,
+                                WeatherCondition.CLEAR));
+
+        when(tripUpdateService.getTripUpdateLocations(tripId)).thenReturn(locations);
+
+        // When & Then
+        mockMvc.perform(get(TRIP_UPDATE_LOCATIONS_URL, tripId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isArray())
+                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[0].lat").value(42.8805))
+                .andExpect(jsonPath("$[0].lon").value(-8.5449))
+                .andExpect(jsonPath("$[0].updateType").value("DAY_START"))
+                .andExpect(jsonPath("$[0].timestamp").exists())
+                .andExpect(jsonPath("$[0].id").exists())
+                .andExpect(jsonPath("$[0].battery").value(85))
+                .andExpect(jsonPath("$[0].city").value("Santiago de Compostela"))
+                .andExpect(jsonPath("$[0].country").value("Spain"))
+                .andExpect(jsonPath("$[0].temperatureCelsius").value(18.5))
+                .andExpect(jsonPath("$[0].weatherCondition").value("PARTLY_CLOUDY"))
+                .andExpect(jsonPath("$[1].lat").value(42.9000))
+                .andExpect(jsonPath("$[1].lon").value(-8.5000))
+                .andExpect(jsonPath("$[1].updateType").value("REGULAR"))
+                .andExpect(jsonPath("$[1].battery").value(71))
+                .andExpect(jsonPath("$[1].city").value("Utrecht"));
+    }
+
+    @Test
+    void getTripUpdateLocations_whenNoLocationsExist_shouldReturnEmptyList() throws Exception {
+        // Given
+        UUID tripId = UUID.randomUUID();
+        when(tripUpdateService.getTripUpdateLocations(tripId)).thenReturn(Collections.emptyList());
+
+        // When & Then
+        mockMvc.perform(get(TRIP_UPDATE_LOCATIONS_URL, tripId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isArray())
+                .andExpect(jsonPath("$.length()").value(0));
+    }
+
+    @Test
+    void getTripUpdateLocations_shouldNotIncludeHeavyFields() throws Exception {
+        // Given - Verify truly heavy fields (message, reactions) are absent
+        UUID tripId = UUID.randomUUID();
+        List<TripUpdateLocationDTO> locations =
+                List.of(
+                        new TripUpdateLocationDTO(
+                                UUID.randomUUID().toString(),
+                                42.8805,
+                                -8.5449,
+                                Instant.now(),
+                                UpdateType.REGULAR,
+                                71,
+                                "Utrecht",
+                                "Netherlands",
+                                8.7,
+                                WeatherCondition.CLEAR));
+
+        when(tripUpdateService.getTripUpdateLocations(tripId)).thenReturn(locations);
+
+        // When & Then - verify heavy fields from TripUpdateDTO are absent
+        mockMvc.perform(get(TRIP_UPDATE_LOCATIONS_URL, tripId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].message").doesNotExist())
+                .andExpect(jsonPath("$[0].reactions").doesNotExist())
+                // Timeline fields should be present
+                .andExpect(jsonPath("$[0].battery").value(71))
+                .andExpect(jsonPath("$[0].city").value("Utrecht"))
+                .andExpect(jsonPath("$[0].country").value("Netherlands"))
+                .andExpect(jsonPath("$[0].temperatureCelsius").value(8.7))
+                .andExpect(jsonPath("$[0].weatherCondition").value("CLEAR"));
     }
 
     // Helper methods

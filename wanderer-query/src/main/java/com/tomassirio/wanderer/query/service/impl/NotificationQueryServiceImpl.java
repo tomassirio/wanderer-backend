@@ -33,4 +33,3 @@ public class NotificationQueryServiceImpl implements NotificationQueryService {
         return notificationRepository.countByRecipientIdAndReadFalse(recipientId);
     }
 }
-

@@ -23,6 +23,11 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 
 @ExtendWith(MockitoExtension.class)
 class CommentServiceTest {
@@ -100,8 +105,9 @@ class CommentServiceTest {
     }
 
     @Test
-    void getCommentsForTrip_whenCommentsExist_shouldReturnListOfCommentDTOs() {
+    void getCommentsForTrip_whenCommentsExist_shouldReturnPageOfCommentDTOs() {
         // Given
+        Pageable pageable = PageRequest.of(0, 20, Sort.by(Sort.Direction.DESC, "timestamp"));
         UUID tripId = UUID.randomUUID();
         Trip trip = TestEntityFactory.createTrip(tripId, "Test Trip");
 
@@ -112,43 +118,47 @@ class CommentServiceTest {
                 TestEntityFactory.createComment(
                         UUID.randomUUID(), BaseTestEntityFactory.createUser(), trip);
 
-        when(commentRepository.findTopLevelCommentsByTripId(tripId))
-                .thenReturn(List.of(comment1, comment2));
+        List<Comment> comments = List.of(comment1, comment2);
+        when(commentRepository.findTopLevelCommentsByTripId(tripId, pageable))
+                .thenReturn(new PageImpl<>(comments, pageable, comments.size()));
 
         // When
-        List<CommentDTO> result = commentService.getCommentsForTrip(tripId);
+        Page<CommentDTO> result = commentService.getCommentsForTrip(tripId, pageable);
 
         // Then
         assertThat(result).isNotNull();
-        assertThat(result).hasSize(2);
-        assertThat(result.get(0).tripId()).isEqualTo(tripId.toString());
-        assertThat(result.get(0).message()).isEqualTo("Test comment");
-        assertThat(result.get(1).tripId()).isEqualTo(tripId.toString());
-        assertThat(result.get(1).message()).isEqualTo("Test comment");
+        assertThat(result.getContent()).hasSize(2);
+        assertThat(result.getTotalElements()).isEqualTo(2);
+        assertThat(result.getContent().get(0).tripId()).isEqualTo(tripId.toString());
+        assertThat(result.getContent().get(0).message()).isEqualTo("Test comment");
+        assertThat(result.getContent().get(1).tripId()).isEqualTo(tripId.toString());
 
-        verify(commentRepository).findTopLevelCommentsByTripId(tripId);
+        verify(commentRepository).findTopLevelCommentsByTripId(tripId, pageable);
     }
 
     @Test
-    void getCommentsForTrip_whenNoCommentsExist_shouldReturnEmptyList() {
+    void getCommentsForTrip_whenNoCommentsExist_shouldReturnEmptyPage() {
         // Given
+        Pageable pageable = PageRequest.of(0, 20, Sort.by(Sort.Direction.DESC, "timestamp"));
         UUID tripId = UUID.randomUUID();
-        when(commentRepository.findTopLevelCommentsByTripId(tripId))
-                .thenReturn(Collections.emptyList());
+        when(commentRepository.findTopLevelCommentsByTripId(tripId, pageable))
+                .thenReturn(new PageImpl<>(Collections.emptyList(), pageable, 0));
 
         // When
-        List<CommentDTO> result = commentService.getCommentsForTrip(tripId);
+        Page<CommentDTO> result = commentService.getCommentsForTrip(tripId, pageable);
 
         // Then
         assertThat(result).isNotNull();
-        assertThat(result).isEmpty();
+        assertThat(result.getContent()).isEmpty();
+        assertThat(result.getTotalElements()).isZero();
 
-        verify(commentRepository).findTopLevelCommentsByTripId(tripId);
+        verify(commentRepository).findTopLevelCommentsByTripId(tripId, pageable);
     }
 
     @Test
     void getCommentsForTrip_shouldOnlyReturnTopLevelComments() {
         // Given
+        Pageable pageable = PageRequest.of(0, 20, Sort.by(Sort.Direction.DESC, "timestamp"));
         UUID tripId = UUID.randomUUID();
         Trip trip = TestEntityFactory.createTrip(tripId, "Test Trip");
 
@@ -156,23 +166,24 @@ class CommentServiceTest {
                 TestEntityFactory.createComment(
                         UUID.randomUUID(), BaseTestEntityFactory.createUser(), trip);
 
-        when(commentRepository.findTopLevelCommentsByTripId(tripId))
-                .thenReturn(List.of(topLevelComment));
+        when(commentRepository.findTopLevelCommentsByTripId(tripId, pageable))
+                .thenReturn(new PageImpl<>(List.of(topLevelComment), pageable, 1));
 
         // When
-        List<CommentDTO> result = commentService.getCommentsForTrip(tripId);
+        Page<CommentDTO> result = commentService.getCommentsForTrip(tripId, pageable);
 
         // Then
         assertThat(result).isNotNull();
-        assertThat(result).hasSize(1);
-        assertThat(result.getFirst().parentCommentId()).isNull();
+        assertThat(result.getContent()).hasSize(1);
+        assertThat(result.getContent().getFirst().parentCommentId()).isNull();
 
-        verify(commentRepository).findTopLevelCommentsByTripId(tripId);
+        verify(commentRepository).findTopLevelCommentsByTripId(tripId, pageable);
     }
 
     @Test
     void getCommentsForTrip_withMultipleComments_shouldReturnAllComments() {
         // Given
+        Pageable pageable = PageRequest.of(0, 20, Sort.by(Sort.Direction.DESC, "timestamp"));
         UUID tripId = UUID.randomUUID();
         Trip trip = TestEntityFactory.createTrip(tripId, "Test Trip");
 
@@ -186,18 +197,19 @@ class CommentServiceTest {
                 TestEntityFactory.createComment(
                         UUID.randomUUID(), BaseTestEntityFactory.createUser(), trip);
 
-        when(commentRepository.findTopLevelCommentsByTripId(tripId))
-                .thenReturn(List.of(comment1, comment2, comment3));
+        List<Comment> comments = List.of(comment1, comment2, comment3);
+        when(commentRepository.findTopLevelCommentsByTripId(tripId, pageable))
+                .thenReturn(new PageImpl<>(comments, pageable, comments.size()));
 
         // When
-        List<CommentDTO> result = commentService.getCommentsForTrip(tripId);
+        Page<CommentDTO> result = commentService.getCommentsForTrip(tripId, pageable);
 
         // Then
         assertThat(result).isNotNull();
-        assertThat(result).hasSize(3);
-        assertThat(result).allMatch(dto -> dto.tripId().equals(tripId.toString()));
-        assertThat(result).allMatch(dto -> dto.parentCommentId() == null);
+        assertThat(result.getContent()).hasSize(3);
+        assertThat(result.getContent()).allMatch(dto -> dto.tripId().equals(tripId.toString()));
+        assertThat(result.getContent()).allMatch(dto -> dto.parentCommentId() == null);
 
-        verify(commentRepository).findTopLevelCommentsByTripId(tripId);
+        verify(commentRepository).findTopLevelCommentsByTripId(tripId, pageable);
     }
 }

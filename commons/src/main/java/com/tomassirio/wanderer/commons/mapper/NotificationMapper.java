@@ -38,4 +38,3 @@ public interface NotificationMapper {
                     "java(notification.getReferenceId() != null ? notification.getReferenceId().toString() : null)")
     NotificationDTO toDTO(Notification notification);
 }
-

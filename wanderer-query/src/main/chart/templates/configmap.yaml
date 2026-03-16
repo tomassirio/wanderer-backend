@@ -50,3 +50,10 @@ data:
     # Disable Spring Cloud compatibility verifier
     spring.cloud.compatibility-verifier.enabled={{ .Values.application.springCloud.compatibilityVerifierEnabled }}
 
+    # Cache Configuration (Caffeine)
+    {{- range $i, $spec := .Values.application.cache.specs }}
+    cache.specs[{{ $i }}].name={{ $spec.name }}
+    cache.specs[{{ $i }}].ttl-seconds={{ $spec.ttlSeconds }}
+    cache.specs[{{ $i }}].max-size={{ $spec.maxSize }}
+    {{- end }}
+
