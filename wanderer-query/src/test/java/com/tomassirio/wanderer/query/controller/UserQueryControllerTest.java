@@ -1,6 +1,8 @@
 package com.tomassirio.wanderer.query.controller;
 
 import static com.tomassirio.wanderer.commons.utils.BaseTestEntityFactory.USER_ID;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -8,16 +10,23 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.tomassirio.wanderer.commons.exception.GlobalExceptionHandler;
 import com.tomassirio.wanderer.commons.utils.MockMvcTestUtils;
+import com.tomassirio.wanderer.query.dto.UserAdminResponse;
 import com.tomassirio.wanderer.query.dto.UserResponse;
 import com.tomassirio.wanderer.query.service.UserQueryService;
 import jakarta.persistence.EntityNotFoundException;
+import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.test.web.servlet.MockMvc;
 
 @ExtendWith(MockitoExtension.class)
@@ -38,6 +47,106 @@ class UserQueryControllerTest {
                 MockMvcTestUtils.buildMockMvcWithCurrentUserResolver(
                         userQueryController, new GlobalExceptionHandler());
     }
+
+    // --- getAllUsers (admin, paginated) ---
+
+    @Test
+    void getAllUsers_whenUsersExist_shouldReturnPageOfUsers() throws Exception {
+        // Given
+        UUID id1 = UUID.randomUUID();
+        UUID id2 = UUID.randomUUID();
+        UserAdminResponse user1 =
+                new UserAdminResponse(id1, "alice", null, 5, 10, 3, Instant.now());
+        UserAdminResponse user2 =
+                new UserAdminResponse(id2, "bob", null, 2, 4, 1, Instant.now());
+
+        Page<UserAdminResponse> page = new PageImpl<>(List.of(user1, user2));
+        when(userQueryService.getAllUsersWithStats(any(Pageable.class))).thenReturn(page);
+
+        // When & Then
+        mockMvc.perform(get(USERS_BASE_URL))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content").isArray())
+                .andExpect(jsonPath("$.content.length()").value(2))
+                .andExpect(jsonPath("$.content[0].id").value(id1.toString()))
+                .andExpect(jsonPath("$.content[0].username").value("alice"))
+                .andExpect(jsonPath("$.content[0].friendsCount").value(5))
+                .andExpect(jsonPath("$.content[0].followersCount").value(10))
+                .andExpect(jsonPath("$.content[0].tripsCount").value(3))
+                .andExpect(jsonPath("$.content[1].id").value(id2.toString()))
+                .andExpect(jsonPath("$.content[1].username").value("bob"))
+                .andExpect(jsonPath("$.totalElements").value(2));
+    }
+
+    @Test
+    void getAllUsers_whenNoUsersExist_shouldReturnEmptyPage() throws Exception {
+        // Given
+        Page<UserAdminResponse> page = new PageImpl<>(List.of());
+        when(userQueryService.getAllUsersWithStats(any(Pageable.class))).thenReturn(page);
+
+        // When & Then
+        mockMvc.perform(get(USERS_BASE_URL))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content").isArray())
+                .andExpect(jsonPath("$.content.length()").value(0))
+                .andExpect(jsonPath("$.totalElements").value(0));
+    }
+
+    @Test
+    void getAllUsers_withPaginationParams_shouldPassPageableToService() throws Exception {
+        // Given
+        Page<UserAdminResponse> page = new PageImpl<>(List.of());
+        when(userQueryService.getAllUsersWithStats(any(Pageable.class))).thenReturn(page);
+
+        // When
+        mockMvc.perform(get(USERS_BASE_URL).param("page", "2").param("size", "5"))
+                .andExpect(status().isOk());
+
+        // Then
+        ArgumentCaptor<Pageable> pageableCaptor = ArgumentCaptor.forClass(Pageable.class);
+        verify(userQueryService).getAllUsersWithStats(pageableCaptor.capture());
+        Pageable captured = pageableCaptor.getValue();
+        assert captured.getPageNumber() == 2;
+        assert captured.getPageSize() == 5;
+    }
+
+    @Test
+    void getAllUsers_withSortParam_shouldPassSortToService() throws Exception {
+        // Given
+        Page<UserAdminResponse> page = new PageImpl<>(List.of());
+        when(userQueryService.getAllUsersWithStats(any(Pageable.class))).thenReturn(page);
+
+        // When
+        mockMvc.perform(get(USERS_BASE_URL).param("sort", "username,desc"))
+                .andExpect(status().isOk());
+
+        // Then
+        ArgumentCaptor<Pageable> pageableCaptor = ArgumentCaptor.forClass(Pageable.class);
+        verify(userQueryService).getAllUsersWithStats(pageableCaptor.capture());
+        Pageable captured = pageableCaptor.getValue();
+        assert captured.getSort().getOrderFor("username") != null;
+        assert captured.getSort().getOrderFor("username").isDescending();
+    }
+
+    @Test
+    void getAllUsers_withDefaultParams_shouldUseDefaults() throws Exception {
+        // Given
+        Page<UserAdminResponse> page = new PageImpl<>(List.of());
+        when(userQueryService.getAllUsersWithStats(any(Pageable.class))).thenReturn(page);
+
+        // When
+        mockMvc.perform(get(USERS_BASE_URL)).andExpect(status().isOk());
+
+        // Then - default is size=20, sort=username
+        ArgumentCaptor<Pageable> pageableCaptor = ArgumentCaptor.forClass(Pageable.class);
+        verify(userQueryService).getAllUsersWithStats(pageableCaptor.capture());
+        Pageable captured = pageableCaptor.getValue();
+        assert captured.getPageNumber() == 0;
+        assert captured.getPageSize() == 20;
+        assert captured.getSort().getOrderFor("username") != null;
+    }
+
+    // --- existing tests ---
 
     @Test
     void getUser_whenUserExists_shouldReturnUser() throws Exception {
