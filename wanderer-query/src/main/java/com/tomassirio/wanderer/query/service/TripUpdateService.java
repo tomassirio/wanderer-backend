@@ -1,8 +1,6 @@
 package com.tomassirio.wanderer.query.service;
 
 import com.tomassirio.wanderer.commons.dto.TripUpdateDTO;
-import com.tomassirio.wanderer.query.dto.TripUpdateLocationDTO;
-import java.util.List;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -36,17 +34,4 @@ public interface TripUpdateService {
      * @return a page of {@link TripUpdateDTO} objects representing the trip updates
      */
     Page<TripUpdateDTO> getTripUpdatesForTrip(UUID tripId, Pageable pageable);
-
-    /**
-     * Retrieves lightweight location and timeline data for all trip updates of a specific trip.
-     * Returns the fields needed for map marker rendering and timeline display (id, lat, lon,
-     * timestamp, updateType, battery, city, country, temperatureCelsius, weatherCondition).
-     *
-     * <p>This endpoint is not paginated because the map requires all location points to render the
-     * complete route. Heavy fields (message, reactions) are excluded to keep the payload small.
-     *
-     * @param tripId the UUID of the trip
-     * @return a list of {@link TripUpdateLocationDTO} ordered by timestamp ascending
-     */
-    List<TripUpdateLocationDTO> getTripUpdateLocations(UUID tripId);
 }

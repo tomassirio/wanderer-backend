@@ -26,21 +26,11 @@ class CacheConfigTest {
     }
 
     @Test
-    void cacheManager_shouldRegisterTripUpdateLocationsCache() {
-        CacheManager cacheManager = createConfigWithDefaults();
-
-        Cache cache = cacheManager.getCache(CacheConfig.TRIP_UPDATE_LOCATIONS_CACHE);
-        assertThat(cache).isNotNull();
-        assertThat(cache.getName()).isEqualTo("tripUpdateLocations");
-    }
-
-    @Test
-    void cacheManager_shouldContainBothNamedCaches() {
+    void cacheManager_shouldContainNamedCaches() {
         CacheManager cacheManager = createConfigWithDefaults();
 
         assertThat(cacheManager.getCacheNames())
-                .containsExactlyInAnyOrder(
-                        CacheConfig.TRIP_UPDATES_CACHE, CacheConfig.TRIP_UPDATE_LOCATIONS_CACHE);
+                .containsExactlyInAnyOrder(CacheConfig.TRIP_UPDATES_CACHE);
     }
 
     @Test
@@ -69,7 +59,7 @@ class CacheConfigTest {
     private CacheManager createConfigWithDefaults() {
         CacheProperties properties = new CacheProperties();
         properties.setSpecs(
-                List.of(spec("tripUpdates", 30, 500), spec("tripUpdateLocations", 60, 200)));
+                List.of(spec("tripUpdates", 30, 500)));
 
         CacheConfig config = new CacheConfig(properties);
         CacheManager cacheManager = config.cacheManager();

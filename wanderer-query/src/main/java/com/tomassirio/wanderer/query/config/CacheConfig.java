@@ -31,7 +31,6 @@ import org.springframework.context.annotation.Configuration;
 public class CacheConfig {
 
     public static final String TRIP_UPDATES_CACHE = "tripUpdates";
-    public static final String TRIP_UPDATE_LOCATIONS_CACHE = "tripUpdateLocations";
 
     private final CacheProperties cacheProperties;
 

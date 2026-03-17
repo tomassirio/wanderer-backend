@@ -104,9 +104,6 @@ application:
       - name: "tripUpdates"
         ttlSeconds: 30
         maxSize: 500
-      - name: "tripUpdateLocations"
-        ttlSeconds: 60
-        maxSize: 200
 
   # Spring Cloud Configuration
   springCloud:

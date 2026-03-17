@@ -9,16 +9,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.tomassirio.wanderer.commons.domain.GeoLocation;
 import com.tomassirio.wanderer.commons.domain.Reactions;
-import com.tomassirio.wanderer.commons.domain.UpdateType;
 import com.tomassirio.wanderer.commons.domain.WeatherCondition;
 import com.tomassirio.wanderer.commons.dto.TripUpdateDTO;
 import com.tomassirio.wanderer.commons.exception.GlobalExceptionHandler;
 import com.tomassirio.wanderer.commons.utils.MockMvcTestUtils;
-import com.tomassirio.wanderer.query.dto.TripUpdateLocationDTO;
 import com.tomassirio.wanderer.query.service.TripUpdateService;
 import jakarta.persistence.EntityNotFoundException;
 import java.time.Instant;
-import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -36,8 +33,6 @@ class TripUpdateQueryControllerTest {
 
     private static final String TRIP_UPDATE_BY_ID_URL = "/api/1/trips/updates/{id}";
     private static final String TRIP_UPDATES_FOR_TRIP_URL = "/api/1/trips/{tripId}/updates";
-    private static final String TRIP_UPDATE_LOCATIONS_URL =
-            "/api/1/trips/{tripId}/updates/locations";
 
     private MockMvc mockMvc;
 
@@ -297,109 +292,6 @@ class TripUpdateQueryControllerTest {
                 .andExpect(jsonPath("$.content[1].message").value("New York"));
     }
 
-    // ============================================================
-    // getTripUpdateLocations tests
-    // ============================================================
-
-    @Test
-    void getTripUpdateLocations_whenLocationsExist_shouldReturnLocationList() throws Exception {
-        // Given
-        UUID tripId = UUID.randomUUID();
-        Instant now = Instant.now();
-        List<TripUpdateLocationDTO> locations =
-                List.of(
-                        new TripUpdateLocationDTO(
-                                UUID.randomUUID().toString(),
-                                42.8805,
-                                -8.5449,
-                                now.minusSeconds(3600),
-                                UpdateType.DAY_START,
-                                85,
-                                "Santiago de Compostela",
-                                "Spain",
-                                18.5,
-                                WeatherCondition.PARTLY_CLOUDY),
-                        new TripUpdateLocationDTO(
-                                UUID.randomUUID().toString(),
-                                42.9000,
-                                -8.5000,
-                                now,
-                                UpdateType.REGULAR,
-                                71,
-                                "Utrecht",
-                                "Netherlands",
-                                8.7,
-                                WeatherCondition.CLEAR));
-
-        when(tripUpdateService.getTripUpdateLocations(tripId)).thenReturn(locations);
-
-        // When & Then
-        mockMvc.perform(get(TRIP_UPDATE_LOCATIONS_URL, tripId))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$").isArray())
-                .andExpect(jsonPath("$.length()").value(2))
-                .andExpect(jsonPath("$[0].lat").value(42.8805))
-                .andExpect(jsonPath("$[0].lon").value(-8.5449))
-                .andExpect(jsonPath("$[0].updateType").value("DAY_START"))
-                .andExpect(jsonPath("$[0].timestamp").exists())
-                .andExpect(jsonPath("$[0].id").exists())
-                .andExpect(jsonPath("$[0].battery").value(85))
-                .andExpect(jsonPath("$[0].city").value("Santiago de Compostela"))
-                .andExpect(jsonPath("$[0].country").value("Spain"))
-                .andExpect(jsonPath("$[0].temperatureCelsius").value(18.5))
-                .andExpect(jsonPath("$[0].weatherCondition").value("PARTLY_CLOUDY"))
-                .andExpect(jsonPath("$[1].lat").value(42.9000))
-                .andExpect(jsonPath("$[1].lon").value(-8.5000))
-                .andExpect(jsonPath("$[1].updateType").value("REGULAR"))
-                .andExpect(jsonPath("$[1].battery").value(71))
-                .andExpect(jsonPath("$[1].city").value("Utrecht"));
-    }
-
-    @Test
-    void getTripUpdateLocations_whenNoLocationsExist_shouldReturnEmptyList() throws Exception {
-        // Given
-        UUID tripId = UUID.randomUUID();
-        when(tripUpdateService.getTripUpdateLocations(tripId)).thenReturn(Collections.emptyList());
-
-        // When & Then
-        mockMvc.perform(get(TRIP_UPDATE_LOCATIONS_URL, tripId))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$").isArray())
-                .andExpect(jsonPath("$.length()").value(0));
-    }
-
-    @Test
-    void getTripUpdateLocations_shouldNotIncludeHeavyFields() throws Exception {
-        // Given - Verify truly heavy fields (message, reactions) are absent
-        UUID tripId = UUID.randomUUID();
-        List<TripUpdateLocationDTO> locations =
-                List.of(
-                        new TripUpdateLocationDTO(
-                                UUID.randomUUID().toString(),
-                                42.8805,
-                                -8.5449,
-                                Instant.now(),
-                                UpdateType.REGULAR,
-                                71,
-                                "Utrecht",
-                                "Netherlands",
-                                8.7,
-                                WeatherCondition.CLEAR));
-
-        when(tripUpdateService.getTripUpdateLocations(tripId)).thenReturn(locations);
-
-        // When & Then - verify heavy fields from TripUpdateDTO are absent
-        mockMvc.perform(get(TRIP_UPDATE_LOCATIONS_URL, tripId))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].message").doesNotExist())
-                .andExpect(jsonPath("$[0].reactions").doesNotExist())
-                // Timeline fields should be present
-                .andExpect(jsonPath("$[0].battery").value(71))
-                .andExpect(jsonPath("$[0].city").value("Utrecht"))
-                .andExpect(jsonPath("$[0].country").value("Netherlands"))
-                .andExpect(jsonPath("$[0].temperatureCelsius").value(8.7))
-                .andExpect(jsonPath("$[0].weatherCondition").value("CLEAR"));
-    }
 
     // Helper methods
 

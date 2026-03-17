@@ -2,12 +2,10 @@ package com.tomassirio.wanderer.query.controller;
 
 import com.tomassirio.wanderer.commons.constants.ApiConstants;
 import com.tomassirio.wanderer.commons.dto.TripUpdateDTO;
-import com.tomassirio.wanderer.query.dto.TripUpdateLocationDTO;
 import com.tomassirio.wanderer.query.service.TripUpdateService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -76,26 +74,5 @@ public class TripUpdateQueryController {
                 tripUpdates.getNumber() + 1,
                 tripUpdates.getTotalPages());
         return ResponseEntity.ok(tripUpdates);
-    }
-
-    @GetMapping(ApiConstants.TRIP_UPDATE_LOCATIONS_ENDPOINT)
-    @Operation(
-            summary = "Get all trip update locations for a map and timeline",
-            description =
-                    "Retrieves lightweight location data for all trip updates of a specific trip. "
-                            + "Returns the fields needed for map marker rendering and timeline "
-                            + "display (id, lat, lon, timestamp, updateType, battery, city, "
-                            + "country, temperatureCelsius, weatherCondition). Not paginated "
-                            + "because the map requires all points to render the complete route. "
-                            + "Heavy fields (message, reactions) are excluded. "
-                            + "Results are cached and ordered by timestamp ascending.")
-    public ResponseEntity<List<TripUpdateLocationDTO>> getTripUpdateLocations(
-            @PathVariable UUID tripId) {
-        log.info("Received request to retrieve trip update locations for trip: {}", tripId);
-
-        List<TripUpdateLocationDTO> locations = tripUpdateService.getTripUpdateLocations(tripId);
-
-        log.info("Successfully retrieved {} locations for trip {}", locations.size(), tripId);
-        return ResponseEntity.ok(locations);
     }
 }
