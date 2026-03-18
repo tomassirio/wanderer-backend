@@ -57,8 +57,7 @@ class UserQueryControllerTest {
         UUID id2 = UUID.randomUUID();
         UserAdminResponse user1 =
                 new UserAdminResponse(id1, "alice", null, 5, 10, 3, Instant.now());
-        UserAdminResponse user2 =
-                new UserAdminResponse(id2, "bob", null, 2, 4, 1, Instant.now());
+        UserAdminResponse user2 = new UserAdminResponse(id2, "bob", null, 2, 4, 1, Instant.now());
 
         Page<UserAdminResponse> page = new PageImpl<>(List.of(user1, user2));
         when(userQueryService.getAllUsersWithStats(any(Pageable.class))).thenReturn(page);

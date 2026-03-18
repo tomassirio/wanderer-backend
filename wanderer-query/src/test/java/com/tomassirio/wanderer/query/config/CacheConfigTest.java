@@ -58,8 +58,7 @@ class CacheConfigTest {
 
     private CacheManager createConfigWithDefaults() {
         CacheProperties properties = new CacheProperties();
-        properties.setSpecs(
-                List.of(spec("tripUpdates", 30, 500)));
+        properties.setSpecs(List.of(spec("tripUpdates", 30, 500)));
 
         CacheConfig config = new CacheConfig(properties);
         CacheManager cacheManager = config.cacheManager();

@@ -292,7 +292,6 @@ class TripUpdateQueryControllerTest {
                 .andExpect(jsonPath("$.content[1].message").value("New York"));
     }
 
-
     // Helper methods
 
     private TripUpdateDTO createTripUpdateDTO(
