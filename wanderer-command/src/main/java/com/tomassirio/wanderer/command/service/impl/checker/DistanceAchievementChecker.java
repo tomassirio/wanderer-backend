@@ -1,6 +1,7 @@
 package com.tomassirio.wanderer.command.service.impl.checker;
 
 import com.google.maps.model.LatLng;
+import com.tomassirio.wanderer.command.repository.TripRepository;
 import com.tomassirio.wanderer.command.repository.TripUpdateRepository;
 import com.tomassirio.wanderer.command.service.DistanceCalculationStrategy;
 import com.tomassirio.wanderer.commons.domain.AchievementType;
@@ -8,14 +9,24 @@ import com.tomassirio.wanderer.commons.domain.Trip;
 import com.tomassirio.wanderer.commons.domain.TripUpdate;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
-/** Checks achievements based on the total distance walked during a trip. */
+/**
+ * Checks achievements based on the total distance walked during a trip.
+ *
+ * <p>Uses an <strong>incremental</strong> approach: the cumulative distance is cached on {@link
+ * Trip#getCachedDistanceKm()} and only the last segment (between the two most recent valid
+ * locations) is calculated via the distance API on each invocation. This reduces external API calls
+ * from O(N) to O(1) per trip update.
+ */
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class DistanceAchievementChecker implements TripAchievementChecker {
 
     private final TripUpdateRepository tripUpdateRepository;
+    private final TripRepository tripRepository;
     private final DistanceCalculationStrategy distanceCalculationStrategy;
 
     @Override
@@ -35,10 +46,6 @@ public class DistanceAchievementChecker implements TripAchievementChecker {
         List<TripUpdate> updates =
                 tripUpdateRepository.findByTripIdOrderByTimestampAsc(trip.getId());
 
-        if (updates.size() < 2) {
-            return 0.0;
-        }
-
         List<LatLng> coordinates =
                 updates.stream()
                         .filter(
@@ -57,6 +64,26 @@ public class DistanceAchievementChecker implements TripAchievementChecker {
             return 0.0;
         }
 
-        return distanceCalculationStrategy.calculatePathDistance(coordinates);
+        double cachedDistance =
+                trip.getCachedDistanceKm() != null ? trip.getCachedDistanceKm() : 0.0;
+
+        // Only calculate the last segment (between the two most recent valid locations)
+        List<LatLng> lastSegment =
+                List.of(coordinates.get(coordinates.size() - 2), coordinates.getLast());
+
+        double segmentDistance = distanceCalculationStrategy.calculatePathDistance(lastSegment);
+        double totalDistance = cachedDistance + segmentDistance;
+
+        // Persist the updated cached distance
+        trip.setCachedDistanceKm(totalDistance);
+        tripRepository.save(trip);
+
+        log.debug(
+                "Incremental distance for trip {}: segment={} km, total={} km",
+                trip.getId(),
+                segmentDistance,
+                totalDistance);
+
+        return totalDistance;
     }
 }

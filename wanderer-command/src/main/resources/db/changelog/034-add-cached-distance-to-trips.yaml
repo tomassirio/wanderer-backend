@@ -1,0 +1,19 @@
+databaseChangeLog:
+  - changeSet:
+      id: 034-add-cached-distance-to-trips
+      author: tomassirio
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - columnExists:
+                tableName: trips
+                columnName: cached_distance_km
+      changes:
+        - addColumn:
+            tableName: trips
+            columns:
+              - column:
+                  name: cached_distance_km
+                  type: double precision
+
+

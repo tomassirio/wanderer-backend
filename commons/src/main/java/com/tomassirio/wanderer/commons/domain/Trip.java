@@ -62,6 +62,9 @@ public class Trip implements Polylineable {
     @Column(name = "polyline_updated_at")
     private Instant polylineUpdatedAt;
 
+    @Column(name = "cached_distance_km")
+    private Double cachedDistanceKm;
+
     @NotNull
     @Column(name = "creation_timestamp", nullable = false)
     private Instant creationTimestamp;

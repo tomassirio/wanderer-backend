@@ -15,11 +15,19 @@ import lombok.extern.slf4j.Slf4j;
 /**
  * Calculates distances using the Google Maps Distance Matrix API (walking mode).
  *
- * <p>Falls back to {@link HaversineDistanceStrategy} if an API call fails at runtime.
+ * <p>Falls back to {@link HaversineDistanceStrategy} if an API call fails at runtime or if the
+ * number of coordinate pairs exceeds {@link #MAX_API_CALLS_PER_REQUEST}.
  */
 @Slf4j
 @RequiredArgsConstructor
 public class GoogleMapsDistanceStrategy implements DistanceCalculationStrategy {
+
+    /**
+     * Safety cap: maximum number of consecutive coordinate pairs that will be sent to the Google
+     * Maps API in a single {@link #calculatePathDistance} call. If the list exceeds this limit, the
+     * Haversine fallback is used instead to prevent runaway API costs.
+     */
+    public static final int MAX_API_CALLS_PER_REQUEST = 25;
 
     private final GeoApiContext geoApiContext;
     private final HaversineDistanceStrategy fallback;
@@ -28,6 +36,16 @@ public class GoogleMapsDistanceStrategy implements DistanceCalculationStrategy {
     public double calculatePathDistance(List<LatLng> coordinates) {
         if (coordinates == null || coordinates.size() < 2) {
             return 0.0;
+        }
+
+        int segments = coordinates.size() - 1;
+        if (segments > MAX_API_CALLS_PER_REQUEST) {
+            log.warn(
+                    "Coordinate list has {} segments, exceeding safety cap of {}. Falling back to"
+                            + " Haversine to prevent excessive API costs.",
+                    segments,
+                    MAX_API_CALLS_PER_REQUEST);
+            return fallback.calculatePathDistance(coordinates);
         }
 
         try {

@@ -65,3 +65,5 @@ databaseChangeLog:
       file: db/changelog/032-lowercase-existing-usernames.yaml
   - include:
       file: db/changelog/033-create-notifications-table.yaml
+  - include:
+      file: db/changelog/034-add-cached-distance-to-trips.yaml
