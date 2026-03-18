@@ -16,4 +16,12 @@ public interface TripDayRepository extends JpaRepository<TripDay, UUID> {
      * @return the open TripDay, if any
      */
     Optional<TripDay> findByTripIdAndEndTimestampIsNull(UUID tripId);
+
+    /**
+     * Counts the number of trip days recorded for a given trip.
+     *
+     * @param tripId the trip ID
+     * @return the number of trip days
+     */
+    long countByTripId(UUID tripId);
 }
