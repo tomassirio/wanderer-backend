@@ -841,9 +841,7 @@ class TripServiceImplTest {
 
         // When & Then
         assertThatThrownBy(
-                        () ->
-                                tripService.createTripFromPlan(
-                                        USER_ID, nonExistentPlanId, request))
+                        () -> tripService.createTripFromPlan(USER_ID, nonExistentPlanId, request))
                 .isInstanceOf(EntityNotFoundException.class)
                 .hasMessage("Trip plan not found");
 
@@ -870,10 +868,7 @@ class TripServiceImplTest {
                 new TripFromPlanRequest(TripVisibility.PUBLIC, null, null, null);
 
         // When & Then
-        assertThatThrownBy(
-                        () ->
-                                tripService.createTripFromPlan(
-                                        USER_ID, tripPlanId, request))
+        assertThatThrownBy(() -> tripService.createTripFromPlan(USER_ID, tripPlanId, request))
                 .isInstanceOf(AccessDeniedException.class);
 
         verify(tripPlanRepository).findById(tripPlanId);

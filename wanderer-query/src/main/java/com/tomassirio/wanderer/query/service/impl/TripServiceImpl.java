@@ -22,6 +22,10 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import lombok.AllArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -45,9 +49,9 @@ public class TripServiceImpl implements TripService {
     }
 
     @Override
-    public List<TripDTO> getAllTrips() {
-        return enrichListWithUsernames(
-                tripRepository.findAll().stream().map(tripMapper::toDTO).toList());
+    public Page<TripDTO> getAllTrips(Pageable pageable) {
+        Page<Trip> tripPage = tripRepository.findAll(pageable);
+        return enrichPageWithUsernames(tripPage, pageable);
     }
 
     @Override
@@ -84,13 +88,12 @@ public class TripServiceImpl implements TripService {
     }
 
     @Override
-    public List<TripDTO> getOngoingPublicTrips(UUID requestingUserId) {
-        List<Trip> publicTrips =
-                tripRepository.findByVisibilityAndStatusIn(
-                        TripVisibility.PUBLIC, TripStatus.getActiveStatuses());
-
+    public Page<TripDTO> getOngoingPublicTrips(UUID requestingUserId, Pageable pageable) {
         if (requestingUserId == null) {
-            return enrichListWithUsernames(publicTrips.stream().map(tripMapper::toDTO).toList());
+            Page<Trip> tripPage =
+                    tripRepository.findByVisibilityAndStatusIn(
+                            TripVisibility.PUBLIC, TripStatus.getActiveStatuses(), pageable);
+            return enrichPageWithUsernames(tripPage, pageable);
         }
 
         // Get followed user IDs
@@ -99,32 +102,49 @@ public class TripServiceImpl implements TripService {
                         .map(UserFollow::getFollowedId)
                         .collect(Collectors.toSet());
 
-        Map<Boolean, List<Trip>> partitionedTrips =
-                publicTrips.stream()
-                        .collect(
-                                Collectors.partitioningBy(
-                                        trip -> followedUserIds.contains(trip.getUserId())));
+        if (followedUserIds.isEmpty()) {
+            Page<Trip> tripPage =
+                    tripRepository.findByVisibilityAndStatusIn(
+                            TripVisibility.PUBLIC, TripStatus.getActiveStatuses(), pageable);
+            return enrichPageWithUsernames(tripPage, pageable);
+        }
 
-        return enrichListWithUsernames(
-                Stream.concat(
-                                partitionedTrips.get(true).stream(),
-                                partitionedTrips.get(false).stream())
-                        .map(tripMapper::toDTO)
-                        .toList());
+        // Use unsorted pageable for the custom query (has its own ORDER BY)
+        Pageable unsortedPageable =
+                PageRequest.of(pageable.getPageNumber(), pageable.getPageSize());
+        Page<Trip> tripPage =
+                tripRepository.findPublicActiveTripsWithFollowedPriority(
+                        TripVisibility.PUBLIC,
+                        TripStatus.getActiveStatuses(),
+                        followedUserIds,
+                        unsortedPageable);
+        return enrichPageWithUsernames(tripPage, pageable);
     }
 
     @Override
-    public List<TripDTO> getAllAvailableTripsForUser(UUID userId) {
+    public Page<TripDTO> getAllAvailableTripsForUser(UUID userId, Pageable pageable) {
         // Get all friend IDs
         List<UUID> friendIds =
                 friendshipRepository.findByUserId(userId).stream()
                         .map(Friendship::getFriendId)
                         .toList();
 
-        return enrichListWithUsernames(
-                tripRepository.findAllAvailableTripsForUser(userId, friendIds).stream()
-                        .map(tripMapper::toDTO)
-                        .toList());
+        Page<Trip> tripPage =
+                tripRepository.findAllAvailableTripsForUser(userId, friendIds, pageable);
+        return enrichPageWithUsernames(tripPage, pageable);
+    }
+
+    /**
+     * Enriches a Page of Trip entities with usernames, preserving pagination metadata.
+     *
+     * @param tripPage the page of Trip entities
+     * @param pageable the original pageable request
+     * @return a page of enriched TripDTOs with usernames populated
+     */
+    private Page<TripDTO> enrichPageWithUsernames(Page<Trip> tripPage, Pageable pageable) {
+        List<TripDTO> dtos = tripPage.getContent().stream().map(tripMapper::toDTO).toList();
+        List<TripDTO> enriched = enrichListWithUsernames(dtos);
+        return new PageImpl<>(enriched, pageable, tripPage.getTotalElements());
     }
 
     /**

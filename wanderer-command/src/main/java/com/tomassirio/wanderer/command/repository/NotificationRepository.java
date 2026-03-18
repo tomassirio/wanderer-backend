@@ -12,7 +12,7 @@ import org.springframework.stereotype.Repository;
 public interface NotificationRepository extends JpaRepository<Notification, UUID> {
 
     @Modifying
-    @Query("UPDATE Notification n SET n.read = true WHERE n.recipientId = :recipientId AND n.read = false")
+    @Query(
+            "UPDATE Notification n SET n.read = true WHERE n.recipientId = :recipientId AND n.read = false")
     int markAllAsReadByRecipientId(@Param("recipientId") UUID recipientId);
 }
-

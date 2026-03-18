@@ -2,6 +2,8 @@ package com.tomassirio.wanderer.query.controller;
 
 import static com.tomassirio.wanderer.commons.utils.BaseTestEntityFactory.USERNAME;
 import static com.tomassirio.wanderer.commons.utils.BaseTestEntityFactory.USER_ID;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -22,6 +24,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.test.web.servlet.MockMvc;
 
 @ExtendWith(MockitoExtension.class)
@@ -145,32 +149,34 @@ class CommentControllerTest {
         CommentDTO comment1 = createCommentDTO(commentId1, tripId, "First comment", null);
         CommentDTO comment2 = createCommentDTO(commentId2, tripId, "Second comment", null);
 
-        when(commentService.getCommentsForTrip(tripId)).thenReturn(List.of(comment1, comment2));
+        when(commentService.getCommentsForTrip(eq(tripId), any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of(comment1, comment2)));
 
         // When & Then
         mockMvc.perform(get(TRIP_COMMENTS_URL, tripId))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$").isArray())
-                .andExpect(jsonPath("$.length()").value(2))
-                .andExpect(jsonPath("$[0].id").value(commentId1.toString()))
-                .andExpect(jsonPath("$[0].message").value("First comment"))
-                .andExpect(jsonPath("$[0].tripId").value(tripId.toString()))
-                .andExpect(jsonPath("$[1].id").value(commentId2.toString()))
-                .andExpect(jsonPath("$[1].message").value("Second comment"))
-                .andExpect(jsonPath("$[1].tripId").value(tripId.toString()));
+                .andExpect(jsonPath("$.content").isArray())
+                .andExpect(jsonPath("$.content.length()").value(2))
+                .andExpect(jsonPath("$.content[0].id").value(commentId1.toString()))
+                .andExpect(jsonPath("$.content[0].message").value("First comment"))
+                .andExpect(jsonPath("$.content[0].tripId").value(tripId.toString()))
+                .andExpect(jsonPath("$.content[1].id").value(commentId2.toString()))
+                .andExpect(jsonPath("$.content[1].message").value("Second comment"))
+                .andExpect(jsonPath("$.content[1].tripId").value(tripId.toString()));
     }
 
     @Test
-    void getCommentsForTrip_whenNoCommentsExist_shouldReturnEmptyList() throws Exception {
+    void getCommentsForTrip_whenNoCommentsExist_shouldReturnEmptyPage() throws Exception {
         // Given
         UUID tripId = UUID.randomUUID();
-        when(commentService.getCommentsForTrip(tripId)).thenReturn(List.of());
+        when(commentService.getCommentsForTrip(eq(tripId), any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of()));
 
         // When & Then
         mockMvc.perform(get(TRIP_COMMENTS_URL, tripId))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$").isArray())
-                .andExpect(jsonPath("$.length()").value(0));
+                .andExpect(jsonPath("$.content").isArray())
+                .andExpect(jsonPath("$.content.length()").value(0));
     }
 
     @Test
@@ -178,7 +184,7 @@ class CommentControllerTest {
         // Given
         UUID nonExistentTripId = UUID.randomUUID();
 
-        when(commentService.getCommentsForTrip(nonExistentTripId))
+        when(commentService.getCommentsForTrip(eq(nonExistentTripId), any(Pageable.class)))
                 .thenThrow(new EntityNotFoundException("Trip not found"));
 
         // When & Then
@@ -210,19 +216,20 @@ class CommentControllerTest {
                         List.of(reply1, reply2),
                         Instant.now());
 
-        when(commentService.getCommentsForTrip(tripId)).thenReturn(List.of(commentWithReplies));
+        when(commentService.getCommentsForTrip(eq(tripId), any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of(commentWithReplies)));
 
         // When & Then
         mockMvc.perform(get(TRIP_COMMENTS_URL, tripId))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$").isArray())
-                .andExpect(jsonPath("$.length()").value(1))
-                .andExpect(jsonPath("$[0].id").value(commentId.toString()))
-                .andExpect(jsonPath("$[0].message").value("Parent comment"))
-                .andExpect(jsonPath("$[0].replies").isArray())
-                .andExpect(jsonPath("$[0].replies.length()").value(2))
-                .andExpect(jsonPath("$[0].replies[0].message").value("Reply 1"))
-                .andExpect(jsonPath("$[0].replies[1].message").value("Reply 2"));
+                .andExpect(jsonPath("$.content").isArray())
+                .andExpect(jsonPath("$.content.length()").value(1))
+                .andExpect(jsonPath("$.content[0].id").value(commentId.toString()))
+                .andExpect(jsonPath("$.content[0].message").value("Parent comment"))
+                .andExpect(jsonPath("$.content[0].replies").isArray())
+                .andExpect(jsonPath("$.content[0].replies.length()").value(2))
+                .andExpect(jsonPath("$.content[0].replies[0].message").value("Reply 1"))
+                .andExpect(jsonPath("$.content[0].replies[1].message").value("Reply 2"));
     }
 
     @Test
@@ -237,17 +244,18 @@ class CommentControllerTest {
                         createCommentDTO(UUID.randomUUID(), tripId, "Comment 3", null),
                         createCommentDTO(UUID.randomUUID(), tripId, "Comment 4", null));
 
-        when(commentService.getCommentsForTrip(tripId)).thenReturn(comments);
+        when(commentService.getCommentsForTrip(eq(tripId), any(Pageable.class)))
+                .thenReturn(new PageImpl<>(comments));
 
         // When & Then
         mockMvc.perform(get(TRIP_COMMENTS_URL, tripId))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$").isArray())
-                .andExpect(jsonPath("$.length()").value(4))
-                .andExpect(jsonPath("$[0].message").value("Comment 1"))
-                .andExpect(jsonPath("$[1].message").value("Comment 2"))
-                .andExpect(jsonPath("$[2].message").value("Comment 3"))
-                .andExpect(jsonPath("$[3].message").value("Comment 4"));
+                .andExpect(jsonPath("$.content").isArray())
+                .andExpect(jsonPath("$.content.length()").value(4))
+                .andExpect(jsonPath("$.content[0].message").value("Comment 1"))
+                .andExpect(jsonPath("$.content[1].message").value("Comment 2"))
+                .andExpect(jsonPath("$.content[2].message").value("Comment 3"))
+                .andExpect(jsonPath("$.content[3].message").value("Comment 4"));
     }
 
     @Test
@@ -269,13 +277,14 @@ class CommentControllerTest {
                         List.of(), // replies
                         Instant.now());
 
-        when(commentService.getCommentsForTrip(tripId)).thenReturn(List.of(commentWithReactions));
+        when(commentService.getCommentsForTrip(eq(tripId), any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of(commentWithReactions)));
 
         // When & Then
         mockMvc.perform(get(TRIP_COMMENTS_URL, tripId))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].reactions.heart").value(10))
-                .andExpect(jsonPath("$[0].reactions.smiley").value(5));
+                .andExpect(jsonPath("$.content[0].reactions.heart").value(10))
+                .andExpect(jsonPath("$.content[0].reactions.smiley").value(5));
     }
 
     private CommentDTO createCommentDTO(

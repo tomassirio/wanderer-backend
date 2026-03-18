@@ -12,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -46,11 +47,13 @@ public class NotificationQueryController {
                             + " ordered by creation date descending.")
     public ResponseEntity<Page<NotificationDTO>> getMyNotifications(
             @Parameter(hidden = true) @CurrentUserId UUID userId,
-            @PageableDefault(size = 20) Pageable pageable) {
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC)
+                    Pageable pageable) {
         log.info("Received request to get notifications for user {}", userId);
         Page<NotificationDTO> notifications =
                 notificationQueryService.getNotifications(userId, pageable);
-        log.info("Retrieved {} notifications for user {}", notifications.getTotalElements(), userId);
+        log.info(
+                "Retrieved {} notifications for user {}", notifications.getTotalElements(), userId);
         return ResponseEntity.ok(notifications);
     }
 
@@ -67,4 +70,3 @@ public class NotificationQueryController {
         return ResponseEntity.ok(count);
     }
 }
-

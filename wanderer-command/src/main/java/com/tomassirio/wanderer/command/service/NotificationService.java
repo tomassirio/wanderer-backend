@@ -26,4 +26,3 @@ public interface NotificationService {
      */
     int markAllAsRead(UUID userId);
 }
-

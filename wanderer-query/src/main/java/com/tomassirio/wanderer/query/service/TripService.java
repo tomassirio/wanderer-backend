@@ -4,6 +4,8 @@ import com.tomassirio.wanderer.commons.dto.TripDTO;
 import com.tomassirio.wanderer.commons.dto.TripMaintenanceStatsDTO;
 import java.util.List;
 import java.util.UUID;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 /**
  * Service interface for querying trip data in the query side of the CQRS architecture.
@@ -26,15 +28,12 @@ public interface TripService {
     TripDTO getTrip(UUID id);
 
     /**
-     * Retrieves all trips in the system.
+     * Retrieves all trips in the system with pagination and sorting support.
      *
-     * <p>This method returns all trips regardless of visibility or status. The results are mapped
-     * to DTOs for safe transmission to clients.
-     *
-     * @return a list of {@link TripDTO} objects representing all trips, or an empty list if no
-     *     trips exist
+     * @param pageable pagination and sorting parameters
+     * @return a page of {@link TripDTO} objects representing trips
      */
-    List<TripDTO> getAllTrips();
+    Page<TripDTO> getAllTrips(Pageable pageable);
 
     /**
      * Retrieves all trips with PUBLIC visibility.
@@ -67,23 +66,25 @@ public interface TripService {
     List<TripDTO> getTripsForUserWithVisibility(UUID userId, UUID requestingUserId);
 
     /**
-     * Retrieves all ongoing public trips (trips that are PUBLIC and IN_PROGRESS). If a requesting
-     * user ID is provided, trips from followed users are prioritized.
+     * Retrieves all ongoing public trips with pagination. If a requesting user ID is provided,
+     * trips from followed users are prioritized.
      *
      * @param requestingUserId the UUID of the user making the request (optional)
-     * @return a list of {@link TripDTO} objects representing ongoing public trips
+     * @param pageable pagination and sorting parameters
+     * @return a page of {@link TripDTO} objects representing ongoing public trips
      */
-    List<TripDTO> getOngoingPublicTrips(UUID requestingUserId);
+    Page<TripDTO> getOngoingPublicTrips(UUID requestingUserId, Pageable pageable);
 
     /**
-     * Retrieves all trips available to the current user. This includes: - All trips owned by the
-     * user (regardless of visibility) - All public trips from other users - All protected trips
-     * from users who are friends with the requesting user
+     * Retrieves all trips available to the current user with pagination and sorting support. This
+     * includes: - All trips owned by the user (regardless of visibility) - All public trips from
+     * other users - All protected trips from users who are friends with the requesting user
      *
      * @param userId the UUID of the user making the request
-     * @return a list of {@link TripDTO} objects representing all available trips for the user
+     * @param pageable pagination and sorting parameters
+     * @return a page of {@link TripDTO} objects representing all available trips for the user
      */
-    List<TripDTO> getAllAvailableTripsForUser(UUID userId);
+    Page<TripDTO> getAllAvailableTripsForUser(UUID userId, Pageable pageable);
 
     /**
      * Returns maintenance statistics for all trips in the system, including polyline coverage and

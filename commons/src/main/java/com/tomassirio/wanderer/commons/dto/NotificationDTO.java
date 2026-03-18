@@ -16,4 +16,3 @@ public record NotificationDTO(
         String message,
         boolean read,
         Instant createdAt) {}
-

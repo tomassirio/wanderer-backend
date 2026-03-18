@@ -5,10 +5,10 @@ import com.tomassirio.wanderer.commons.mapper.CommentMapper;
 import com.tomassirio.wanderer.query.repository.CommentRepository;
 import com.tomassirio.wanderer.query.service.CommentService;
 import jakarta.persistence.EntityNotFoundException;
-import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
 import lombok.AllArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -27,9 +27,9 @@ public class CommentServiceImpl implements CommentService {
     }
 
     @Override
-    public List<CommentDTO> getCommentsForTrip(UUID tripId) {
-        return commentRepository.findTopLevelCommentsByTripId(tripId).stream()
-                .map(commentMapper::toDTO)
-                .collect(Collectors.toList());
+    public Page<CommentDTO> getCommentsForTrip(UUID tripId, Pageable pageable) {
+        return commentRepository
+                .findTopLevelCommentsByTripId(tripId, pageable)
+                .map(commentMapper::toDTO);
     }
 }

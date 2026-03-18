@@ -2,13 +2,15 @@ package com.tomassirio.wanderer.query.service.impl;
 
 import com.tomassirio.wanderer.commons.dto.TripUpdateDTO;
 import com.tomassirio.wanderer.commons.mapper.TripUpdateMapper;
+import com.tomassirio.wanderer.query.config.CacheConfig;
 import com.tomassirio.wanderer.query.repository.TripUpdateRepository;
 import com.tomassirio.wanderer.query.service.TripUpdateService;
 import jakarta.persistence.EntityNotFoundException;
-import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
 import lombok.AllArgsConstructor;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 /**
@@ -32,9 +34,11 @@ public class TripUpdateServiceImpl implements TripUpdateService {
     }
 
     @Override
-    public List<TripUpdateDTO> getTripUpdatesForTrip(UUID tripId) {
-        return tripUpdateRepository.findByTripIdOrderByTimestampDesc(tripId).stream()
-                .map(tripUpdateMapper::toDTO)
-                .collect(Collectors.toList());
+    @Cacheable(
+            value = CacheConfig.TRIP_UPDATES_CACHE,
+            key =
+                    "#tripId + '-' + #pageable.pageNumber + '-' + #pageable.pageSize + '-' + #pageable.sort")
+    public Page<TripUpdateDTO> getTripUpdatesForTrip(UUID tripId, Pageable pageable) {
+        return tripUpdateRepository.findByTripId(tripId, pageable).map(tripUpdateMapper::toDTO);
     }
 }

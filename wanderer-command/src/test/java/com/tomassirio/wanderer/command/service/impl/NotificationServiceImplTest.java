@@ -100,4 +100,3 @@ class NotificationServiceImplTest {
         assertThat(count).isZero();
     }
 }
-

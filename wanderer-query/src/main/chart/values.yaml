@@ -98,6 +98,13 @@ application:
     maxRequests: 100
     windowSeconds: 60
 
+  # Cache Configuration (Caffeine)
+  cache:
+    specs:
+      - name: "tripUpdates"
+        ttlSeconds: 30
+        maxSize: 500
+
   # Spring Cloud Configuration
   springCloud:
     compatibilityVerifierEnabled: false

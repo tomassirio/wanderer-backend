@@ -25,8 +25,8 @@ import com.tomassirio.wanderer.commons.domain.Friendship;
 import com.tomassirio.wanderer.commons.domain.Notification;
 import com.tomassirio.wanderer.commons.domain.NotificationType;
 import com.tomassirio.wanderer.commons.domain.Trip;
-import com.tomassirio.wanderer.commons.domain.TripStatus;
 import com.tomassirio.wanderer.commons.domain.TripSettings;
+import com.tomassirio.wanderer.commons.domain.TripStatus;
 import com.tomassirio.wanderer.commons.domain.TripVisibility;
 import com.tomassirio.wanderer.commons.domain.UpdateType;
 import com.tomassirio.wanderer.commons.domain.User;
@@ -101,8 +101,7 @@ class NotificationEventListenerTest {
     @Test
     void onFriendRequestAccepted_CreatesNotificationForSender() {
         when(userRepository.findById(receiverId))
-                .thenReturn(
-                        Optional.of(User.builder().id(receiverId).username("bob").build()));
+                .thenReturn(Optional.of(User.builder().id(receiverId).username("bob").build()));
 
         FriendRequestAcceptedEvent event =
                 FriendRequestAcceptedEvent.builder()
@@ -230,8 +229,7 @@ class NotificationEventListenerTest {
     @Test
     void onCommentReaction_Added_NotifiesCommentAuthor() {
         UUID commentAuthorId = UUID.randomUUID();
-        User commentAuthor =
-                User.builder().id(commentAuthorId).username("commentAuthor").build();
+        User commentAuthor = User.builder().id(commentAuthorId).username("commentAuthor").build();
         Comment comment =
                 Comment.builder()
                         .id(commentId)
@@ -377,9 +375,7 @@ class NotificationEventListenerTest {
                         .build();
         when(tripRepository.findById(tripId)).thenReturn(Optional.of(trip));
         when(userRepository.findById(tripOwnerId))
-                .thenReturn(
-                        Optional.of(
-                                User.builder().id(tripOwnerId).username("walker").build()));
+                .thenReturn(Optional.of(User.builder().id(tripOwnerId).username("walker").build()));
 
         UUID followerId = UUID.randomUUID();
         UUID friendId = UUID.randomUUID();
@@ -432,9 +428,7 @@ class NotificationEventListenerTest {
                         .build();
         when(tripRepository.findById(tripId)).thenReturn(Optional.of(trip));
         when(userRepository.findById(tripOwnerId))
-                .thenReturn(
-                        Optional.of(
-                                User.builder().id(tripOwnerId).username("walker").build()));
+                .thenReturn(Optional.of(User.builder().id(tripOwnerId).username("walker").build()));
 
         UUID friendId = UUID.randomUUID();
         when(friendshipRepository.findByUserId(tripOwnerId))
@@ -523,9 +517,7 @@ class NotificationEventListenerTest {
                         .build();
         when(tripRepository.findById(tripId)).thenReturn(Optional.of(trip));
         when(userRepository.findById(tripOwnerId))
-                .thenReturn(
-                        Optional.of(
-                                User.builder().id(tripOwnerId).username("walker").build()));
+                .thenReturn(Optional.of(User.builder().id(tripOwnerId).username("walker").build()));
 
         UUID followerId = UUID.randomUUID();
         when(userFollowRepository.findByFollowedId(tripOwnerId))
@@ -570,9 +562,7 @@ class NotificationEventListenerTest {
                         .build();
         when(tripRepository.findById(tripId)).thenReturn(Optional.of(trip));
         when(userRepository.findById(tripOwnerId))
-                .thenReturn(
-                        Optional.of(
-                                User.builder().id(tripOwnerId).username("walker").build()));
+                .thenReturn(Optional.of(User.builder().id(tripOwnerId).username("walker").build()));
 
         UUID friendId = UUID.randomUUID();
         when(friendshipRepository.findByUserId(tripOwnerId))
@@ -666,4 +656,3 @@ class NotificationEventListenerTest {
         verify(notificationRepository, never()).saveAll(anyList());
     }
 }
-

@@ -18,4 +18,3 @@ public enum NotificationType {
     TRIP_STATUS_CHANGED,
     TRIP_UPDATE_POSTED
 }
-
