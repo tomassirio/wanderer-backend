@@ -1,15 +1,25 @@
 package com.tomassirio.wanderer.command.service.impl.checker;
 
+import com.tomassirio.wanderer.command.repository.TripDayRepository;
 import com.tomassirio.wanderer.commons.domain.AchievementType;
 import com.tomassirio.wanderer.commons.domain.Trip;
-import java.time.Duration;
-import java.time.Instant;
 import java.util.List;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
-/** Checks achievements based on the duration of a trip. */
+/**
+ * Checks achievements based on the number of trip days recorded for a trip.
+ *
+ * <p>Instead of computing elapsed calendar time between start and end timestamps, this checker
+ * counts the actual {@link com.tomassirio.wanderer.commons.domain.TripDay} records associated with
+ * the trip. This gives a more accurate representation of walking days, excluding rest days where no
+ * TripDay was created.
+ */
 @Component
+@RequiredArgsConstructor
 public class DurationAchievementChecker implements TripAchievementChecker {
+
+    private final TripDayRepository tripDayRepository;
 
     @Override
     public List<AchievementType> getApplicableTypes() {
@@ -22,15 +32,10 @@ public class DurationAchievementChecker implements TripAchievementChecker {
 
     @Override
     public double computeMetric(Trip trip) {
-        if (trip.getTripDetails() == null || trip.getTripDetails().getStartTimestamp() == null) {
+        if (trip.getId() == null) {
             return 0.0;
         }
 
-        Instant endTime =
-                trip.getTripDetails().getEndTimestamp() != null
-                        ? trip.getTripDetails().getEndTimestamp()
-                        : Instant.now();
-
-        return Duration.between(trip.getTripDetails().getStartTimestamp(), endTime).toDays();
+        return tripDayRepository.countByTripId(trip.getId());
     }
 }
