@@ -80,4 +80,3 @@ class DurationAchievementCheckerTest {
         assertThat(result).isEqualTo(45.0);
     }
 }
-
