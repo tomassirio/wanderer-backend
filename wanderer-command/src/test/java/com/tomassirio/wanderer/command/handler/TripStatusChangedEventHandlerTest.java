@@ -7,6 +7,7 @@ import static org.mockito.Mockito.when;
 
 import com.tomassirio.wanderer.command.event.TripStatusChangedEvent;
 import com.tomassirio.wanderer.command.repository.TripRepository;
+import com.tomassirio.wanderer.command.service.AchievementService;
 import com.tomassirio.wanderer.command.service.helper.ActiveTripManager;
 import com.tomassirio.wanderer.command.service.helper.LifecycleTripUpdateManager;
 import com.tomassirio.wanderer.command.service.helper.TripDayManager;
@@ -39,6 +40,8 @@ class TripStatusChangedEventHandlerTest {
     @Mock private TripDayManager tripDayManager;
 
     @Mock private ActiveTripManager activeTripManager;
+
+    @Mock private AchievementService achievementService;
 
     @InjectMocks private TripStatusChangedEventHandler handler;
 
@@ -83,6 +86,7 @@ class TripStatusChangedEventHandlerTest {
                 .createLifecycleTripUpdate(trip, TripStatus.CREATED, TripStatus.IN_PROGRESS);
         verify(tripDayManager).manageTripDays(trip, TripStatus.CREATED, TripStatus.IN_PROGRESS);
         verify(activeTripManager).manageActiveTrip(userId, tripId, TripStatus.IN_PROGRESS);
+        verify(achievementService).checkAndUnlockAchievements(tripId);
 
         // Entity is managed, no need to verify save
         assertThat(trip.getTripSettings().getTripStatus()).isEqualTo(TripStatus.IN_PROGRESS);
@@ -138,6 +142,7 @@ class TripStatusChangedEventHandlerTest {
         verifyNoInteractions(lifecycleTripUpdateManager);
         verifyNoInteractions(tripDayManager);
         verifyNoInteractions(activeTripManager);
+        verifyNoInteractions(achievementService);
     }
 
     // --- Delegation tests ---
@@ -207,6 +212,28 @@ class TripStatusChangedEventHandlerTest {
 
         // Then
         verify(activeTripManager).manageActiveTrip(userId, tripId, TripStatus.IN_PROGRESS);
+    }
+
+    @Test
+    void handle_whenTripExists_shouldDelegateToAchievementService() {
+        // Given
+        UUID tripId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        TripStatusChangedEvent event =
+                TripStatusChangedEvent.builder()
+                        .tripId(tripId)
+                        .previousStatus("RESTING")
+                        .newStatus("IN_PROGRESS")
+                        .build();
+
+        Trip trip = createTripWithDetails(tripId, userId, TripStatus.RESTING);
+        when(tripRepository.findById(tripId)).thenReturn(Optional.of(trip));
+
+        // When
+        handler.handle(event);
+
+        // Then
+        verify(achievementService).checkAndUnlockAchievements(tripId);
     }
 
     // --- Helper methods ---

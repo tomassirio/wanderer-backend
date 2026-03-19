@@ -2,6 +2,7 @@ package com.tomassirio.wanderer.command.handler;
 
 import com.tomassirio.wanderer.command.event.TripStatusChangedEvent;
 import com.tomassirio.wanderer.command.repository.TripRepository;
+import com.tomassirio.wanderer.command.service.AchievementService;
 import com.tomassirio.wanderer.command.service.helper.ActiveTripManager;
 import com.tomassirio.wanderer.command.service.helper.LifecycleTripUpdateManager;
 import com.tomassirio.wanderer.command.service.helper.TripDayManager;
@@ -35,6 +36,7 @@ public class TripStatusChangedEventHandler implements EventHandler<TripStatusCha
     private final LifecycleTripUpdateManager lifecycleTripUpdateManager;
     private final TripDayManager tripDayManager;
     private final ActiveTripManager activeTripManager;
+    private final AchievementService achievementService;
 
     @Override
     @EventListener
@@ -69,6 +71,9 @@ public class TripStatusChangedEventHandler implements EventHandler<TripStatusCha
                             // Manage active_trips table based on status
                             activeTripManager.manageActiveTrip(
                                     trip.getUserId(), trip.getId(), newStatus);
+
+                            // Check and unlock achievements after status change
+                            achievementService.checkAndUnlockAchievements(trip.getId());
 
                             // No need to call save() - entity is managed and will be flushed
                             // automatically
