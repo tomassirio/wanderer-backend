@@ -1,0 +1,18 @@
+databaseChangeLog:
+  - changeSet:
+      id: 036-add-thumbnail-url-to-trip-plans
+      author: tomassirio
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - columnExists:
+                tableName: trip_plans
+                columnName: thumbnail_url
+      changes:
+        - addColumn:
+            tableName: trip_plans
+            columns:
+              - column:
+                  name: thumbnail_url
+                  type: varchar(500)
+                  remarks: "URL to the generated route thumbnail image for the trip plan"

@@ -4,6 +4,7 @@ import static org.mockito.Mockito.verify;
 
 import com.tomassirio.wanderer.command.event.TripDeletedEvent;
 import com.tomassirio.wanderer.command.repository.TripRepository;
+import com.tomassirio.wanderer.command.service.ThumbnailEntityType;
 import com.tomassirio.wanderer.command.service.ThumbnailService;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -33,6 +34,6 @@ class TripDeletedEventHandlerTest {
 
         // Then
         verify(tripRepository).deleteById(tripId);
-        verify(thumbnailService).deleteThumbnail(tripId);
+        verify(thumbnailService).deleteThumbnail(tripId, ThumbnailEntityType.TRIP);
     }
 }

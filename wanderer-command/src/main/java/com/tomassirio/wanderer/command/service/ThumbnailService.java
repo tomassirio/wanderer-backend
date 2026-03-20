@@ -1,13 +1,14 @@
 package com.tomassirio.wanderer.command.service;
 
 import com.tomassirio.wanderer.commons.domain.Trip;
+import com.tomassirio.wanderer.commons.domain.TripPlan;
 import java.util.UUID;
 
 /**
- * Service interface for generating and managing trip map thumbnails.
+ * Service interface for generating and managing trip and trip plan map thumbnails.
  *
- * <p>This service handles thumbnail generation for trips using Google Maps Static API, saving
- * images to persistent storage, and managing their lifecycle.
+ * <p>This service handles thumbnail generation for trips and trip plans using Google Maps Static API,
+ * saving images to persistent storage, and managing their lifecycle.
  *
  * @author tomassirio
  * @since 0.10.5
@@ -28,17 +29,31 @@ public interface ThumbnailService {
     String generateAndSaveThumbnail(Trip trip);
 
     /**
-     * Deletes the thumbnail file for a given trip.
+     * Generates a map thumbnail for a trip plan and saves it to persistent storage.
      *
-     * @param tripId the UUID of the trip whose thumbnail should be deleted
+     * <p>The thumbnail is generated using Google Maps Static API with the trip plan's planned route
+     * polyline and start/end markers. The image is downloaded and saved to the configured storage path.
+     *
+     * @param tripPlan the trip plan to generate a thumbnail for
+     * @return the public URL of the generated thumbnail, or null if generation failed or trip plan has
+     *     no route
      */
-    void deleteThumbnail(UUID tripId);
+    String generateAndSaveThumbnail(TripPlan tripPlan);
 
     /**
-     * Checks if a thumbnail exists for a given trip.
+     * Deletes the thumbnail file for a given entity.
      *
-     * @param tripId the UUID of the trip
+     * @param id the UUID of the entity whose thumbnail should be deleted
+     * @param entityType the type of entity (TRIP, TRIP_PLAN, USER_PROFILE)
+     */
+    void deleteThumbnail(UUID id, ThumbnailEntityType entityType);
+
+    /**
+     * Checks if a thumbnail exists for a given entity.
+     *
+     * @param id the UUID of the entity
+     * @param entityType the type of entity (TRIP, TRIP_PLAN, USER_PROFILE)
      * @return true if a thumbnail file exists, false otherwise
      */
-    boolean thumbnailExists(UUID tripId);
+    boolean thumbnailExists(UUID id, ThumbnailEntityType entityType);
 }

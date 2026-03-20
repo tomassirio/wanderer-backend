@@ -83,4 +83,7 @@ public class TripPlan implements Polylineable {
 
     @Column(name = "polyline_updated_at")
     private Instant polylineUpdatedAt;
+
+    @Column(name = "thumbnail_url", length = 500)
+    private String thumbnailUrl;
 }

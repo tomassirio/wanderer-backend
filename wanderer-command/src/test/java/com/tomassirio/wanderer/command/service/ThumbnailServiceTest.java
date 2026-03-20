@@ -157,7 +157,7 @@ class ThumbnailServiceTest {
         Files.createFile(thumbnailPath);
 
         // When
-        thumbnailService.deleteThumbnail(tripId);
+        thumbnailService.deleteThumbnail(tripId, ThumbnailEntityType.TRIP);
 
         // Then
         assertThat(Files.exists(thumbnailPath)).isFalse();
@@ -169,7 +169,7 @@ class ThumbnailServiceTest {
         UUID tripId = UUID.randomUUID();
 
         // When / Then - Should not throw exception
-        thumbnailService.deleteThumbnail(tripId);
+        thumbnailService.deleteThumbnail(tripId, ThumbnailEntityType.TRIP);
     }
 
     @Test
@@ -182,7 +182,7 @@ class ThumbnailServiceTest {
         Files.createFile(thumbnailPath);
 
         // When
-        boolean exists = thumbnailService.thumbnailExists(tripId);
+        boolean exists = thumbnailService.thumbnailExists(tripId, ThumbnailEntityType.TRIP);
 
         // Then
         assertThat(exists).isTrue();
@@ -194,7 +194,7 @@ class ThumbnailServiceTest {
         UUID tripId = UUID.randomUUID();
 
         // When
-        boolean exists = thumbnailService.thumbnailExists(tripId);
+        boolean exists = thumbnailService.thumbnailExists(tripId, ThumbnailEntityType.TRIP);
 
         // Then
         assertThat(exists).isFalse();

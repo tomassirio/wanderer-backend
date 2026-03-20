@@ -2,6 +2,7 @@ package com.tomassirio.wanderer.command.handler;
 
 import com.tomassirio.wanderer.command.event.TripDeletedEvent;
 import com.tomassirio.wanderer.command.repository.TripRepository;
+import com.tomassirio.wanderer.command.service.ThumbnailEntityType;
 import com.tomassirio.wanderer.command.service.ThumbnailService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -33,6 +34,6 @@ public class TripDeletedEventHandler implements EventHandler<TripDeletedEvent> {
         tripRepository.deleteById(event.getTripId());
         log.info("Trip deleted: {}", event.getTripId());
 
-        thumbnailService.deleteThumbnail(event.getTripId());
+        thumbnailService.deleteThumbnail(event.getTripId(), ThumbnailEntityType.TRIP);
     }
 }
