@@ -1,5 +1,7 @@
 package com.tomassirio.wanderer.command.handler;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -76,7 +78,7 @@ class TripThumbnailEventHandlerTest {
 
         // Then
         ArgumentCaptor<Trip> tripCaptor = ArgumentCaptor.forClass(Trip.class);
-        verify(tripRepository).save(tripCaptor.capture());
+        verify(tripRepository).saveAndFlush(tripCaptor.capture());
 
         Trip savedTrip = tripCaptor.getValue();
         assertThat(savedTrip.getThumbnailUrl()).isEqualTo(expectedUrl);
@@ -97,28 +99,29 @@ class TripThumbnailEventHandlerTest {
         // Then
         verify(tripRepository).findById(tripId);
         verify(thumbnailService).generateAndSaveThumbnail(trip);
-        verify(tripRepository, never()).save(any(Trip.class));
+        verify(tripRepository, never()).saveAndFlush(any(Trip.class));
     }
 
     @Test
-    void handle_whenTripNotFound_shouldNotGenerateThumbnail() {
+    void handle_whenTripNotFound_shouldThrowException() {
         // Given
         when(tripRepository.findById(tripId)).thenReturn(Optional.empty());
 
         TripUpdatedEvent event =
                 TripUpdatedEvent.builder().tripId(tripId).tripUpdateId(UUID.randomUUID()).build();
 
-        // When
-        eventHandler.handle(event);
+        // When/Then
+        assertThatThrownBy(() -> eventHandler.handle(event))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("Trip not found");
 
-        // Then
         verify(tripRepository).findById(tripId);
         verify(thumbnailService, never()).generateAndSaveThumbnail(any(Trip.class));
-        verify(tripRepository, never()).save(any(Trip.class));
+        verify(tripRepository, never()).saveAndFlush(any(Trip.class));
     }
 
     @Test
-    void handle_whenThumbnailServiceThrowsException_shouldNotSaveTrip() {
+    void handle_whenThumbnailServiceThrowsException_shouldPropagateException() {
         // Given
         when(tripRepository.findById(tripId)).thenReturn(Optional.of(trip));
         when(thumbnailService.generateAndSaveThumbnail(trip))
@@ -127,25 +130,28 @@ class TripThumbnailEventHandlerTest {
         TripUpdatedEvent event =
                 TripUpdatedEvent.builder().tripId(tripId).tripUpdateId(UUID.randomUUID()).build();
 
-        // When
-        eventHandler.handle(event);
+        // When/Then
+        assertThatThrownBy(() -> eventHandler.handle(event))
+                .isInstanceOf(RuntimeException.class)
+                .hasMessageContaining("Thumbnail generation failed");
 
-        // Then
         verify(tripRepository).findById(tripId);
         verify(thumbnailService).generateAndSaveThumbnail(trip);
-        verify(tripRepository, never()).save(any(Trip.class));
+        verify(tripRepository, never()).saveAndFlush(any(Trip.class));
     }
 
     @Test
-    void handle_whenRepositoryThrowsException_shouldHandleGracefully() {
+    void handle_whenRepositoryThrowsException_shouldPropagateException() {
         // Given
         when(tripRepository.findById(tripId)).thenThrow(new RuntimeException("Database error"));
 
         TripUpdatedEvent event =
                 TripUpdatedEvent.builder().tripId(tripId).tripUpdateId(UUID.randomUUID()).build();
 
-        // When / Then - Should not throw exception
-        eventHandler.handle(event);
+        // When/Then
+        assertThatThrownBy(() -> eventHandler.handle(event))
+                .isInstanceOf(RuntimeException.class)
+                .hasMessageContaining("Database error");
 
         verify(thumbnailService, never()).generateAndSaveThumbnail(any(Trip.class));
     }

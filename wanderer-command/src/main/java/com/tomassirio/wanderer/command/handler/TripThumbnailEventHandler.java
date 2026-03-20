@@ -49,19 +49,24 @@ public class TripThumbnailEventHandler implements EventHandler<TripUpdatedEvent>
                                                     "Trip not found: " + event.getTripId()));
 
             String thumbnailUrl = thumbnailService.generateAndSaveThumbnail(trip);
+            log.debug("Generated thumbnail URL for trip {}: {}", event.getTripId(), thumbnailUrl);
 
-            if (thumbnailUrl != null) {
+            if (thumbnailUrl != null && !thumbnailUrl.isEmpty()) {
                 trip.setThumbnailUrl(thumbnailUrl);
-                tripRepository.save(trip);
+                log.debug("Set thumbnailUrl on trip entity: {}", thumbnailUrl);
+
+                tripRepository.saveAndFlush(trip);
                 log.info(
-                        "Successfully generated and saved thumbnail for trip {}",
-                        event.getTripId());
+                        "Successfully updated trip {} with thumbnail URL: {}",
+                        event.getTripId(),
+                        thumbnailUrl);
             } else {
-                log.debug("Thumbnail generation skipped for trip {}", event.getTripId());
+                log.warn("Thumbnail generation returned null/empty for trip {}", event.getTripId());
             }
 
         } catch (Exception e) {
-            log.error("Failed to generate thumbnail for trip {}", event.getTripId(), e);
+            log.error("Failed to generate or save thumbnail for trip {}", event.getTripId(), e);
+            throw e; // Re-throw to ensure transaction rollback is visible
         }
     }
 }

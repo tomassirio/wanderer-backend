@@ -71,7 +71,7 @@ public class ThumbnailServiceImpl implements ThumbnailService {
                     trip.getId(),
                     filePath.toAbsolutePath());
 
-            return thumbnailProperties.getBaseUrl() + "/" + filename;
+            return thumbnailProperties.getBaseUrl() + "/trips/" + filename;
 
         } catch (IOException e) {
             log.error("Failed to generate thumbnail for trip {}", trip.getId(), e);
@@ -156,7 +156,7 @@ public class ThumbnailServiceImpl implements ThumbnailService {
     }
 
     private Path getStoragePath() {
-        return Paths.get(thumbnailProperties.getStoragePath());
+        return Paths.get(thumbnailProperties.getStoragePath(), "trips");
     }
 
     private void ensureStorageDirectoryExists() throws IOException {

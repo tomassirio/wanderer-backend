@@ -16,7 +16,8 @@ public class ThumbnailProperties {
 
     /**
      * Local filesystem path where thumbnails will be stored. Defaults to /data/thumbnails for
-     * Kubernetes PersistentVolume.
+     * Kubernetes PersistentVolume. Subdirectories (trips/, plans/, profiles/) are created
+     * automatically.
      */
     private String storagePath = "/data/thumbnails";
 

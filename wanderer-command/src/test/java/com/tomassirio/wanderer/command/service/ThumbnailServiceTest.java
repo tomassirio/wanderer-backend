@@ -151,7 +151,9 @@ class ThumbnailServiceTest {
     void deleteThumbnail_whenFileExists_shouldDeleteFile() throws IOException {
         // Given
         UUID tripId = UUID.randomUUID();
-        Path thumbnailPath = tempDir.resolve(tripId + ".png");
+        Path tripsDir = tempDir.resolve("trips");
+        Files.createDirectories(tripsDir);
+        Path thumbnailPath = tripsDir.resolve(tripId + ".png");
         Files.createFile(thumbnailPath);
 
         // When
@@ -174,7 +176,9 @@ class ThumbnailServiceTest {
     void thumbnailExists_whenFileExists_shouldReturnTrue() throws IOException {
         // Given
         UUID tripId = UUID.randomUUID();
-        Path thumbnailPath = tempDir.resolve(tripId + ".png");
+        Path tripsDir = tempDir.resolve("trips");
+        Files.createDirectories(tripsDir);
+        Path thumbnailPath = tripsDir.resolve(tripId + ".png");
         Files.createFile(thumbnailPath);
 
         // When
