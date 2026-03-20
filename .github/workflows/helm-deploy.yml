@@ -276,12 +276,15 @@ jobs:
             )
             
             # Thumbnail configuration
+            # Uses PUBLIC_URL environment variable (set per environment in GitHub)
+            # Dev: http://wanderer.localwanderer-dev.com
+            # Prod: https://wanderer.tomassir.io
+            THUMBNAIL_BASE_URL="${{ vars.PUBLIC_URL }}/thumbnails"
+            
             if [ "${{ inputs.environment }}" == "dev" ]; then
-              THUMBNAIL_BASE_URL="${{ env.LOCAL_DOMAIN }}/thumbnails"
               THUMBNAIL_STORAGE_SIZE="5Gi"
               THUMBNAIL_NGINX_REPLICAS="1"
             else
-              THUMBNAIL_BASE_URL="${{ vars.PUBLIC_URL }}/thumbnails"
               THUMBNAIL_STORAGE_SIZE="20Gi"
               THUMBNAIL_NGINX_REPLICAS="2"
             fi
