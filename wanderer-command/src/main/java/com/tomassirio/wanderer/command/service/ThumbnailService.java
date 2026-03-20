@@ -3,6 +3,7 @@ package com.tomassirio.wanderer.command.service;
 import com.tomassirio.wanderer.commons.domain.Trip;
 import com.tomassirio.wanderer.commons.domain.TripPlan;
 import java.util.UUID;
+import org.springframework.web.multipart.MultipartFile;
 
 /**
  * Service interface for generating and managing trip and trip plan map thumbnails.
@@ -39,6 +40,19 @@ public interface ThumbnailService {
      *     no route
      */
     String generateAndSaveThumbnail(TripPlan tripPlan);
+
+    /**
+     * Processes and saves a profile picture upload.
+     *
+     * <p>Validates the file type (JPEG, PNG, WebP), size (max 5MB), and dimensions.
+     * Resizes the image to 512x512 and saves it to persistent storage.
+     *
+     * @param userId the UUID of the user
+     * @param file the uploaded image file
+     * @return the public URL of the saved profile picture
+     * @throws IllegalArgumentException if file type is invalid, size exceeds limit, or processing fails
+     */
+    String processAndSaveProfilePicture(UUID userId, MultipartFile file);
 
     /**
      * Deletes the thumbnail file for a given entity.

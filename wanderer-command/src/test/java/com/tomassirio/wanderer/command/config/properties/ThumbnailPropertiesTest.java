@@ -14,7 +14,6 @@ class ThumbnailPropertiesTest {
 
         // Then
         assertThat(properties.getStoragePath()).isEqualTo("/data/thumbnails");
-        assertThat(properties.getBaseUrl()).isEqualTo("https://wanderer.yourdomain.com/thumbnails");
         assertThat(properties.getWidth()).isEqualTo(600);
         assertThat(properties.getHeight()).isEqualTo(338);
         assertThat(properties.isEnabled()).isTrue();
@@ -31,19 +30,6 @@ class ThumbnailPropertiesTest {
 
         // Then
         assertThat(properties.getStoragePath()).isEqualTo(newPath);
-    }
-
-    @Test
-    void setBaseUrl_shouldUpdateValue() {
-        // Given
-        ThumbnailProperties properties = new ThumbnailProperties();
-        String newUrl = "https://custom.domain.com/images";
-
-        // When
-        properties.setBaseUrl(newUrl);
-
-        // Then
-        assertThat(properties.getBaseUrl()).isEqualTo(newUrl);
     }
 
     @Test

@@ -86,6 +86,40 @@ public class ThumbnailServiceImpl implements ThumbnailService {
     }
 
     @Override
+    public String processAndSaveProfilePicture(UUID userId, org.springframework.web.multipart.MultipartFile file) {
+        log.debug("Processing profile picture upload for user: {}", userId);
+
+        try {
+            // Validate file
+            validateProfilePicture(file);
+
+            ensureStorageDirectoryExists(ThumbnailEntityType.USER_PROFILE);
+
+            // Read and resize image
+            byte[] imageBytes = resizeImage(file.getBytes(), 512, 512);
+
+            String filename = userId + PNG_EXTENSION;
+            Path filePath = getStoragePath(ThumbnailEntityType.USER_PROFILE).resolve(filename);
+            Files.write(filePath, imageBytes);
+
+            log.info(
+                    "Successfully saved profile picture for user {} to {}",
+                    userId,
+                    filePath.toAbsolutePath());
+
+            // Return relative URL - frontend will resolve with correct protocol
+            return "/thumbnails/"
+                    + ThumbnailEntityType.USER_PROFILE.getSubdirectory()
+                    + "/"
+                    + filename;
+
+        } catch (IOException e) {
+            log.error("Failed to process profile picture for user {}", userId, e);
+            throw new IllegalArgumentException("Failed to process profile picture: " + e.getMessage(), e);
+        }
+    }
+
+    @Override
     public void deleteThumbnail(UUID id, ThumbnailEntityType entityType) {
         try {
             Path filePath = resolveFilePath(id, entityType);
@@ -158,11 +192,8 @@ public class ThumbnailServiceImpl implements ThumbnailService {
                     id,
                     filePath.toAbsolutePath());
 
-            return thumbnailProperties.getBaseUrl()
-                    + "/"
-                    + entityType.getSubdirectory()
-                    + "/"
-                    + filename;
+            // Return relative URL - frontend will resolve with correct protocol
+            return "/thumbnails/" + entityType.getSubdirectory() + "/" + filename;
 
         } catch (IOException e) {
             log.error(
@@ -251,6 +282,64 @@ public class ThumbnailServiceImpl implements ThumbnailService {
             Files.createDirectories(storagePath);
             log.info("Created thumbnail storage directory: {}", storagePath.toAbsolutePath());
         }
+    }
+
+    private void validateProfilePicture(org.springframework.web.multipart.MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            throw new IllegalArgumentException("File cannot be empty");
+        }
+
+        // Check file size (5MB max)
+        long maxSize = 5 * 1024 * 1024;
+        if (file.getSize() > maxSize) {
+            throw new IllegalArgumentException(
+                    "File size exceeds maximum allowed size of 5MB");
+        }
+
+        // Check content type
+        String contentType = file.getContentType();
+        if (contentType == null
+                || (!contentType.equals("image/jpeg")
+                        && !contentType.equals("image/png")
+                        && !contentType.equals("image/webp"))) {
+            throw new IllegalArgumentException(
+                    "Invalid file type. Only JPEG, PNG, and WebP are allowed");
+        }
+    }
+
+    private byte[] resizeImage(byte[] imageBytes, int targetWidth, int targetHeight)
+            throws IOException {
+        java.io.ByteArrayInputStream bais = new java.io.ByteArrayInputStream(imageBytes);
+        java.awt.image.BufferedImage originalImage = javax.imageio.ImageIO.read(bais);
+
+        if (originalImage == null) {
+            throw new IOException("Failed to read image");
+        }
+
+        // Create resized image
+        java.awt.image.BufferedImage resizedImage =
+                new java.awt.image.BufferedImage(
+                        targetWidth, targetHeight, java.awt.image.BufferedImage.TYPE_INT_RGB);
+        java.awt.Graphics2D graphics = resizedImage.createGraphics();
+
+        // Use high quality rendering
+        graphics.setRenderingHint(
+                java.awt.RenderingHints.KEY_INTERPOLATION,
+                java.awt.RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+        graphics.setRenderingHint(
+                java.awt.RenderingHints.KEY_RENDERING,
+                java.awt.RenderingHints.VALUE_RENDER_QUALITY);
+        graphics.setRenderingHint(
+                java.awt.RenderingHints.KEY_ANTIALIASING,
+                java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
+
+        graphics.drawImage(originalImage, 0, 0, targetWidth, targetHeight, null);
+        graphics.dispose();
+
+        // Write to byte array
+        java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream();
+        javax.imageio.ImageIO.write(resizedImage, "png", baos);
+        return baos.toByteArray();
     }
 
     /** Pair of start and end locations extracted from trip updates. */

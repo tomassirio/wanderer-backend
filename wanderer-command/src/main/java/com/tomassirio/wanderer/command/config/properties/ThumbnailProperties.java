@@ -21,12 +21,6 @@ public class ThumbnailProperties {
      */
     private String storagePath = "/data/thumbnails";
 
-    /**
-     * Base URL where thumbnails are publicly accessible. This should point to the nginx static
-     * server or backend endpoint that serves the thumbnail files.
-     */
-    private String baseUrl = "https://wanderer.yourdomain.com/thumbnails";
-
     /** Width of generated thumbnails in pixels. */
     private int width = 600;
 

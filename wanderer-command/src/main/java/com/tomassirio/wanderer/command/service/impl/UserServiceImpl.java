@@ -7,6 +7,8 @@ import com.tomassirio.wanderer.command.event.UserCreatedEvent;
 import com.tomassirio.wanderer.command.event.UserDeletedEvent;
 import com.tomassirio.wanderer.command.event.UserDetailsUpdatedEvent;
 import com.tomassirio.wanderer.command.repository.UserRepository;
+import com.tomassirio.wanderer.command.service.ThumbnailEntityType;
+import com.tomassirio.wanderer.command.service.ThumbnailService;
 import com.tomassirio.wanderer.command.service.UserService;
 import com.tomassirio.wanderer.commons.domain.User;
 import feign.FeignException;
@@ -19,6 +21,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 @Service
 @AllArgsConstructor
@@ -29,6 +32,7 @@ public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
     private final ApplicationEventPublisher eventPublisher;
     private final WandererAuthClient wandererAuthClient;
+    private final ThumbnailService thumbnailService;
 
     @Override
     public UUID createUser(UserCreationRequest request) {
@@ -116,10 +120,55 @@ public class UserServiceImpl implements UserService {
                         .userId(userId)
                         .displayName(request.displayName())
                         .bio(request.bio())
-                        .avatarUrl(request.avatarUrl())
                         .build());
 
         log.info("Accepted user details update for userId={}", userId);
+        return userId;
+    }
+
+    @Override
+    public UUID updateAvatar(UUID userId, MultipartFile file) {
+        log.info("Updating avatar for userId={}", userId);
+
+        userRepository
+                .findById(userId)
+                .orElseThrow(
+                        () -> new EntityNotFoundException("User not found with id: " + userId));
+
+        // Process and save the profile picture
+        String avatarUrl = thumbnailService.processAndSaveProfilePicture(userId, file);
+
+        // Publish event to update the avatar URL
+        eventPublisher.publishEvent(
+                UserDetailsUpdatedEvent.builder()
+                        .userId(userId)
+                        .avatarUrl(avatarUrl)
+                        .build());
+
+        log.info("Accepted avatar update for userId={}, URL: {}", userId, avatarUrl);
+        return userId;
+    }
+
+    @Override
+    public UUID deleteAvatar(UUID userId) {
+        log.info("Deleting avatar for userId={}", userId);
+
+        userRepository
+                .findById(userId)
+                .orElseThrow(
+                        () -> new EntityNotFoundException("User not found with id: " + userId));
+
+        // Delete the avatar file
+        thumbnailService.deleteThumbnail(userId, ThumbnailEntityType.USER_PROFILE);
+
+        // Publish event to clear the avatar URL
+        eventPublisher.publishEvent(
+                UserDetailsUpdatedEvent.builder()
+                        .userId(userId)
+                        .avatarUrl(null)
+                        .build());
+
+        log.info("Accepted avatar deletion for userId={}", userId);
         return userId;
     }
 }

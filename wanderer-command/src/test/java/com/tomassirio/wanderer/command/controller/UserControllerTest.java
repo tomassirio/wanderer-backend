@@ -135,8 +135,7 @@ class UserControllerTest {
     @Test
     void updateMyDetails_whenValidRequest_shouldReturnAccepted() throws Exception {
         UserDetailsRequest request =
-                new UserDetailsRequest(
-                        "John Doe", "Hiking the Camino", "https://example.com/avatar.png");
+                new UserDetailsRequest("John Doe", "Hiking the Camino");
 
         when(userService.updateUserDetails(eq(CURRENT_USER_ID), any(UserDetailsRequest.class)))
                 .thenReturn(CURRENT_USER_ID);
@@ -153,7 +152,7 @@ class UserControllerTest {
 
     @Test
     void updateMyDetails_whenUserNotFound_shouldReturnNotFound() throws Exception {
-        UserDetailsRequest request = new UserDetailsRequest("John Doe", null, null);
+        UserDetailsRequest request = new UserDetailsRequest("John Doe", null);
 
         when(userService.updateUserDetails(eq(CURRENT_USER_ID), any(UserDetailsRequest.class)))
                 .thenThrow(
@@ -168,7 +167,7 @@ class UserControllerTest {
 
     @Test
     void updateMyDetails_whenPartialUpdate_shouldReturnAccepted() throws Exception {
-        UserDetailsRequest request = new UserDetailsRequest(null, "New bio", null);
+        UserDetailsRequest request = new UserDetailsRequest(null, "New bio");
 
         when(userService.updateUserDetails(eq(CURRENT_USER_ID), any(UserDetailsRequest.class)))
                 .thenReturn(CURRENT_USER_ID);
@@ -179,16 +178,5 @@ class UserControllerTest {
                                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isAccepted())
                 .andExpect(jsonPath("$").value(CURRENT_USER_ID.toString()));
-    }
-
-    @Test
-    void updateMyDetails_whenInvalidAvatarUrl_shouldReturnBadRequest() throws Exception {
-        UserDetailsRequest request = new UserDetailsRequest(null, null, "not-a-valid-url");
-
-        mockMvc.perform(
-                        patch("/api/1/users/me")
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isBadRequest());
     }
 }

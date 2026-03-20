@@ -42,7 +42,6 @@ class ThumbnailServiceTest {
         thumbnailProperties = new ThumbnailProperties();
         thumbnailProperties.setEnabled(true);
         thumbnailProperties.setStoragePath(tempDir.toString());
-        thumbnailProperties.setBaseUrl("https://example.com/thumbnails");
         thumbnailProperties.setWidth(600);
         thumbnailProperties.setHeight(338);
 
