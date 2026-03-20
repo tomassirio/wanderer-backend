@@ -48,8 +48,6 @@ on:
 
 env:
   ENV_SUFFIX: ${{ inputs.environment == 'dev' && '-dev' || '' }}
-  LOCAL_DOMAIN: ${{ inputs.environment == 'dev' && 'https://wanderer.localwanderer-dev.com,http://wanderer.localwanderer-dev.com' || 'https://wanderer.localwanderer.com' }}
-  CORS_ORIGINS: http://localhost:51538,http://localhost:3000
 
 jobs:
   deploy-postgres:
@@ -171,26 +169,74 @@ jobs:
           DB_URL: jdbc:postgresql://postgres${{ env.ENV_SUFFIX }}:5432/${{ matrix.db }}
           EMAIL_SMTP_PWD: ${{ secrets.EMAIL_PASSWORD }}
         run: |
-          CORS_ORIGINS="${{ env.LOCAL_DOMAIN }},${{ env.CORS_ORIGINS }}"
-          if [ -n "${{ vars.PUBLIC_URL }}" ]; then
-            CORS_ORIGINS="${{ vars.PUBLIC_URL }},$CORS_ORIGINS"
+          # Environment-specific CORS configuration
+          if [ "${{ inputs.environment }}" == "dev" ]; then
+            # Dev: Allow localhost, local domain, and public URL if set
+            CORS_ORIGINS="http://localhost:51538,http://localhost:3000,https://wanderer.localwanderer-dev.com,http://wanderer.localwanderer-dev.com"
+            if [ -n "${{ vars.PUBLIC_URL }}" ]; then
+              CORS_ORIGINS="${{ vars.PUBLIC_URL }},$CORS_ORIGINS"
+            fi
+          else
+            # Prod: Only public URL
+            CORS_ORIGINS="${{ vars.PUBLIC_URL }}"
           fi
           # Escape commas for Helm --set
           CORS_ORIGINS_ESCAPED="${CORS_ORIGINS//,/\\,}"
+          
+          # Environment-specific configuration
+          if [ "${{ inputs.environment }}" == "dev" ]; then
+            REPLICA_COUNT="1"
+            CPU_LIMIT="500m"
+            MEMORY_LIMIT="512Mi"
+            CPU_REQUEST="250m"
+            MEMORY_REQUEST="256Mi"
+            LOG_LEVEL_APP="DEBUG"
+            LOG_LEVEL_ROOT="INFO"
+          else
+            REPLICA_COUNT="3"
+            CPU_LIMIT="1000m"
+            MEMORY_LIMIT="1Gi"
+            CPU_REQUEST="500m"
+            MEMORY_REQUEST="512Mi"
+            LOG_LEVEL_APP="INFO"
+            LOG_LEVEL_ROOT="WARN"
+          fi
           
           HELM_ARGS=(
             "upgrade" "--install" "${{ matrix.service }}" "./${{ matrix.service }}/src/main/chart"
             "--namespace" "${{ inputs.namespace }}"
             "--set" "environment.name=${{ inputs.environment }}"
             "--set" "environment.suffix=${{ env.ENV_SUFFIX }}"
+            "--set" "replicaCount=$REPLICA_COUNT"
             "--set" "service.port=${{ matrix.port }}"
             "--set" "image.tag=${{ inputs.image-tag }}"
+            "--set" "image.pullPolicy=${{ inputs.environment == 'dev' && 'Always' || 'IfNotPresent' }}"
+            "--set" "resources.limits.cpu=$CPU_LIMIT"
+            "--set" "resources.limits.memory=$MEMORY_LIMIT"
+            "--set" "resources.requests.cpu=$CPU_REQUEST"
+            "--set" "resources.requests.memory=$MEMORY_REQUEST"
+            "--set" "application.logging.level.root=$LOG_LEVEL_ROOT"
             "--set" "application.jwt.secret=${{ secrets.JWT_SECRET }}"
             "--set" "application.database.password=$DB_PASSWORD"
             "--set" "application.database.url=$DB_URL"
             "--set" "application.cors.allowedOrigins=$CORS_ORIGINS_ESCAPED"
             "--set" "ingress.enabled=false"
           )
+          
+          # Set service-specific logging level
+          if [ "${{ matrix.service }}" == "wanderer-command" ]; then
+            HELM_ARGS+=(
+              "--set" "application.logging.level.command=$LOG_LEVEL_APP"
+            )
+          elif [ "${{ matrix.service }}" == "wanderer-query" ]; then
+            HELM_ARGS+=(
+              "--set" "application.logging.level.query=$LOG_LEVEL_APP"
+            )
+          elif [ "${{ matrix.service }}" == "wanderer-auth" ]; then
+            HELM_ARGS+=(
+              "--set" "application.logging.level.auth=$LOG_LEVEL_APP"
+            )
+          fi
           
           if [ "${{ matrix.service }}" == "wanderer-auth" ]; then
             HELM_ARGS+=(
@@ -227,6 +273,26 @@ jobs:
           if [ "${{ matrix.service }}" == "wanderer-command" ] && [ -n "${{ secrets.GOOGLE_MAPS_API_KEY }}" ]; then
             HELM_ARGS+=(
               "--set" "application.googleMaps.apiKey=${{ secrets.GOOGLE_MAPS_API_KEY }}"
+            )
+            
+            # Thumbnail configuration
+            if [ "${{ inputs.environment }}" == "dev" ]; then
+              THUMBNAIL_BASE_URL="${{ env.LOCAL_DOMAIN }}/thumbnails"
+              THUMBNAIL_STORAGE_SIZE="5Gi"
+              THUMBNAIL_NGINX_REPLICAS="1"
+            else
+              THUMBNAIL_BASE_URL="${{ vars.PUBLIC_URL }}/thumbnails"
+              THUMBNAIL_STORAGE_SIZE="20Gi"
+              THUMBNAIL_NGINX_REPLICAS="2"
+            fi
+            
+            HELM_ARGS+=(
+              "--set" "application.thumbnail.baseUrl=$THUMBNAIL_BASE_URL"
+              "--set" "application.thumbnail.enabled=true"
+              "--set" "thumbnail.enabled=true"
+              "--set" "thumbnail.storage.useExistingClaim=true"
+              "--set" "thumbnail.storage.size=$THUMBNAIL_STORAGE_SIZE"
+              "--set" "thumbnail.nginx.replicas=$THUMBNAIL_NGINX_REPLICAS"
             )
           fi
 

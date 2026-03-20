@@ -1,0 +1,37 @@
+{{- if and .Values.thumbnail.enabled (not .Values.thumbnail.storage.useExistingClaim) }}
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: {{ .Chart.Name }}{{ .Values.environment.suffix }}-thumbnails-pv
+  labels:
+    app: {{ .Chart.Name }}{{ .Values.environment.suffix }}
+    type: thumbnails
+spec:
+  capacity:
+    storage: {{ .Values.thumbnail.storage.size }}
+  accessModes:
+    {{- toYaml .Values.thumbnail.storage.accessModes | nindent 4 }}
+  persistentVolumeReclaimPolicy: Retain
+  {{- if .Values.thumbnail.storage.hostPath }}
+  hostPath:
+    path: {{ .Values.thumbnail.storage.hostPath }}
+    type: DirectoryOrCreate
+  {{- end }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ .Chart.Name }}{{ .Values.environment.suffix }}-thumbnails-pvc
+  labels:
+    app: {{ .Chart.Name }}{{ .Values.environment.suffix }}
+    type: thumbnails
+spec:
+  accessModes:
+    {{- toYaml .Values.thumbnail.storage.accessModes | nindent 4 }}
+  {{- if .Values.thumbnail.storage.storageClassName }}
+  storageClassName: {{ .Values.thumbnail.storage.storageClassName }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.thumbnail.storage.size }}
+{{- end }}

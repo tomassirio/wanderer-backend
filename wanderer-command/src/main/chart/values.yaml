@@ -1,9 +1,9 @@
 replicaCount: 1
 
-# Environment configuration
+# Environment configuration (overridden by pipeline)
 environment:
-  name: "prod"  # dev or prod
-  suffix: ""    # "-dev" for dev environment, "" for prod
+  name: "dev"       # Pipeline sets: dev or prod
+  suffix: "-dev"    # Pipeline sets: "-dev" or ""
 
 image:
   repository: ghcr.io/tomassirio/wanderer-command
@@ -29,9 +29,9 @@ application:
   serverPort: 8081
   projectVersion: "0.3.7"
   
-  # CORS Configuration
+  # CORS Configuration (overridden by pipeline based on environment)
   cors:
-    allowedOrigins: "http://localhost:51538,http://localhost:3000,https://wanderer.localwanderer-dev.com"
+    allowedOrigins: "http://localhost:3000"
 
   # JWT Configuration
   jwt:
@@ -74,6 +74,14 @@ application:
     apiKey: ""
     enabled: true
 
+  # Thumbnail Configuration
+  thumbnail:
+    storagePath: "/data/thumbnails"
+    baseUrl: "https://wanderer.yourdomain.com/thumbnails"
+    width: 600
+    height: 338
+    enabled: true
+
   # Wanderer service URLs
   wanderer:
     authUrl: "http://wanderer-auth:8083"
@@ -87,6 +95,53 @@ application:
   # Spring Cloud Configuration
   springCloud:
     compatibilityVerifierEnabled: false
+
+# Thumbnail Storage Configuration
+thumbnail:
+  enabled: true
+  storage:
+    # Use existing PVC created by centralized storage (set to true for K3s cluster deployments)
+    useExistingClaim: false
+    # PersistentVolumeClaim configuration
+    size: 20Gi
+    storageClassName: ""  # Use default storage class if empty
+    accessModes:
+      - ReadWriteMany
+    # hostPath configuration (for K3s single-node when useExistingClaim=false)
+    hostPath: "/mnt/data/wanderer-thumbnails"
+  
+  # Nginx static file server configuration
+  nginx:
+    enabled: true
+    replicas: 2
+    image:
+      repository: nginx
+      tag: alpine
+      pullPolicy: IfNotPresent
+    resources:
+      limits:
+        cpu: 100m
+        memory: 128Mi
+      requests:
+        cpu: 50m
+        memory: 64Mi
+    service:
+      type: ClusterIP
+      port: 80
+  
+  # Ingress configuration for thumbnails
+  # Note: If you have a main ingress, add the /thumbnails path there instead
+  ingress:
+    enabled: false  # Set to true if you want a separate ingress for thumbnails
+    host: "wanderer.yourdomain.com"
+    annotations: {}
+      # nginx.ingress.kubernetes.io/rewrite-target: /
+    tls:
+      enabled: true
+      secretName: "wanderer-tls"
+    certManager:
+      enabled: true
+      issuer: "letsencrypt-prod"
 
 # Pod Storage
 volumeClaimTemplates:

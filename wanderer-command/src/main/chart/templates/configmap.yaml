@@ -47,6 +47,13 @@ data:
     google.maps.api-key={{ .Values.application.googleMaps.apiKey }}
     google.maps.enabled={{ .Values.application.googleMaps.enabled }}
 
+    # Thumbnail Storage Configuration
+    thumbnail.storage-path={{ .Values.application.thumbnail.storagePath }}
+    thumbnail.base-url={{ .Values.application.thumbnail.baseUrl }}
+    thumbnail.width={{ .Values.application.thumbnail.width }}
+    thumbnail.height={{ .Values.application.thumbnail.height }}
+    thumbnail.enabled={{ .Values.application.thumbnail.enabled }}
+
     # Rate Limiting
     app.rate-limit.enabled={{ .Values.application.rateLimit.enabled }}
     app.rate-limit.max-requests={{ .Values.application.rateLimit.maxRequests }}
