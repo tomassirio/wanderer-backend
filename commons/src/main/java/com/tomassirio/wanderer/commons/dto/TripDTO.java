@@ -17,5 +17,6 @@ public record TripDTO(
         String encodedPolyline,
         String plannedPolyline,
         Instant polylineUpdatedAt,
+        String thumbnailUrl,
         Instant creationTimestamp,
         Boolean enabled) {}

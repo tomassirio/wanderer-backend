@@ -67,3 +67,5 @@ databaseChangeLog:
       file: db/changelog/033-create-notifications-table.yaml
   - include:
       file: db/changelog/034-add-cached-distance-to-trips.yaml
+  - include:
+      file: db/changelog/035-add-thumbnail-url-to-trips.yaml
