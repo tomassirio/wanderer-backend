@@ -293,16 +293,30 @@ public class ThumbnailServiceImpl implements ThumbnailService {
             throw new IllegalArgumentException("File size exceeds maximum allowed size of 5MB");
         }
 
-        // Check content type (accept both image/jpeg and image/jpg)
+        // Check content type - be more permissive with MIME types
         String contentType = file.getContentType();
-        if (contentType == null
-                || (!contentType.equals("image/jpeg")
-                        && !contentType.equals("image/jpg")
-                        && !contentType.equals("image/png")
-                        && !contentType.equals("image/webp"))) {
+        String originalFilename = file.getOriginalFilename();
+        
+        log.debug("Validating profile picture: contentType={}, filename={}", contentType, originalFilename);
+        
+        // Accept if content type matches OR if filename extension matches
+        boolean isValidContentType = contentType != null && 
+                (contentType.startsWith("image/jpeg") ||
+                 contentType.startsWith("image/jpg") ||
+                 contentType.startsWith("image/png") ||
+                 contentType.startsWith("image/webp"));
+        
+        boolean isValidFilename = originalFilename != null &&
+                (originalFilename.toLowerCase().endsWith(".jpg") ||
+                 originalFilename.toLowerCase().endsWith(".jpeg") ||
+                 originalFilename.toLowerCase().endsWith(".png") ||
+                 originalFilename.toLowerCase().endsWith(".webp"));
+        
+        if (!isValidContentType && !isValidFilename) {
             throw new IllegalArgumentException(
-                    "Invalid file type. Only JPEG, PNG, and WebP are allowed. Received: "
-                            + contentType);
+                    String.format(
+                            "Invalid file type. Only JPEG, PNG, and WebP are allowed. Received contentType=%s, filename=%s",
+                            contentType, originalFilename));
         }
     }
 

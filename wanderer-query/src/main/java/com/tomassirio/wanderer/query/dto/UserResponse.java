@@ -9,6 +9,9 @@ public record UserResponse(UUID id, String username, UserDetailsDTO userDetails)
 
     @JsonProperty("avatarUrl")
     public String avatarUrl() {
-        return id != null ? ThumbnailUrlService.generateUserProfileThumbnailUrl(id) : null;
+        if (id == null) {
+            return null;
+        }
+        return ThumbnailUrlService.generateUserProfileThumbnailUrl(id);
     }
 }

@@ -53,6 +53,11 @@ public final class WebSocketEventType {
     // Achievement events
     public static final String ACHIEVEMENT_UNLOCKED = "ACHIEVEMENT_UNLOCKED";
 
+    // User profile events
+    public static final String USER_PROFILE_UPDATED = "USER_PROFILE_UPDATED";
+    public static final String AVATAR_UPLOADED = "AVATAR_UPLOADED";
+    public static final String AVATAR_DELETED = "AVATAR_DELETED";
+
     // ==================== TOPIC PATTERNS ====================
 
     private static final String TOPIC_TRIPS_PREFIX = "/topic/trips/";

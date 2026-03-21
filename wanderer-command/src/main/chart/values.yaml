@@ -1,9 +1,9 @@
 replicaCount: 1
 
-# Environment configuration (overridden by pipeline)
+# Environment configuration (set by pipeline - no defaults)
 environment:
-  name: "dev"       # Pipeline sets: dev or prod
-  suffix: "-dev"    # Pipeline sets: "-dev" or ""
+  name: ""       # Pipeline must set: dev or prod
+  suffix: ""     # Pipeline must set: "-dev" or ""
 
 image:
   repository: ghcr.io/tomassirio/wanderer-command
@@ -29,9 +29,9 @@ application:
   serverPort: 8081
   projectVersion: "0.3.7"
   
-  # CORS Configuration (overridden by pipeline based on environment)
+  # CORS Configuration (set by pipeline - no defaults)
   cors:
-    allowedOrigins: "http://localhost:3000"
+    allowedOrigins: ""
 
   # JWT Configuration
   jwt:
@@ -97,18 +97,16 @@ application:
     compatibilityVerifierEnabled: false
 
 # Thumbnail Storage Configuration
+# NOTE: Always uses existing PVCs from turing-pi-server (nas.pv.data in storage chart)
 thumbnail:
   enabled: true
   storage:
-    # Use existing PVC created by centralized storage (set to true for K3s cluster deployments)
-    useExistingClaim: false
-    # PersistentVolumeClaim configuration
+    # Always use existing PVC created by centralized storage chart
+    useExistingClaim: true
+    # Size must match PVC size (set by pipeline: 20Gi for dev, 200Gi for prod)
     size: 20Gi
-    storageClassName: ""  # Use default storage class if empty
     accessModes:
       - ReadWriteMany
-    # hostPath configuration (for K3s single-node when useExistingClaim=false)
-    hostPath: "/mnt/data/wanderer-thumbnails"
   
   # Nginx static file server configuration
   nginx:

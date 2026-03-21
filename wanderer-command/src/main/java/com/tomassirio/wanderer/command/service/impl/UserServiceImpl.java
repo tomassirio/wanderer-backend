@@ -3,12 +3,12 @@ package com.tomassirio.wanderer.command.service.impl;
 import com.tomassirio.wanderer.command.client.WandererAuthClient;
 import com.tomassirio.wanderer.command.controller.request.UserCreationRequest;
 import com.tomassirio.wanderer.command.controller.request.UserDetailsRequest;
+import com.tomassirio.wanderer.command.event.AvatarDeletedEvent;
+import com.tomassirio.wanderer.command.event.AvatarUploadedEvent;
 import com.tomassirio.wanderer.command.event.UserCreatedEvent;
 import com.tomassirio.wanderer.command.event.UserDeletedEvent;
 import com.tomassirio.wanderer.command.event.UserDetailsUpdatedEvent;
 import com.tomassirio.wanderer.command.repository.UserRepository;
-import com.tomassirio.wanderer.command.service.ThumbnailEntityType;
-import com.tomassirio.wanderer.command.service.ThumbnailService;
 import com.tomassirio.wanderer.command.service.UserService;
 import com.tomassirio.wanderer.commons.domain.User;
 import feign.FeignException;
@@ -32,7 +32,6 @@ public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
     private final ApplicationEventPublisher eventPublisher;
     private final WandererAuthClient wandererAuthClient;
-    private final ThumbnailService thumbnailService;
 
     @Override
     public UUID createUser(UserCreationRequest request) {
@@ -135,11 +134,8 @@ public class UserServiceImpl implements UserService {
                 .orElseThrow(
                         () -> new EntityNotFoundException("User not found with id: " + userId));
 
-        // Process and save the profile picture
-        thumbnailService.processAndSaveProfilePicture(userId, file);
-
-        // Publish event so subscribers are notified (though avatar URL is now computed)
-        eventPublisher.publishEvent(UserDetailsUpdatedEvent.builder().userId(userId).build());
+        eventPublisher.publishEvent(
+                AvatarUploadedEvent.builder().userId(userId).file(file).build());
 
         log.info("Accepted avatar update for userId={}", userId);
         return userId;
@@ -154,8 +150,7 @@ public class UserServiceImpl implements UserService {
                 .orElseThrow(
                         () -> new EntityNotFoundException("User not found with id: " + userId));
 
-        // Delete the avatar file
-        thumbnailService.deleteThumbnail(userId, ThumbnailEntityType.USER_PROFILE);
+        eventPublisher.publishEvent(AvatarDeletedEvent.builder().userId(userId).build());
 
         log.info("Accepted avatar deletion for userId={}", userId);
         return userId;
