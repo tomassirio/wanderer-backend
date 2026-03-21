@@ -38,9 +38,6 @@ public class UserDetailsUpdatedEventHandler implements EventHandler<UserDetailsU
                             if (event.getBio() != null) {
                                 details.setBio(event.getBio());
                             }
-                            if (event.getAvatarUrl() != null) {
-                                details.setAvatarUrl(event.getAvatarUrl());
-                            }
 
                             user.setUserDetails(details);
                             log.info("User details updated for user: {}", event.getUserId());

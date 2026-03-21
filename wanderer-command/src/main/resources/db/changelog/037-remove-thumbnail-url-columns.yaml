@@ -1,0 +1,24 @@
+databaseChangeLog:
+  - changeSet:
+      id: 037-remove-thumbnail-url-columns
+      author: tomassirio
+      changes:
+        - dropColumn:
+            tableName: trips
+            columnName: thumbnail_url
+        - dropColumn:
+            tableName: trip_plans
+            columnName: thumbnail_url
+      rollback:
+        - addColumn:
+            tableName: trips
+            columns:
+              - column:
+                  name: thumbnail_url
+                  type: VARCHAR(500)
+        - addColumn:
+            tableName: trip_plans
+            columns:
+              - column:
+                  name: thumbnail_url
+                  type: VARCHAR(500)

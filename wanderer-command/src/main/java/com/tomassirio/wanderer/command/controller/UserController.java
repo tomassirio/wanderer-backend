@@ -91,7 +91,7 @@ public class UserController {
     public ResponseEntity<UUID> uploadAvatar(
             @Parameter(hidden = true) @CurrentUserId UUID userId,
             @Parameter(description = "Profile picture file (JPEG, PNG, WebP, max 5MB)")
-            MultipartFile file) {
+                    MultipartFile file) {
         log.info("User {} uploading avatar", userId);
         UUID updatedUserId = userService.updateAvatar(userId, file);
         log.info("Accepted avatar upload for user: {}", updatedUserId);

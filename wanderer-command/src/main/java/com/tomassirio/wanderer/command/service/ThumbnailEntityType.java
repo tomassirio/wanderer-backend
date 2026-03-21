@@ -12,16 +12,15 @@ import lombok.Getter;
 public enum ThumbnailEntityType {
     /** Trip entity - actual trips with updates */
     TRIP("trips"),
-    
+
     /** Trip plan entity - planned routes */
     TRIP_PLAN("plans"),
-    
+
     /** User profile entity - user profile pictures */
     USER_PROFILE("profiles");
 
     /**
-     * -- GETTER --
-     *  Gets the storage subdirectory for this entity type.
+     * -- GETTER -- Gets the storage subdirectory for this entity type.
      *
      * @return the subdirectory name
      */
@@ -30,5 +29,4 @@ public enum ThumbnailEntityType {
     ThumbnailEntityType(String subdirectory) {
         this.subdirectory = subdirectory;
     }
-
 }

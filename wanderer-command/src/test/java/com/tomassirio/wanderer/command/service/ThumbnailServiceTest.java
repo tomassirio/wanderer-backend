@@ -69,81 +69,75 @@ class ThumbnailServiceTest {
     }
 
     @Test
-    void generateAndSaveThumbnail_whenThumbnailsDisabled_shouldReturnNull() {
+    void generateAndSaveThumbnail_whenThumbnailsDisabled_shouldDoNothing() {
         // Given
         thumbnailProperties.setEnabled(false);
         Trip trip = createTripWithUpdates();
 
         // When
-        String result = thumbnailService.generateAndSaveThumbnail(trip);
+        thumbnailService.generateAndSaveThumbnail(trip);
 
-        // Then
-        assertThat(result).isNull();
+        // Then - no exception, just returns
     }
 
     @Test
-    void generateAndSaveThumbnail_whenGoogleMapsDisabled_shouldReturnNull() {
+    void generateAndSaveThumbnail_whenGoogleMapsDisabled_shouldDoNothing() {
         // Given
         when(googleMapsProperties.isEnabled()).thenReturn(false);
         Trip trip = createTripWithUpdates();
 
         // When
-        String result = thumbnailService.generateAndSaveThumbnail(trip);
+        thumbnailService.generateAndSaveThumbnail(trip);
 
-        // Then
-        assertThat(result).isNull();
+        // Then - no exception, just returns
     }
 
     @Test
-    void generateAndSaveThumbnail_whenApiKeyNull_shouldReturnNull() {
+    void generateAndSaveThumbnail_whenApiKeyNull_shouldDoNothing() {
         // Given
         when(googleMapsProperties.getApiKey()).thenReturn(null);
         Trip trip = createTripWithUpdates();
 
         // When
-        String result = thumbnailService.generateAndSaveThumbnail(trip);
+        thumbnailService.generateAndSaveThumbnail(trip);
 
-        // Then
-        assertThat(result).isNull();
+        // Then - no exception, just returns
     }
 
     @Test
-    void generateAndSaveThumbnail_whenApiKeyEmpty_shouldReturnNull() {
+    void generateAndSaveThumbnail_whenApiKeyEmpty_shouldDoNothing() {
         // Given
         when(googleMapsProperties.getApiKey()).thenReturn("");
         Trip trip = createTripWithUpdates();
 
         // When
-        String result = thumbnailService.generateAndSaveThumbnail(trip);
+        thumbnailService.generateAndSaveThumbnail(trip);
 
-        // Then
-        assertThat(result).isNull();
+        // Then - no exception, just returns
     }
 
     @Test
-    void generateAndSaveThumbnail_whenTripHasNoUpdates_shouldReturnNull() {
+    void generateAndSaveThumbnail_whenTripHasNoUpdates_shouldDoNothing() {
         // Given
         Trip trip = createTrip();
         trip.setTripUpdates(null);
 
         // When
-        String result = thumbnailService.generateAndSaveThumbnail(trip);
+        thumbnailService.generateAndSaveThumbnail(trip);
 
-        // Then
-        assertThat(result).isNull();
+        // Then - no exception, just returns
     }
 
     @Test
-    void generateAndSaveThumbnail_whenTripHasEmptyUpdates_shouldReturnNull() {
+    void generateAndSaveThumbnail_whenTripHasEmptyUpdates_shouldDoNothing() {
         // Given
         Trip trip = createTrip();
         trip.setTripUpdates(Collections.emptyList());
 
         // When
-        String result = thumbnailService.generateAndSaveThumbnail(trip);
+        thumbnailService.generateAndSaveThumbnail(trip);
 
-        // Then
-        assertThat(result).isNull();
+        // Then - no exception, just returns
     }
 
     @Test

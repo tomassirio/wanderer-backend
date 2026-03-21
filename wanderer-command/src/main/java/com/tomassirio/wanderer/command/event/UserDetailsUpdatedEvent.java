@@ -14,5 +14,4 @@ public class UserDetailsUpdatedEvent implements DomainEvent {
     private UUID userId;
     private String displayName;
     private String bio;
-    private String avatarUrl;
 }

@@ -8,8 +8,8 @@ import org.springframework.web.multipart.MultipartFile;
 /**
  * Service interface for generating and managing trip and trip plan map thumbnails.
  *
- * <p>This service handles thumbnail generation for trips and trip plans using Google Maps Static API,
- * saving images to persistent storage, and managing their lifecycle.
+ * <p>This service handles thumbnail generation for trips and trip plans using Google Maps Static
+ * API, saving images to persistent storage, and managing their lifecycle.
  *
  * @author tomassirio
  * @since 0.10.5
@@ -20,39 +20,35 @@ public interface ThumbnailService {
      * Generates a map thumbnail for a trip and saves it to persistent storage.
      *
      * <p>The thumbnail is generated using Google Maps Static API with the trip's polyline and
-     * start/end markers. The image is downloaded and saved to the configured storage path, and the
-     * public URL is returned.
+     * start/end markers. The image is downloaded and saved to the configured storage path.
      *
      * @param trip the trip to generate a thumbnail for
-     * @return the public URL of the generated thumbnail, or null if generation failed or trip has
-     *     no updates
      */
-    String generateAndSaveThumbnail(Trip trip);
+    void generateAndSaveThumbnail(Trip trip);
 
     /**
      * Generates a map thumbnail for a trip plan and saves it to persistent storage.
      *
      * <p>The thumbnail is generated using Google Maps Static API with the trip plan's planned route
-     * polyline and start/end markers. The image is downloaded and saved to the configured storage path.
+     * polyline and start/end markers. The image is downloaded and saved to the configured storage
+     * path.
      *
      * @param tripPlan the trip plan to generate a thumbnail for
-     * @return the public URL of the generated thumbnail, or null if generation failed or trip plan has
-     *     no route
      */
-    String generateAndSaveThumbnail(TripPlan tripPlan);
+    void generateAndSaveThumbnail(TripPlan tripPlan);
 
     /**
      * Processes and saves a profile picture upload.
      *
-     * <p>Validates the file type (JPEG, PNG, WebP), size (max 5MB), and dimensions.
-     * Resizes the image to 512x512 and saves it to persistent storage.
+     * <p>Validates the file type (JPEG, PNG, WebP), size (max 5MB), and dimensions. Resizes the
+     * image to 512x512 and saves it to persistent storage.
      *
      * @param userId the UUID of the user
      * @param file the uploaded image file
-     * @return the public URL of the saved profile picture
-     * @throws IllegalArgumentException if file type is invalid, size exceeds limit, or processing fails
+     * @throws IllegalArgumentException if file type is invalid, size exceeds limit, or processing
+     *     fails
      */
-    String processAndSaveProfilePicture(UUID userId, MultipartFile file);
+    void processAndSaveProfilePicture(UUID userId, MultipartFile file);
 
     /**
      * Deletes the thumbnail file for a given entity.

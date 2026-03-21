@@ -134,8 +134,7 @@ class UserControllerTest {
 
     @Test
     void updateMyDetails_whenValidRequest_shouldReturnAccepted() throws Exception {
-        UserDetailsRequest request =
-                new UserDetailsRequest("John Doe", "Hiking the Camino");
+        UserDetailsRequest request = new UserDetailsRequest("John Doe", "Hiking the Camino");
 
         when(userService.updateUserDetails(eq(CURRENT_USER_ID), any(UserDetailsRequest.class)))
                 .thenReturn(CURRENT_USER_ID);

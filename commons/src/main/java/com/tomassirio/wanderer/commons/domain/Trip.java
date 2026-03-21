@@ -65,9 +65,6 @@ public class Trip implements Polylineable {
     @Column(name = "cached_distance_km")
     private Double cachedDistanceKm;
 
-    @Column(name = "thumbnail_url", length = 500)
-    private String thumbnailUrl;
-
     @NotNull
     @Column(name = "creation_timestamp", nullable = false)
     private Instant creationTimestamp;

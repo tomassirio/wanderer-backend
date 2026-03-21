@@ -1,8 +1,7 @@
 package com.tomassirio.wanderer.command.handler;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -21,7 +20,6 @@ import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -48,9 +46,7 @@ class TripThumbnailEventHandlerTest {
     @Test
     void handle_whenTripExists_shouldGenerateThumbnail() {
         // Given
-        String expectedUrl = "https://example.com/thumbnails/" + tripId + ".png";
         when(tripRepository.findById(tripId)).thenReturn(Optional.of(trip));
-        when(thumbnailService.generateAndSaveThumbnail(trip)).thenReturn(expectedUrl);
 
         TripUpdatedEvent event =
                 TripUpdatedEvent.builder().tripId(tripId).tripUpdateId(UUID.randomUUID()).build();
@@ -64,11 +60,9 @@ class TripThumbnailEventHandlerTest {
     }
 
     @Test
-    void handle_whenThumbnailGenerated_shouldUpdateTripAndSave() {
+    void handle_whenThumbnailGenerated_shouldNotUpdateTrip() {
         // Given
-        String expectedUrl = "https://example.com/thumbnails/" + tripId + ".png";
         when(tripRepository.findById(tripId)).thenReturn(Optional.of(trip));
-        when(thumbnailService.generateAndSaveThumbnail(trip)).thenReturn(expectedUrl);
 
         TripUpdatedEvent event =
                 TripUpdatedEvent.builder().tripId(tripId).tripUpdateId(UUID.randomUUID()).build();
@@ -77,82 +71,78 @@ class TripThumbnailEventHandlerTest {
         eventHandler.handle(event);
 
         // Then
-        ArgumentCaptor<Trip> tripCaptor = ArgumentCaptor.forClass(Trip.class);
-        verify(tripRepository).saveAndFlush(tripCaptor.capture());
-
-        Trip savedTrip = tripCaptor.getValue();
-        assertThat(savedTrip.getThumbnailUrl()).isEqualTo(expectedUrl);
+        verify(thumbnailService).generateAndSaveThumbnail(trip);
+        // Trip is no longer saved since thumbnail URL is not stored in DB
+        verify(tripRepository, never()).saveAndFlush(any());
     }
 
     @Test
-    void handle_whenThumbnailGenerationReturnsNull_shouldNotSaveTrip() {
+    void handle_whenThumbnailGenerationCompletes_shouldNotSaveTrip() {
         // Given
         when(tripRepository.findById(tripId)).thenReturn(Optional.of(trip));
-        when(thumbnailService.generateAndSaveThumbnail(trip)).thenReturn(null);
 
         TripUpdatedEvent event =
                 TripUpdatedEvent.builder().tripId(tripId).tripUpdateId(UUID.randomUUID()).build();
 
         // When
         eventHandler.handle(event);
+        eventHandler.handle(event);
 
         // Then
-        verify(tripRepository).findById(tripId);
-        verify(thumbnailService).generateAndSaveThumbnail(trip);
+        verify(tripRepository, org.mockito.Mockito.times(2)).findById(tripId);
+        verify(thumbnailService, org.mockito.Mockito.times(2)).generateAndSaveThumbnail(trip);
         verify(tripRepository, never()).saveAndFlush(any(Trip.class));
     }
 
     @Test
-    void handle_whenTripNotFound_shouldThrowException() {
+    void handle_whenTripNotFound_shouldLogError() {
         // Given
         when(tripRepository.findById(tripId)).thenReturn(Optional.empty());
 
         TripUpdatedEvent event =
                 TripUpdatedEvent.builder().tripId(tripId).tripUpdateId(UUID.randomUUID()).build();
 
-        // When/Then
-        assertThatThrownBy(() -> eventHandler.handle(event))
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("Trip not found");
+        // When - should not throw exception, just log error
+        eventHandler.handle(event);
 
+        // Then
         verify(tripRepository).findById(tripId);
         verify(thumbnailService, never()).generateAndSaveThumbnail(any(Trip.class));
         verify(tripRepository, never()).saveAndFlush(any(Trip.class));
     }
 
     @Test
-    void handle_whenThumbnailServiceThrowsException_shouldPropagateException() {
+    void handle_whenThumbnailServiceThrowsException_shouldNotPropagateException() {
         // Given
         when(tripRepository.findById(tripId)).thenReturn(Optional.of(trip));
-        when(thumbnailService.generateAndSaveThumbnail(trip))
-                .thenThrow(new RuntimeException("Thumbnail generation failed"));
+        doThrow(new RuntimeException("Thumbnail generation failed"))
+                .when(thumbnailService)
+                .generateAndSaveThumbnail(trip);
 
         TripUpdatedEvent event =
                 TripUpdatedEvent.builder().tripId(tripId).tripUpdateId(UUID.randomUUID()).build();
 
-        // When/Then
-        assertThatThrownBy(() -> eventHandler.handle(event))
-                .isInstanceOf(RuntimeException.class)
-                .hasMessageContaining("Thumbnail generation failed");
+        // When - should not throw since we catch exceptions now
+        eventHandler.handle(event);
 
+        // Then
         verify(tripRepository).findById(tripId);
         verify(thumbnailService).generateAndSaveThumbnail(trip);
         verify(tripRepository, never()).saveAndFlush(any(Trip.class));
     }
 
     @Test
-    void handle_whenRepositoryThrowsException_shouldPropagateException() {
+    void handle_whenRepositoryThrowsException_shouldLogError() {
         // Given
         when(tripRepository.findById(tripId)).thenThrow(new RuntimeException("Database error"));
 
         TripUpdatedEvent event =
                 TripUpdatedEvent.builder().tripId(tripId).tripUpdateId(UUID.randomUUID()).build();
 
-        // When/Then
-        assertThatThrownBy(() -> eventHandler.handle(event))
-                .isInstanceOf(RuntimeException.class)
-                .hasMessageContaining("Database error");
+        // When - should not throw exception, just log error
+        eventHandler.handle(event);
 
+        // Then
         verify(thumbnailService, never()).generateAndSaveThumbnail(any(Trip.class));
     }
 

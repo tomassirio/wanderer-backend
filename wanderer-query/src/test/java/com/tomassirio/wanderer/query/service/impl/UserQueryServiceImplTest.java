@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -243,11 +244,7 @@ class UserQueryServiceImplTest {
     void getUserById_whenUserHasDetails_shouldReturnUserDetailsInResponse() {
         // Given
         UserDetails details =
-                UserDetails.builder()
-                        .displayName("John Doe")
-                        .bio("Walking the Camino")
-                        .avatarUrl("https://example.com/avatar.png")
-                        .build();
+                UserDetails.builder().displayName("John Doe").bio("Walking the Camino").build();
         User user =
                 User.builder()
                         .id(UUID.randomUUID())
@@ -263,7 +260,9 @@ class UserQueryServiceImplTest {
         assertNotNull(result.userDetails());
         assertEquals("John Doe", result.userDetails().displayName());
         assertEquals("Walking the Camino", result.userDetails().bio());
-        assertEquals("https://example.com/avatar.png", result.userDetails().avatarUrl());
+        // Avatar URL is now generated dynamically from user ID
+        assertNotNull(result.avatarUrl());
+        assertTrue(result.avatarUrl().contains(user.getId().toString()));
     }
 
     @Test
@@ -279,6 +278,8 @@ class UserQueryServiceImplTest {
         assertNotNull(result.userDetails());
         assertNull(result.userDetails().displayName());
         assertNull(result.userDetails().bio());
-        assertNull(result.userDetails().avatarUrl());
+        // Avatar URL is still generated even without user details
+        assertNotNull(result.avatarUrl());
+        assertTrue(result.avatarUrl().contains(user.getId().toString()));
     }
 }

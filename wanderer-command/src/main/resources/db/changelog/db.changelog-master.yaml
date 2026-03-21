@@ -71,3 +71,7 @@ databaseChangeLog:
       file: db/changelog/035-add-thumbnail-url-to-trips.yaml
   - include:
       file: db/changelog/036-add-thumbnail-url-to-trip-plans.yaml
+  - include:
+      file: db/changelog/037-remove-thumbnail-url-columns.yaml
+  - include:
+      file: db/changelog/038-remove-avatar-url-column.yaml

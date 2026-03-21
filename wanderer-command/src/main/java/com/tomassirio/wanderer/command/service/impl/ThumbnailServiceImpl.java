@@ -8,6 +8,11 @@ import com.tomassirio.wanderer.commons.domain.GeoLocation;
 import com.tomassirio.wanderer.commons.domain.Trip;
 import com.tomassirio.wanderer.commons.domain.TripPlan;
 import com.tomassirio.wanderer.commons.domain.TripUpdate;
+import java.awt.Graphics2D;
+import java.awt.RenderingHints;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
@@ -18,6 +23,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import javax.imageio.ImageIO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -42,42 +48,41 @@ public class ThumbnailServiceImpl implements ThumbnailService {
     private final GoogleMapsProperties googleMapsProperties;
 
     @Override
-    public String generateAndSaveThumbnail(Trip trip) {
+    public void generateAndSaveThumbnail(Trip trip) {
         if (!isThumbnailGenerationAvailable()) {
-            return null;
+            return;
         }
 
         if (trip.getTripUpdates() == null || trip.getTripUpdates().isEmpty()) {
             log.debug("Trip {} has no updates, skipping thumbnail generation", trip.getId());
-            return null;
+            return;
         }
 
         Optional<TripLocations> locations = extractTripLocations(trip);
         if (locations.isEmpty()) {
-            return null;
+            return;
         }
 
         TripLocations loc = locations.get();
         String polyline = trip.getEncodedPolyline() != null ? trip.getEncodedPolyline() : "";
 
-        return generateSaveAndReturnUrl(
-                trip.getId(), ThumbnailEntityType.TRIP, loc.start(), loc.end(), polyline);
+        generateAndSave(trip.getId(), ThumbnailEntityType.TRIP, loc.start(), loc.end(), polyline);
     }
 
     @Override
-    public String generateAndSaveThumbnail(TripPlan tripPlan) {
+    public void generateAndSaveThumbnail(TripPlan tripPlan) {
         if (!isThumbnailGenerationAvailable()) {
-            return null;
+            return;
         }
 
         if (tripPlan.getPlannedPolyline() == null || tripPlan.getPlannedPolyline().isEmpty()) {
             log.debug(
                     "TripPlan {} has no planned route, skipping thumbnail generation",
                     tripPlan.getId());
-            return null;
+            return;
         }
 
-        return generateSaveAndReturnUrl(
+        generateAndSave(
                 tripPlan.getId(),
                 ThumbnailEntityType.TRIP_PLAN,
                 tripPlan.getStartLocation(),
@@ -86,7 +91,8 @@ public class ThumbnailServiceImpl implements ThumbnailService {
     }
 
     @Override
-    public String processAndSaveProfilePicture(UUID userId, org.springframework.web.multipart.MultipartFile file) {
+    public void processAndSaveProfilePicture(
+            UUID userId, org.springframework.web.multipart.MultipartFile file) {
         log.debug("Processing profile picture upload for user: {}", userId);
 
         try {
@@ -107,15 +113,10 @@ public class ThumbnailServiceImpl implements ThumbnailService {
                     userId,
                     filePath.toAbsolutePath());
 
-            // Return relative URL - frontend will resolve with correct protocol
-            return "/thumbnails/"
-                    + ThumbnailEntityType.USER_PROFILE.getSubdirectory()
-                    + "/"
-                    + filename;
-
         } catch (IOException e) {
             log.error("Failed to process profile picture for user {}", userId, e);
-            throw new IllegalArgumentException("Failed to process profile picture: " + e.getMessage(), e);
+            throw new IllegalArgumentException(
+                    "Failed to process profile picture: " + e.getMessage(), e);
         }
     }
 
@@ -131,10 +132,7 @@ public class ThumbnailServiceImpl implements ThumbnailService {
             }
         } catch (IOException e) {
             log.error(
-                    "Failed to delete thumbnail for {} {}",
-                    entityType.name().toLowerCase(),
-                    id,
-                    e);
+                    "Failed to delete thumbnail for {} {}", entityType.name().toLowerCase(), id, e);
         }
     }
 
@@ -168,7 +166,7 @@ public class ThumbnailServiceImpl implements ThumbnailService {
      * Core pipeline: builds a static map URL, downloads the image, saves it to disk, and returns
      * the public URL.
      */
-    private String generateSaveAndReturnUrl(
+    private void generateAndSave(
             UUID id,
             ThumbnailEntityType entityType,
             GeoLocation start,
@@ -178,7 +176,7 @@ public class ThumbnailServiceImpl implements ThumbnailService {
             ensureStorageDirectoryExists(entityType);
 
             String staticMapUrl = buildStaticMapUrl(start, end, polyline);
-            log.debug("Generating thumbnail for {} {}", entityType.name().toLowerCase(), id);
+            log.debug("Generating thumbnail from URL: {}", staticMapUrl);
 
             byte[] imageBytes = downloadImage(staticMapUrl);
 
@@ -192,16 +190,12 @@ public class ThumbnailServiceImpl implements ThumbnailService {
                     id,
                     filePath.toAbsolutePath());
 
-            // Return relative URL - frontend will resolve with correct protocol
-            return "/thumbnails/" + entityType.getSubdirectory() + "/" + filename;
-
         } catch (IOException e) {
             log.error(
                     "Failed to generate thumbnail for {} {}",
                     entityType.name().toLowerCase(),
                     id,
                     e);
-            return null;
         }
     }
 
@@ -292,8 +286,7 @@ public class ThumbnailServiceImpl implements ThumbnailService {
         // Check file size (5MB max)
         long maxSize = 5 * 1024 * 1024;
         if (file.getSize() > maxSize) {
-            throw new IllegalArgumentException(
-                    "File size exceeds maximum allowed size of 5MB");
+            throw new IllegalArgumentException("File size exceeds maximum allowed size of 5MB");
         }
 
         // Check content type
@@ -309,36 +302,32 @@ public class ThumbnailServiceImpl implements ThumbnailService {
 
     private byte[] resizeImage(byte[] imageBytes, int targetWidth, int targetHeight)
             throws IOException {
-        java.io.ByteArrayInputStream bais = new java.io.ByteArrayInputStream(imageBytes);
-        java.awt.image.BufferedImage originalImage = javax.imageio.ImageIO.read(bais);
+        ByteArrayInputStream bais = new ByteArrayInputStream(imageBytes);
+        BufferedImage originalImage = ImageIO.read(bais);
 
         if (originalImage == null) {
             throw new IOException("Failed to read image");
         }
 
         // Create resized image
-        java.awt.image.BufferedImage resizedImage =
-                new java.awt.image.BufferedImage(
-                        targetWidth, targetHeight, java.awt.image.BufferedImage.TYPE_INT_RGB);
-        java.awt.Graphics2D graphics = resizedImage.createGraphics();
+        BufferedImage resizedImage =
+                new BufferedImage(targetWidth, targetHeight, BufferedImage.TYPE_INT_RGB);
+        Graphics2D graphics = resizedImage.createGraphics();
 
         // Use high quality rendering
         graphics.setRenderingHint(
-                java.awt.RenderingHints.KEY_INTERPOLATION,
-                java.awt.RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+                RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
         graphics.setRenderingHint(
-                java.awt.RenderingHints.KEY_RENDERING,
-                java.awt.RenderingHints.VALUE_RENDER_QUALITY);
+                RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
         graphics.setRenderingHint(
-                java.awt.RenderingHints.KEY_ANTIALIASING,
-                java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
+                RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
         graphics.drawImage(originalImage, 0, 0, targetWidth, targetHeight, null);
         graphics.dispose();
 
         // Write to byte array
-        java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream();
-        javax.imageio.ImageIO.write(resizedImage, "png", baos);
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        ImageIO.write(resizedImage, "png", baos);
         return baos.toByteArray();
     }
 

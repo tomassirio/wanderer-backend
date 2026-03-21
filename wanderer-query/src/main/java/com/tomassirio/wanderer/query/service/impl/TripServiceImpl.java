@@ -192,7 +192,6 @@ public class TripServiceImpl implements TripService {
                                         trip.encodedPolyline(),
                                         trip.plannedPolyline(),
                                         trip.polylineUpdatedAt(),
-                                        trip.thumbnailUrl(),
                                         trip.creationTimestamp(),
                                         trip.enabled()))
                 .toList();
@@ -229,7 +228,6 @@ public class TripServiceImpl implements TripService {
                 trip.encodedPolyline(),
                 trip.plannedPolyline(),
                 trip.polylineUpdatedAt(),
-                trip.thumbnailUrl(),
                 trip.creationTimestamp(),
                 trip.enabled());
     }

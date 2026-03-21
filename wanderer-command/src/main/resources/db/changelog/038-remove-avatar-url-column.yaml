@@ -1,0 +1,15 @@
+databaseChangeLog:
+  - changeSet:
+      id: 038-remove-avatar-url-column
+      author: tomassirio
+      changes:
+        - dropColumn:
+            tableName: users
+            columnName: avatar_url
+      rollback:
+        - addColumn:
+            tableName: users
+            columns:
+              - column:
+                  name: avatar_url
+                  type: VARCHAR(512)

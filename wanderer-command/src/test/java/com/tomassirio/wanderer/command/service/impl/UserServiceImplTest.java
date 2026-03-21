@@ -259,8 +259,7 @@ class UserServiceImplTest {
         User user = User.builder().id(userId).username("johndoe").build();
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
 
-        UserDetailsRequest request =
-                new UserDetailsRequest("John Doe", "Hiking enthusiast");
+        UserDetailsRequest request = new UserDetailsRequest("John Doe", "Hiking enthusiast");
 
         // When
         UUID result = userService.updateUserDetails(userId, request);

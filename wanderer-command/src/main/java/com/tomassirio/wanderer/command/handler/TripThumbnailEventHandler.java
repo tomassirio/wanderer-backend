@@ -16,8 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
  * Event handler for generating trip thumbnails when trip updates are created.
  *
  * <p>This handler listens to {@link TripUpdatedEvent} and generates a map thumbnail for the trip
- * using Google Maps Static API. The thumbnail is saved to persistent storage and the URL is stored
- * in the trip entity.
+ * using Google Maps Static API. The thumbnail is saved to persistent storage.
  *
  * <p>Thumbnail generation is performed asynchronously to avoid blocking the main transaction.
  *
@@ -48,25 +47,11 @@ public class TripThumbnailEventHandler implements EventHandler<TripUpdatedEvent>
                                             new IllegalStateException(
                                                     "Trip not found: " + event.getTripId()));
 
-            String thumbnailUrl = thumbnailService.generateAndSaveThumbnail(trip);
-            log.debug("Generated thumbnail URL for trip {}: {}", event.getTripId(), thumbnailUrl);
-
-            if (thumbnailUrl != null && !thumbnailUrl.isEmpty()) {
-                trip.setThumbnailUrl(thumbnailUrl);
-                log.debug("Set thumbnailUrl on trip entity: {}", thumbnailUrl);
-
-                tripRepository.saveAndFlush(trip);
-                log.info(
-                        "Successfully updated trip {} with thumbnail URL: {}",
-                        event.getTripId(),
-                        thumbnailUrl);
-            } else {
-                log.warn("Thumbnail generation returned null/empty for trip {}", event.getTripId());
-            }
+            thumbnailService.generateAndSaveThumbnail(trip);
+            log.info("Successfully generated and saved thumbnail for trip {}", event.getTripId());
 
         } catch (Exception e) {
             log.error("Failed to generate or save thumbnail for trip {}", event.getTripId(), e);
-            throw e; // Re-throw to ensure transaction rollback is visible
         }
     }
 }

@@ -5,14 +5,13 @@ import com.tomassirio.wanderer.command.event.TripPlanUpdatedEvent;
 import com.tomassirio.wanderer.command.repository.TripPlanRepository;
 import com.tomassirio.wanderer.command.service.ThumbnailService;
 import com.tomassirio.wanderer.commons.domain.TripPlan;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.UUID;
 
 /**
  * Event handler for generating thumbnails for trip plans asynchronously.
@@ -56,21 +55,7 @@ public class TripPlanThumbnailEventHandler {
                                         new IllegalStateException(
                                                 "Trip plan not found: " + tripPlanId));
 
-        String thumbnailUrl = thumbnailService.generateAndSaveThumbnail(tripPlan);
-
-        if (thumbnailUrl != null) {
-            log.debug("Generated thumbnail URL for trip plan {}: {}", tripPlanId, thumbnailUrl);
-            log.debug("Set thumbnailUrl on trip plan entity: {}", thumbnailUrl);
-
-            tripPlan.setThumbnailUrl(thumbnailUrl);
-            tripPlanRepository.saveAndFlush(tripPlan);
-
-            log.info(
-                    "Successfully updated trip plan {} with thumbnail URL: {}",
-                    tripPlanId,
-                    thumbnailUrl);
-        } else {
-            log.warn("Failed to generate thumbnail for trip plan {}", tripPlanId);
-        }
+        thumbnailService.generateAndSaveThumbnail(tripPlan);
+        log.info("Successfully generated and saved thumbnail for trip plan {}", tripPlanId);
     }
 }

@@ -136,16 +136,12 @@ public class UserServiceImpl implements UserService {
                         () -> new EntityNotFoundException("User not found with id: " + userId));
 
         // Process and save the profile picture
-        String avatarUrl = thumbnailService.processAndSaveProfilePicture(userId, file);
+        thumbnailService.processAndSaveProfilePicture(userId, file);
 
-        // Publish event to update the avatar URL
-        eventPublisher.publishEvent(
-                UserDetailsUpdatedEvent.builder()
-                        .userId(userId)
-                        .avatarUrl(avatarUrl)
-                        .build());
+        // Publish event so subscribers are notified (though avatar URL is now computed)
+        eventPublisher.publishEvent(UserDetailsUpdatedEvent.builder().userId(userId).build());
 
-        log.info("Accepted avatar update for userId={}, URL: {}", userId, avatarUrl);
+        log.info("Accepted avatar update for userId={}", userId);
         return userId;
     }
 
@@ -160,13 +156,6 @@ public class UserServiceImpl implements UserService {
 
         // Delete the avatar file
         thumbnailService.deleteThumbnail(userId, ThumbnailEntityType.USER_PROFILE);
-
-        // Publish event to clear the avatar URL
-        eventPublisher.publishEvent(
-                UserDetailsUpdatedEvent.builder()
-                        .userId(userId)
-                        .avatarUrl(null)
-                        .build());
 
         log.info("Accepted avatar deletion for userId={}", userId);
         return userId;

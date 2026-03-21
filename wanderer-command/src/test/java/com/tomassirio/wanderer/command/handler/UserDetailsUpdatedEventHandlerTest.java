@@ -32,15 +32,10 @@ class UserDetailsUpdatedEventHandlerTest {
                         .userId(userId)
                         .displayName("John Doe")
                         .bio("Walking the Camino")
-                        .avatarUrl("https://example.com/avatar.png")
                         .build();
 
         UserDetails existingDetails =
-                UserDetails.builder()
-                        .displayName("Old Name")
-                        .bio("Old bio")
-                        .avatarUrl("https://old.url")
-                        .build();
+                UserDetails.builder().displayName("Old Name").bio("Old bio").build();
         User user =
                 User.builder().id(userId).username("johndoe").userDetails(existingDetails).build();
 
@@ -52,8 +47,6 @@ class UserDetailsUpdatedEventHandlerTest {
         // Then
         assertThat(user.getUserDetails().getDisplayName()).isEqualTo("John Doe");
         assertThat(user.getUserDetails().getBio()).isEqualTo("Walking the Camino");
-        assertThat(user.getUserDetails().getAvatarUrl())
-                .isEqualTo("https://example.com/avatar.png");
     }
 
     @Test
@@ -65,15 +58,10 @@ class UserDetailsUpdatedEventHandlerTest {
                         .userId(userId)
                         .displayName("New Name")
                         .bio(null)
-                        .avatarUrl(null)
                         .build();
 
         UserDetails existingDetails =
-                UserDetails.builder()
-                        .displayName("Old Name")
-                        .bio("Keep this bio")
-                        .avatarUrl("https://keep.this.url")
-                        .build();
+                UserDetails.builder().displayName("Old Name").bio("Keep this bio").build();
         User user =
                 User.builder().id(userId).username("johndoe").userDetails(existingDetails).build();
 
@@ -85,7 +73,6 @@ class UserDetailsUpdatedEventHandlerTest {
         // Then
         assertThat(user.getUserDetails().getDisplayName()).isEqualTo("New Name");
         assertThat(user.getUserDetails().getBio()).isEqualTo("Keep this bio");
-        assertThat(user.getUserDetails().getAvatarUrl()).isEqualTo("https://keep.this.url");
     }
 
     @Test
@@ -97,7 +84,6 @@ class UserDetailsUpdatedEventHandlerTest {
                         .userId(userId)
                         .displayName("John")
                         .bio("Bio text")
-                        .avatarUrl(null)
                         .build();
 
         User user = User.builder().id(userId).username("johndoe").build();
@@ -112,7 +98,6 @@ class UserDetailsUpdatedEventHandlerTest {
         assertThat(user.getUserDetails()).isNotNull();
         assertThat(user.getUserDetails().getDisplayName()).isEqualTo("John");
         assertThat(user.getUserDetails().getBio()).isEqualTo("Bio text");
-        assertThat(user.getUserDetails().getAvatarUrl()).isNull();
     }
 
     @Test
