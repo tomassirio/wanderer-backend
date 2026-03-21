@@ -16,6 +16,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
+import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -256,8 +257,11 @@ public class ThumbnailServiceImpl implements ThumbnailService {
                 .append(location.getLon());
     }
 
+    @SuppressWarnings("deprecation")
     private byte[] downloadImage(String urlString) throws IOException {
-        try (InputStream in = URI.create(urlString).toURL().openStream()) {
+        // Using URL class instead of HttpClient because Google Maps URLs contain
+        // special characters (|, :) that are valid in URLs but not in URIs
+        try (InputStream in = new URL(urlString).openStream()) {
             return in.readAllBytes();
         }
     }
