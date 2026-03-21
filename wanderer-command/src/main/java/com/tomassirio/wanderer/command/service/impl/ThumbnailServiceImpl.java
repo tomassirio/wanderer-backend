@@ -293,14 +293,16 @@ public class ThumbnailServiceImpl implements ThumbnailService {
             throw new IllegalArgumentException("File size exceeds maximum allowed size of 5MB");
         }
 
-        // Check content type
+        // Check content type (accept both image/jpeg and image/jpg)
         String contentType = file.getContentType();
         if (contentType == null
                 || (!contentType.equals("image/jpeg")
+                        && !contentType.equals("image/jpg")
                         && !contentType.equals("image/png")
                         && !contentType.equals("image/webp"))) {
             throw new IllegalArgumentException(
-                    "Invalid file type. Only JPEG, PNG, and WebP are allowed");
+                    "Invalid file type. Only JPEG, PNG, and WebP are allowed. Received: "
+                            + contentType);
         }
     }
 
