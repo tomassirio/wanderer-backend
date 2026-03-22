@@ -1,9 +1,9 @@
 replicaCount: 1
 
-# Environment configuration
+# Environment configuration (overridden by pipeline)
 environment:
-  name: "prod"  # dev or prod
-  suffix: ""    # "-dev" for dev environment, "" for prod
+  name: "dev"       # Pipeline sets: dev or prod
+  suffix: "-dev"    # Pipeline sets: "-dev" or ""
 
 image:
   repository: ghcr.io/tomassirio/wanderer-query
@@ -48,9 +48,9 @@ application:
   serverPort: 8082
   projectVersion: "0.3.7"
   
-  # CORS Configuration
+  # CORS Configuration (overridden by pipeline based on environment)
   cors:
-    allowedOrigins: "http://localhost:51538,http://localhost:3000,https://wanderer.localwanderer-dev.com"
+    allowedOrigins: "http://localhost:3000"
 
   # JWT Configuration
   jwt:

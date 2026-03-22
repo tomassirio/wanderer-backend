@@ -3,6 +3,8 @@ package com.tomassirio.wanderer.command.service.impl;
 import com.tomassirio.wanderer.command.client.WandererAuthClient;
 import com.tomassirio.wanderer.command.controller.request.UserCreationRequest;
 import com.tomassirio.wanderer.command.controller.request.UserDetailsRequest;
+import com.tomassirio.wanderer.command.event.AvatarDeletedEvent;
+import com.tomassirio.wanderer.command.event.AvatarUploadedEvent;
 import com.tomassirio.wanderer.command.event.UserCreatedEvent;
 import com.tomassirio.wanderer.command.event.UserDeletedEvent;
 import com.tomassirio.wanderer.command.event.UserDetailsUpdatedEvent;
@@ -19,6 +21,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 @Service
 @AllArgsConstructor
@@ -116,10 +119,54 @@ public class UserServiceImpl implements UserService {
                         .userId(userId)
                         .displayName(request.displayName())
                         .bio(request.bio())
-                        .avatarUrl(request.avatarUrl())
                         .build());
 
         log.info("Accepted user details update for userId={}", userId);
+        return userId;
+    }
+
+    @Override
+    public UUID updateAvatar(UUID userId, MultipartFile file) {
+        log.info("Updating avatar for userId={}", userId);
+
+        userRepository
+                .findById(userId)
+                .orElseThrow(
+                        () -> new EntityNotFoundException("User not found with id: " + userId));
+
+        try {
+            // Read file bytes immediately before async processing
+            // Tomcat deletes temp files after request completes
+            byte[] fileBytes = file.getBytes();
+            
+            eventPublisher.publishEvent(
+                    AvatarUploadedEvent.builder()
+                            .userId(userId)
+                            .fileBytes(fileBytes)
+                            .contentType(file.getContentType())
+                            .originalFilename(file.getOriginalFilename())
+                            .build());
+        } catch (java.io.IOException e) {
+            log.error("Failed to read uploaded file for user {}", userId, e);
+            throw new IllegalArgumentException("Failed to read uploaded file", e);
+        }
+
+        log.info("Accepted avatar update for userId={}", userId);
+        return userId;
+    }
+
+    @Override
+    public UUID deleteAvatar(UUID userId) {
+        log.info("Deleting avatar for userId={}", userId);
+
+        userRepository
+                .findById(userId)
+                .orElseThrow(
+                        () -> new EntityNotFoundException("User not found with id: " + userId));
+
+        eventPublisher.publishEvent(AvatarDeletedEvent.builder().userId(userId).build());
+
+        log.info("Accepted avatar deletion for userId={}", userId);
         return userId;
     }
 }

@@ -29,6 +29,10 @@ spec:
         - name: config
           mountPath: /app/config
           readOnly: true
+        {{- if .Values.thumbnail.enabled }}
+        - name: thumbnails
+          mountPath: {{ .Values.application.thumbnail.storagePath }}
+        {{- end }}
         env:
         - name: SPRING_CONFIG_LOCATION
           value: "file:/app/config/application.properties"
@@ -36,6 +40,11 @@ spec:
       - name: config
         configMap:
           name: {{ .Chart.Name }}{{ .Values.environment.suffix }}-config
+      {{- if .Values.thumbnail.enabled }}
+      - name: thumbnails
+        persistentVolumeClaim:
+          claimName: {{ .Chart.Name }}{{ .Values.environment.suffix }}-thumbnails-pvc
+      {{- end }}
   {{- if .Values.volumeClaimTemplates.enabled }}
   volumeClaimTemplates:
   - metadata:

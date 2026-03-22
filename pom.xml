@@ -39,6 +39,7 @@
         <cucumber.version>7.23.0</cucumber.version>
         <maven-failsafe-plugin.version>3.1.2</maven-failsafe-plugin.version>
         <google-maps-services.version>2.2.0</google-maps-services.version>
+        <webp-imageio.version>0.1.6</webp-imageio.version>
      </properties>
 
     <modules>
@@ -150,6 +151,13 @@
                 <groupId>com.google.maps</groupId>
                 <artifactId>google-maps-services</artifactId>
                 <version>${google-maps-services.version}</version>
+            </dependency>
+
+            <!-- WebP support for ImageIO -->
+            <dependency>
+                <groupId>org.sejda.imageio</groupId>
+                <artifactId>webp-imageio</artifactId>
+                <version>${webp-imageio.version}</version>
             </dependency>
          </dependencies>
      </dependencyManagement>

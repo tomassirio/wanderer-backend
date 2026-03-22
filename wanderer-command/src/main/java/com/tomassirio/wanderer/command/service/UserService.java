@@ -3,6 +3,7 @@ package com.tomassirio.wanderer.command.service;
 import com.tomassirio.wanderer.command.controller.request.UserCreationRequest;
 import com.tomassirio.wanderer.command.controller.request.UserDetailsRequest;
 import java.util.UUID;
+import org.springframework.web.multipart.MultipartFile;
 
 /**
  * Service responsible for handling user write operations (command side).
@@ -56,7 +57,7 @@ public interface UserService {
     void deleteUserData(UUID userId);
 
     /**
-     * Update the user details (display name, bio, avatar URL) for the given user.
+     * Update the user details (display name, bio) for the given user.
      *
      * @param userId the UUID of the user to update
      * @param request the user details to set
@@ -64,4 +65,24 @@ public interface UserService {
      * @throws jakarta.persistence.EntityNotFoundException if the user does not exist
      */
     UUID updateUserDetails(UUID userId, UserDetailsRequest request);
+
+    /**
+     * Upload and set a new profile avatar for the given user.
+     *
+     * @param userId the UUID of the user
+     * @param file the avatar image file (JPEG, PNG, WebP)
+     * @return the UUID of the user being updated
+     * @throws IllegalArgumentException if file is invalid or too large
+     * @throws jakarta.persistence.EntityNotFoundException if the user does not exist
+     */
+    UUID updateAvatar(UUID userId, MultipartFile file);
+
+    /**
+     * Delete the profile avatar for the given user.
+     *
+     * @param userId the UUID of the user
+     * @return the UUID of the user being updated
+     * @throws jakarta.persistence.EntityNotFoundException if the user does not exist
+     */
+    UUID deleteAvatar(UUID userId);
 }

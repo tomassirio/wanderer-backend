@@ -24,7 +24,7 @@ import org.hibernate.annotations.SQLRestriction;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Trip implements Polylineable {
+public class Trip implements Polylineable, Thumbnailable {
 
     @Id private UUID id;
 
@@ -72,4 +72,9 @@ public class Trip implements Polylineable {
     @NotNull
     @Column(nullable = false)
     private Boolean enabled;
+
+    @Override
+    public ThumbnailType getThumbnailType() {
+        return ThumbnailType.TRIP;
+    }
 }

@@ -4,6 +4,8 @@ import static org.mockito.Mockito.verify;
 
 import com.tomassirio.wanderer.command.event.TripPlanDeletedEvent;
 import com.tomassirio.wanderer.command.repository.TripPlanRepository;
+import com.tomassirio.wanderer.command.service.ThumbnailEntityType;
+import com.tomassirio.wanderer.command.service.ThumbnailService;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -15,11 +17,12 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class TripPlanDeletedEventHandlerTest {
 
     @Mock private TripPlanRepository tripPlanRepository;
+    @Mock private ThumbnailService thumbnailService;
 
     @InjectMocks private TripPlanDeletedEventHandler handler;
 
     @Test
-    void handle_shouldDeleteTripPlan() {
+    void handle_shouldDeleteTripPlanAndThumbnail() {
         UUID tripPlanId = UUID.randomUUID();
         UUID userId = UUID.randomUUID();
 
@@ -29,5 +32,6 @@ class TripPlanDeletedEventHandlerTest {
         handler.handle(event);
 
         verify(tripPlanRepository).deleteById(tripPlanId);
+        verify(thumbnailService).deleteThumbnail(tripPlanId, ThumbnailEntityType.TRIP_PLAN);
     }
 }

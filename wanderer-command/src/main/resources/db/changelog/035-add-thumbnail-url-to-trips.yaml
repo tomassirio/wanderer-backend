@@ -1,0 +1,18 @@
+databaseChangeLog:
+  - changeSet:
+      id: 035-add-thumbnail-url-to-trips
+      author: tomassirio
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - columnExists:
+                tableName: trips
+                columnName: thumbnail_url
+      changes:
+        - addColumn:
+            tableName: trips
+            columns:
+              - column:
+                  name: thumbnail_url
+                  type: varchar(500)
+                  remarks: "URL to the generated map thumbnail image stored in persistent volume"

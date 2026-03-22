@@ -1,7 +1,7 @@
 package com.tomassirio.wanderer.command.event;
 
 import com.tomassirio.wanderer.command.websocket.WebSocketEventType;
-import com.tomassirio.wanderer.command.websocket.payload.PolylineUpdatedPayload;
+import com.tomassirio.wanderer.command.websocket.payload.UserProfileUpdatedPayload;
 import java.util.UUID;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -12,30 +12,28 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class PolylineUpdatedEvent implements DomainEvent, Broadcastable {
-    private UUID tripId;
-    private String encodedPolyline;
+public class AvatarDeletedEvent implements DomainEvent, Broadcastable {
+    private UUID userId;
 
     @Override
     public String getEventType() {
-        return WebSocketEventType.POLYLINE_UPDATED;
+        return WebSocketEventType.AVATAR_DELETED;
     }
 
     @Override
     public String getTopic() {
-        return WebSocketEventType.tripTopic(tripId);
+        return WebSocketEventType.userTopic(userId);
     }
 
     @Override
     public UUID getTargetId() {
-        return tripId;
+        return userId;
     }
 
     @Override
     public Object toWebSocketPayload() {
-        return PolylineUpdatedPayload.builder()
-                .tripId(tripId)
-                .encodedPolyline(encodedPolyline)
+        return UserProfileUpdatedPayload.builder()
+                .userId(userId)
                 .build();
     }
 }

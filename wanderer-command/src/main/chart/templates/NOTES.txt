@@ -1,0 +1,105 @@
+{{- if .Values.thumbnail.enabled }}
+==================================================================================
+🚀 Wanderer Command has been deployed with Thumbnail Storage!
+==================================================================================
+
+📦 Deployed Components:
+  - Wanderer Command Service
+  {{- if .Values.thumbnail.nginx.enabled }}
+  - Nginx Static File Server (for thumbnails)
+  {{- end }}
+  - PersistentVolume for thumbnail storage ({{ .Values.thumbnail.storage.size }})
+
+🔍 Verify Deployment:
+
+  1. Check if pods are running:
+     kubectl get pods -n {{ .Release.Namespace }} -l app={{ .Chart.Name }}{{ .Values.environment.suffix }}
+
+  {{- if .Values.thumbnail.nginx.enabled }}
+  2. Check nginx pods:
+     kubectl get pods -n {{ .Release.Namespace }} -l app={{ .Chart.Name }}{{ .Values.environment.suffix }}-nginx
+  {{- end }}
+
+  3. Check PersistentVolumeClaim:
+     kubectl get pvc -n {{ .Release.Namespace }} | grep thumbnails
+
+  4. View logs:
+     kubectl logs -n {{ .Release.Namespace }} -l app={{ .Chart.Name }}{{ .Values.environment.suffix }} --tail=50
+
+📸 Thumbnail Configuration:
+
+  Storage Path: {{ .Values.application.thumbnail.storagePath }}
+  Base URL: {{ .Values.application.thumbnail.baseUrl }}
+  Size: {{ .Values.thumbnail.storage.size }}
+  {{- if .Values.thumbnail.nginx.enabled }}
+  Nginx Replicas: {{ .Values.thumbnail.nginx.replicas }}
+  {{- end }}
+
+{{- if .Values.thumbnail.nginx.enabled }}
+🌐 Access Thumbnails:
+
+  {{- if .Values.thumbnail.ingress.enabled }}
+  External URL: https://{{ .Values.thumbnail.ingress.host }}/thumbnails/
+  {{- else }}
+  Port-forward to test locally:
+    kubectl port-forward -n {{ .Release.Namespace }} svc/{{ .Chart.Name }}{{ .Values.environment.suffix }}-nginx 8080:80
+    curl http://localhost:8080/health
+  {{- end }}
+{{- end }}
+
+⚙️  Configuration:
+
+  Google Maps API: {{ if .Values.application.googleMaps.apiKey }}✅ Configured{{ else }}⚠️  Not configured{{ end }}
+  Thumbnail Generation: {{ if .Values.application.thumbnail.enabled }}✅ Enabled{{ else }}❌ Disabled{{ end }}
+  Database: {{ .Values.application.database.url }}
+
+{{- if not .Values.application.googleMaps.apiKey }}
+⚠️  WARNING: Google Maps API key is not configured!
+   Thumbnails will not be generated without a valid API key.
+   
+   To update:
+     helm upgrade {{ .Release.Name }} . --set application.googleMaps.apiKey=YOUR_API_KEY
+{{- end }}
+
+{{- if .Values.thumbnail.storage.hostPath }}
+📁 HostPath Storage:
+   Node Path: {{ .Values.thumbnail.storage.hostPath }}
+   
+   Ensure this directory exists and has proper permissions on your K3s node:
+     sudo mkdir -p {{ .Values.thumbnail.storage.hostPath }}
+     sudo chmod -R 755 {{ .Values.thumbnail.storage.hostPath }}
+     sudo chown -R 1000:1000 {{ .Values.thumbnail.storage.hostPath }}
+{{- end }}
+
+📚 Documentation:
+   - Chart README: wanderer-command/src/main/chart/README.md
+   - Deployment Guide: docs/THUMBNAIL-DEPLOYMENT.md
+
+🔧 Useful Commands:
+
+  Check thumbnail generation:
+    kubectl logs -n {{ .Release.Namespace }} -l app={{ .Chart.Name }}{{ .Values.environment.suffix }} | grep -i thumbnail
+
+  Monitor storage usage (on node):
+    du -sh {{ .Values.thumbnail.storage.hostPath }}
+
+  Upgrade release:
+    helm upgrade {{ .Release.Name }} ./wanderer-command/src/main/chart -f values.yaml
+
+==================================================================================
+{{- else }}
+==================================================================================
+🚀 Wanderer Command has been deployed!
+==================================================================================
+
+⚠️  Thumbnail storage is disabled.
+   To enable, set: thumbnail.enabled=true
+
+📦 Deployed Components:
+  - Wanderer Command Service
+
+🔍 Verify Deployment:
+     kubectl get pods -n {{ .Release.Namespace }} -l app={{ .Chart.Name }}{{ .Values.environment.suffix }}
+
+==================================================================================
+{{- end }}
