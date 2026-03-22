@@ -235,8 +235,21 @@ public class ThumbnailServiceImpl implements ThumbnailService {
         appendMarker(urlBuilder, "green", "A", start);
         appendMarker(urlBuilder, "red", "B", end);
 
+        // Google Maps Static API has URL length limit (~8192 chars)
+        // If polyline would make URL too long, skip it and use simple markers
         if (polyline != null && !polyline.isEmpty()) {
-            urlBuilder.append("&path=color:0x0088ffff|weight:4|enc:").append(polyline);
+            String polylinePath = "&path=color:0x0088ffff|weight:4|enc:" + polyline;
+            String keyParam = "&key=" + googleMapsProperties.getApiKey();
+            
+            // Estimate final URL length (current + polyline + key)
+            int estimatedLength = urlBuilder.length() + polylinePath.length() + keyParam.length();
+            
+            if (estimatedLength < 8000) {
+                urlBuilder.append(polylinePath);
+            } else {
+                log.warn("Polyline too long ({} chars), using simple markers only for thumbnail", 
+                         estimatedLength);
+            }
         }
 
         urlBuilder.append("&key=").append(googleMapsProperties.getApiKey());
