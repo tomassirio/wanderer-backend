@@ -1,9 +1,10 @@
 replicaCount: 1
 
-# Environment configuration (set by pipeline - no defaults)
+# Environment configuration (set by pipeline - NO DEFAULTS)
+# Pipeline MUST provide these values based on deployment target
 environment:
-  name: ""       # Pipeline must set: dev or prod
-  suffix: ""     # Pipeline must set: "-dev" or ""
+  name: ""       # Pipeline sets: "dev" or "prod"
+  suffix: ""     # Pipeline sets: "-dev" (for dev) or "" (for prod)
 
 image:
   repository: ghcr.io/tomassirio/wanderer-command
@@ -29,7 +30,10 @@ application:
   serverPort: 8081
   projectVersion: "0.3.7"
   
-  # CORS Configuration (set by pipeline - no defaults)
+  # CORS Configuration (set by pipeline - NO DEFAULTS)
+  # Pipeline MUST provide this value based on environment:
+  # - dev: "http://localhost:51538,http://localhost:3000,https://wanderer.localwanderer-dev.com"
+  # - prod: "https://wanderer.yourdomain.com"
   cors:
     allowedOrigins: ""
 
@@ -74,10 +78,13 @@ application:
     apiKey: ""
     enabled: true
 
-  # Thumbnail Configuration
+  # Thumbnail Configuration (set by pipeline - NO DEFAULTS)
+  # Pipeline MUST provide baseUrl based on environment:
+  # - dev: "https://wanderer.localwanderer-dev.com/thumbnails"
+  # - prod: "https://wanderer.yourdomain.com/thumbnails"
   thumbnail:
     storagePath: "/data/thumbnails"
-    baseUrl: "https://wanderer.yourdomain.com/thumbnails"
+    baseUrl: ""  # MUST be set by pipeline
     width: 600
     height: 338
     enabled: true
