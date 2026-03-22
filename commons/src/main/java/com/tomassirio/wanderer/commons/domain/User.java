@@ -19,7 +19,7 @@ import org.hibernate.annotations.CreationTimestamp;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class User {
+public class User implements Thumbnailable {
 
     @Id private UUID id;
 
@@ -31,4 +31,9 @@ public class User {
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
+
+    @Override
+    public ThumbnailType getThumbnailType() {
+        return ThumbnailType.USER_PROFILE;
+    }
 }
