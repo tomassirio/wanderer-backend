@@ -12,7 +12,7 @@ data:
         server_name _;
         
         location /thumbnails/ {
-            alias /usr/share/nginx/html/thumbnails/;
+            alias /usr/share/nginx/html/;
             expires 30d;
             add_header Cache-Control "public, immutable";
             
@@ -59,7 +59,7 @@ spec:
           protocol: TCP
         volumeMounts:
         - name: thumbnails
-          mountPath: /usr/share/nginx/html/thumbnails
+          mountPath: /usr/share/nginx/html
           readOnly: true
         - name: nginx-config
           mountPath: /etc/nginx/conf.d
