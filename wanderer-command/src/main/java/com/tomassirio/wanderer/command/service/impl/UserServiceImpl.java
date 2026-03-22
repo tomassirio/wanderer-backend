@@ -134,8 +134,22 @@ public class UserServiceImpl implements UserService {
                 .orElseThrow(
                         () -> new EntityNotFoundException("User not found with id: " + userId));
 
-        eventPublisher.publishEvent(
-                AvatarUploadedEvent.builder().userId(userId).file(file).build());
+        try {
+            // Read file bytes immediately before async processing
+            // Tomcat deletes temp files after request completes
+            byte[] fileBytes = file.getBytes();
+            
+            eventPublisher.publishEvent(
+                    AvatarUploadedEvent.builder()
+                            .userId(userId)
+                            .fileBytes(fileBytes)
+                            .contentType(file.getContentType())
+                            .originalFilename(file.getOriginalFilename())
+                            .build());
+        } catch (java.io.IOException e) {
+            log.error("Failed to read uploaded file for user {}", userId, e);
+            throw new IllegalArgumentException("Failed to read uploaded file", e);
+        }
 
         log.info("Accepted avatar update for userId={}", userId);
         return userId;

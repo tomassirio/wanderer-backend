@@ -55,8 +55,8 @@ public final class WebSocketEventType {
 
     // User profile events
     public static final String USER_PROFILE_UPDATED = "USER_PROFILE_UPDATED";
-    public static final String AVATAR_UPLOADED = "AVATAR_UPLOADED";
-    public static final String AVATAR_DELETED = "AVATAR_DELETED";
+    public static final String AVATAR_UPLOADED = "USER_AVATAR_UPLOADED";
+    public static final String AVATAR_DELETED = "USER_AVATAR_DELETED";
 
     // ==================== TOPIC PATTERNS ====================
 

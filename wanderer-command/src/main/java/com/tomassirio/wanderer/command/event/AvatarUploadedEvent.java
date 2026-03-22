@@ -7,7 +7,6 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.springframework.web.multipart.MultipartFile;
 
 @Data
 @Builder
@@ -15,7 +14,9 @@ import org.springframework.web.multipart.MultipartFile;
 @AllArgsConstructor
 public class AvatarUploadedEvent implements DomainEvent, Broadcastable {
     private UUID userId;
-    private MultipartFile file;
+    private byte[] fileBytes;
+    private String contentType;
+    private String originalFilename;
 
     @Override
     public String getEventType() {

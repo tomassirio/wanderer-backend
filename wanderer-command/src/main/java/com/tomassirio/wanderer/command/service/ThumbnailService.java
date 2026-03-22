@@ -38,17 +38,19 @@ public interface ThumbnailService {
     void generateAndSaveThumbnail(TripPlan tripPlan);
 
     /**
-     * Processes and saves a profile picture upload.
+     * Processes and saves a profile picture from byte array.
      *
      * <p>Validates the file type (JPEG, PNG, WebP), size (max 5MB), and dimensions. Resizes the
      * image to 512x512 and saves it to persistent storage.
      *
      * @param userId the UUID of the user
-     * @param file the uploaded image file
+     * @param fileBytes the image file bytes
+     * @param contentType the content type of the image
+     * @param originalFilename the original filename
      * @throws IllegalArgumentException if file type is invalid, size exceeds limit, or processing
      *     fails
      */
-    void processAndSaveProfilePicture(UUID userId, MultipartFile file);
+    void processAndSaveProfilePicture(UUID userId, byte[] fileBytes, String contentType, String originalFilename);
 
     /**
      * Deletes the thumbnail file for a given entity.

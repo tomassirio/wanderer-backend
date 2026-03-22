@@ -1,5 +1,7 @@
 package com.tomassirio.wanderer.command.service.impl;
 
+import com.google.maps.internal.PolylineEncoding;
+import com.google.maps.model.LatLng;
 import com.tomassirio.wanderer.command.config.properties.GoogleMapsProperties;
 import com.tomassirio.wanderer.command.config.properties.ThumbnailProperties;
 import com.tomassirio.wanderer.command.service.ThumbnailEntityType;
@@ -20,6 +22,7 @@ import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
@@ -93,21 +96,21 @@ public class ThumbnailServiceImpl implements ThumbnailService {
 
     @Override
     public void processAndSaveProfilePicture(
-            UUID userId, org.springframework.web.multipart.MultipartFile file) {
+            UUID userId, byte[] fileBytes, String contentType, String originalFilename) {
         log.debug("Processing profile picture upload for user: {}", userId);
 
         try {
             // Validate file
-            validateProfilePicture(file);
+            validateProfilePicture(contentType, originalFilename, fileBytes.length);
 
             ensureStorageDirectoryExists(ThumbnailEntityType.USER_PROFILE);
 
-            // Read and resize image
-            byte[] imageBytes = resizeImage(file.getBytes(), 512, 512);
+            // Resize image
+            byte[] resizedBytes = resizeImage(fileBytes, 512, 512);
 
             String filename = userId + PNG_EXTENSION;
             Path filePath = getStoragePath(ThumbnailEntityType.USER_PROFILE).resolve(filename);
-            Files.write(filePath, imageBytes);
+            Files.write(filePath, resizedBytes);
 
             log.info(
                     "Successfully saved profile picture for user {} to {}",
@@ -236,7 +239,6 @@ public class ThumbnailServiceImpl implements ThumbnailService {
         appendMarker(urlBuilder, "red", "B", end);
 
         // Google Maps Static API has URL length limit (~8192 chars)
-        // If polyline would make URL too long, skip it and use simple markers
         if (polyline != null && !polyline.isEmpty()) {
             String polylinePath = "&path=color:0x0088ffff|weight:4|enc:" + polyline;
             String keyParam = "&key=" + googleMapsProperties.getApiKey();
@@ -245,16 +247,68 @@ public class ThumbnailServiceImpl implements ThumbnailService {
             int estimatedLength = urlBuilder.length() + polylinePath.length() + keyParam.length();
             
             if (estimatedLength < 8000) {
+                // Polyline fits, use it as-is
                 urlBuilder.append(polylinePath);
             } else {
-                log.warn("Polyline too long ({} chars), using simple markers only for thumbnail", 
-                         estimatedLength);
+                // Polyline too long - simplify it by taking every Nth point
+                log.warn("Polyline too long ({} chars), simplifying for thumbnail", estimatedLength);
+                String simplifiedPolyline = simplifyPolyline(polyline, estimatedLength);
+                urlBuilder.append("&path=color:0x0088ffff|weight:4|enc:").append(simplifiedPolyline);
             }
         }
 
         urlBuilder.append("&key=").append(googleMapsProperties.getApiKey());
 
         return urlBuilder.toString();
+    }
+
+    /**
+     * Simplifies an encoded polyline by decoding, decimating points, and re-encoding.
+     * Reduces the number of points to fit within Google Maps Static API URL limits.
+     */
+    private String simplifyPolyline(String polyline, int currentLength) {
+        try {
+            // Decode the polyline to lat/lng points
+            List<LatLng> points = PolylineEncoding.decode(polyline);
+            
+            if (points.isEmpty()) {
+                return polyline;
+            }
+            
+            // Calculate target number of points to fit under URL limit
+            // Each point adds ~5-10 chars to encoded string
+            int maxPolylineLength = 7000; // Conservative limit
+            int targetPoints = Math.min(points.size(), maxPolylineLength / 8);
+            
+            // Decimate points - take every Nth point
+            int step = Math.max(1, points.size() / targetPoints);
+            List<LatLng> simplified = new ArrayList<>();
+            
+            // Always include first point
+            simplified.add(points.get(0));
+            
+            // Take every Nth point
+            for (int i = step; i < points.size() - 1; i += step) {
+                simplified.add(points.get(i));
+            }
+            
+            // Always include last point
+            if (points.size() > 1) {
+                simplified.add(points.get(points.size() - 1));
+            }
+            
+            // Re-encode the simplified path
+            String result = PolylineEncoding.encode(simplified);
+            
+            log.info("Simplified polyline: {} points → {} points, {} chars → {} chars", 
+                     points.size(), simplified.size(), polyline.length(), result.length());
+            
+            return result;
+            
+        } catch (Exception e) {
+            log.error("Failed to simplify polyline, using markers only", e);
+            return ""; // Return empty to fallback to markers only
+        }
     }
 
     private void appendMarker(
@@ -295,22 +349,15 @@ public class ThumbnailServiceImpl implements ThumbnailService {
         }
     }
 
-    private void validateProfilePicture(org.springframework.web.multipart.MultipartFile file) {
-        if (file == null || file.isEmpty()) {
-            throw new IllegalArgumentException("File cannot be empty");
-        }
-
+    private void validateProfilePicture(String contentType, String originalFilename, long fileSize) {
         // Check file size (5MB max)
         long maxSize = 5 * 1024 * 1024;
-        if (file.getSize() > maxSize) {
+        if (fileSize > maxSize) {
             throw new IllegalArgumentException("File size exceeds maximum allowed size of 5MB");
         }
 
-        // Check content type - be more permissive with MIME types
-        String contentType = file.getContentType();
-        String originalFilename = file.getOriginalFilename();
-        
-        log.debug("Validating profile picture: contentType={}, filename={}", contentType, originalFilename);
+        log.debug("Validating profile picture: contentType={}, filename={}, size={}", 
+                  contentType, originalFilename, fileSize);
         
         // Accept if content type matches OR if filename extension matches
         boolean isValidContentType = contentType != null && 

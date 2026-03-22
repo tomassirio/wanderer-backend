@@ -3,6 +3,7 @@ package com.tomassirio.wanderer.command.controller;
 import com.tomassirio.wanderer.command.controller.request.UserCreationRequest;
 import com.tomassirio.wanderer.command.controller.request.UserDetailsRequest;
 import com.tomassirio.wanderer.command.service.UserService;
+import com.tomassirio.wanderer.command.validator.ImageFileValidator;
 import com.tomassirio.wanderer.commons.constants.ApiConstants;
 import com.tomassirio.wanderer.commons.security.CurrentUserId;
 import io.swagger.v3.oas.annotations.Hidden;
@@ -40,6 +41,7 @@ import org.springframework.web.multipart.MultipartFile;
 public class UserController {
 
     private final UserService userService;
+    private final ImageFileValidator imageFileValidator;
 
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
     @Operation(
@@ -92,6 +94,9 @@ public class UserController {
             @Parameter(hidden = true) @CurrentUserId UUID userId,
             @Parameter(description = "Profile picture file (JPEG, PNG, WebP, max 5MB)")
                     MultipartFile file) {
+        
+        imageFileValidator.validate(file);
+        
         log.info("User {} uploading avatar", userId);
         UUID updatedUserId = userService.updateAvatar(userId, file);
         log.info("Accepted avatar upload for user: {}", updatedUserId);

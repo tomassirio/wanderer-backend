@@ -24,7 +24,11 @@ public class AvatarUploadedEventHandler implements EventHandler<AvatarUploadedEv
         log.debug("Processing avatar upload for user: {}", event.getUserId());
 
         try {
-            thumbnailService.processAndSaveProfilePicture(event.getUserId(), event.getFile());
+            thumbnailService.processAndSaveProfilePicture(
+                    event.getUserId(), 
+                    event.getFileBytes(),
+                    event.getContentType(),
+                    event.getOriginalFilename());
             log.info("Successfully processed avatar for user: {}", event.getUserId());
         } catch (Exception e) {
             log.error("Failed to process avatar for user: {}", event.getUserId(), e);
