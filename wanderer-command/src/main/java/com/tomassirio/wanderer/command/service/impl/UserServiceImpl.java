@@ -138,7 +138,7 @@ public class UserServiceImpl implements UserService {
             // Read file bytes immediately before async processing
             // Tomcat deletes temp files after request completes
             byte[] fileBytes = file.getBytes();
-            
+
             eventPublisher.publishEvent(
                     AvatarUploadedEvent.builder()
                             .userId(userId)

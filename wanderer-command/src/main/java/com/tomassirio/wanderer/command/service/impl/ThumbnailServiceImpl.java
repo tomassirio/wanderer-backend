@@ -17,7 +17,6 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.URI;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -242,18 +241,21 @@ public class ThumbnailServiceImpl implements ThumbnailService {
         if (polyline != null && !polyline.isEmpty()) {
             String polylinePath = "&path=color:0x0088ffff|weight:4|enc:" + polyline;
             String keyParam = "&key=" + googleMapsProperties.getApiKey();
-            
+
             // Estimate final URL length (current + polyline + key)
             int estimatedLength = urlBuilder.length() + polylinePath.length() + keyParam.length();
-            
+
             if (estimatedLength < 8000) {
                 // Polyline fits, use it as-is
                 urlBuilder.append(polylinePath);
             } else {
                 // Polyline too long - simplify it by taking every Nth point
-                log.warn("Polyline too long ({} chars), simplifying for thumbnail", estimatedLength);
+                log.warn(
+                        "Polyline too long ({} chars), simplifying for thumbnail", estimatedLength);
                 String simplifiedPolyline = simplifyPolyline(polyline, estimatedLength);
-                urlBuilder.append("&path=color:0x0088ffff|weight:4|enc:").append(simplifiedPolyline);
+                urlBuilder
+                        .append("&path=color:0x0088ffff|weight:4|enc:")
+                        .append(simplifiedPolyline);
             }
         }
 
@@ -263,48 +265,52 @@ public class ThumbnailServiceImpl implements ThumbnailService {
     }
 
     /**
-     * Simplifies an encoded polyline by decoding, decimating points, and re-encoding.
-     * Reduces the number of points to fit within Google Maps Static API URL limits.
+     * Simplifies an encoded polyline by decoding, decimating points, and re-encoding. Reduces the
+     * number of points to fit within Google Maps Static API URL limits.
      */
     private String simplifyPolyline(String polyline, int currentLength) {
         try {
             // Decode the polyline to lat/lng points
             List<LatLng> points = PolylineEncoding.decode(polyline);
-            
+
             if (points.isEmpty()) {
                 return polyline;
             }
-            
+
             // Calculate target number of points to fit under URL limit
             // Each point adds ~5-10 chars to encoded string
             int maxPolylineLength = 7000; // Conservative limit
             int targetPoints = Math.min(points.size(), maxPolylineLength / 8);
-            
+
             // Decimate points - take every Nth point
             int step = Math.max(1, points.size() / targetPoints);
             List<LatLng> simplified = new ArrayList<>();
-            
+
             // Always include first point
             simplified.add(points.get(0));
-            
+
             // Take every Nth point
             for (int i = step; i < points.size() - 1; i += step) {
                 simplified.add(points.get(i));
             }
-            
+
             // Always include last point
             if (points.size() > 1) {
                 simplified.add(points.get(points.size() - 1));
             }
-            
+
             // Re-encode the simplified path
             String result = PolylineEncoding.encode(simplified);
-            
-            log.info("Simplified polyline: {} points → {} points, {} chars → {} chars", 
-                     points.size(), simplified.size(), polyline.length(), result.length());
-            
+
+            log.info(
+                    "Simplified polyline: {} points → {} points, {} chars → {} chars",
+                    points.size(),
+                    simplified.size(),
+                    polyline.length(),
+                    result.length());
+
             return result;
-            
+
         } catch (Exception e) {
             log.error("Failed to simplify polyline, using markers only", e);
             return ""; // Return empty to fallback to markers only
@@ -349,29 +355,35 @@ public class ThumbnailServiceImpl implements ThumbnailService {
         }
     }
 
-    private void validateProfilePicture(String contentType, String originalFilename, long fileSize) {
+    private void validateProfilePicture(
+            String contentType, String originalFilename, long fileSize) {
         // Check file size (5MB max)
         long maxSize = 5 * 1024 * 1024;
         if (fileSize > maxSize) {
             throw new IllegalArgumentException("File size exceeds maximum allowed size of 5MB");
         }
 
-        log.debug("Validating profile picture: contentType={}, filename={}, size={}", 
-                  contentType, originalFilename, fileSize);
-        
+        log.debug(
+                "Validating profile picture: contentType={}, filename={}, size={}",
+                contentType,
+                originalFilename,
+                fileSize);
+
         // Accept if content type matches OR if filename extension matches
-        boolean isValidContentType = contentType != null && 
-                (contentType.startsWith("image/jpeg") ||
-                 contentType.startsWith("image/jpg") ||
-                 contentType.startsWith("image/png") ||
-                 contentType.startsWith("image/webp"));
-        
-        boolean isValidFilename = originalFilename != null &&
-                (originalFilename.toLowerCase().endsWith(".jpg") ||
-                 originalFilename.toLowerCase().endsWith(".jpeg") ||
-                 originalFilename.toLowerCase().endsWith(".png") ||
-                 originalFilename.toLowerCase().endsWith(".webp"));
-        
+        boolean isValidContentType =
+                contentType != null
+                        && (contentType.startsWith("image/jpeg")
+                                || contentType.startsWith("image/jpg")
+                                || contentType.startsWith("image/png")
+                                || contentType.startsWith("image/webp"));
+
+        boolean isValidFilename =
+                originalFilename != null
+                        && (originalFilename.toLowerCase().endsWith(".jpg")
+                                || originalFilename.toLowerCase().endsWith(".jpeg")
+                                || originalFilename.toLowerCase().endsWith(".png")
+                                || originalFilename.toLowerCase().endsWith(".webp"));
+
         if (!isValidContentType && !isValidFilename) {
             throw new IllegalArgumentException(
                     String.format(

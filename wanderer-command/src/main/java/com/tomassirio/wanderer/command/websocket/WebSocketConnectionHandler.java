@@ -148,8 +148,9 @@ public class WebSocketConnectionHandler extends TextWebSocketHandler {
     }
 
     private void handleSubscribe(WebSocketSession session, String destination) {
-        if (destination == null || 
-            (!destination.startsWith("/topic/trips/") && !destination.startsWith("/topic/users/"))) {
+        if (destination == null
+                || (!destination.startsWith("/topic/trips/")
+                        && !destination.startsWith("/topic/users/"))) {
             log.warn(
                     "Invalid subscription destination: {} from session {}",
                     destination,

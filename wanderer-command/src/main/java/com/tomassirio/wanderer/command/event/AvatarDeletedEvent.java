@@ -32,8 +32,6 @@ public class AvatarDeletedEvent implements DomainEvent, Broadcastable {
 
     @Override
     public Object toWebSocketPayload() {
-        return UserProfileUpdatedPayload.builder()
-                .userId(userId)
-                .build();
+        return UserProfileUpdatedPayload.builder().userId(userId).build();
     }
 }

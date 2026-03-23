@@ -94,9 +94,9 @@ public class UserController {
             @Parameter(hidden = true) @CurrentUserId UUID userId,
             @Parameter(description = "Profile picture file (JPEG, PNG, WebP, max 5MB)")
                     MultipartFile file) {
-        
+
         imageFileValidator.validate(file);
-        
+
         log.info("User {} uploading avatar", userId);
         UUID updatedUserId = userService.updateAvatar(userId, file);
         log.info("Accepted avatar upload for user: {}", updatedUserId);

@@ -61,7 +61,6 @@ public class TripStatusChangedEventHandler implements EventHandler<TripStatusCha
                             statusTransitionHandler.handleStatusTransition(
                                     trip, previousStatus, newStatus);
 
-
                             // Manage trip day tracking for multi-day trips
                             tripDayManager.manageTripDays(trip, previousStatus, newStatus);
 

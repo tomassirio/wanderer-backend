@@ -53,7 +53,7 @@ class ImageFileValidatorTest {
     void validate_shouldRejectEmptyFile() {
         MultipartFile file = mockFile("test.jpg", "image/jpeg", 0);
         when(file.isEmpty()).thenReturn(true);
-        
+
         assertThatThrownBy(() -> validator.validate(file))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("cannot be empty");
@@ -63,7 +63,7 @@ class ImageFileValidatorTest {
     void validate_shouldRejectFileExceeding5MB() {
         long size = 6 * 1024 * 1024; // 6MB
         MultipartFile file = mockFile("test.jpg", "image/jpeg", size);
-        
+
         assertThatThrownBy(() -> validator.validate(file))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("exceeds maximum allowed size of 5MB");
@@ -72,7 +72,7 @@ class ImageFileValidatorTest {
     @Test
     void validate_shouldRejectInvalidFileType() {
         MultipartFile file = mockFile("test.txt", "text/plain", 1024);
-        
+
         assertThatThrownBy(() -> validator.validate(file))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Only JPEG, PNG, and WebP images are allowed");
@@ -81,7 +81,7 @@ class ImageFileValidatorTest {
     @Test
     void validate_shouldRejectGifFile() {
         MultipartFile file = mockFile("test.gif", "image/gif", 1024 * 1024);
-        
+
         assertThatThrownBy(() -> validator.validate(file))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Only JPEG, PNG, and WebP images are allowed");

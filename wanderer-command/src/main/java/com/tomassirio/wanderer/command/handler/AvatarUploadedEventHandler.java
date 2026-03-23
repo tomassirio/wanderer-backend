@@ -25,7 +25,7 @@ public class AvatarUploadedEventHandler implements EventHandler<AvatarUploadedEv
 
         try {
             thumbnailService.processAndSaveProfilePicture(
-                    event.getUserId(), 
+                    event.getUserId(),
                     event.getFileBytes(),
                     event.getContentType(),
                     event.getOriginalFilename());
