@@ -61,9 +61,6 @@ public class TripStatusChangedEventHandler implements EventHandler<TripStatusCha
                             statusTransitionHandler.handleStatusTransition(
                                     trip, previousStatus, newStatus);
 
-                            // Create system-generated trip updates for lifecycle transitions
-                            lifecycleTripUpdateManager.createLifecycleTripUpdate(
-                                    trip, previousStatus, newStatus);
 
                             // Manage trip day tracking for multi-day trips
                             tripDayManager.manageTripDays(trip, previousStatus, newStatus);
