@@ -1,6 +1,7 @@
 package com.tomassirio.wanderer.command.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
@@ -9,15 +10,21 @@ import com.tomassirio.wanderer.command.config.properties.ThumbnailProperties;
 import com.tomassirio.wanderer.command.service.impl.ThumbnailServiceImpl;
 import com.tomassirio.wanderer.commons.domain.GeoLocation;
 import com.tomassirio.wanderer.commons.domain.Trip;
+import com.tomassirio.wanderer.commons.domain.TripPlan;
+import com.tomassirio.wanderer.commons.domain.TripPlanType;
 import com.tomassirio.wanderer.commons.domain.TripUpdate;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
+import javax.imageio.ImageIO;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -193,6 +200,224 @@ class ThumbnailServiceTest {
         assertThat(exists).isFalse();
     }
 
+    // --- TripPlan thumbnail early-exit tests ---
+
+    @Test
+    void generateAndSaveThumbnail_tripPlan_whenThumbnailsDisabled_shouldDoNothing() {
+        // Given
+        thumbnailProperties.setEnabled(false);
+        TripPlan tripPlan = createTripPlan();
+
+        // When
+        thumbnailService.generateAndSaveThumbnail(tripPlan);
+
+        // Then - no exception, just returns
+    }
+
+    @Test
+    void generateAndSaveThumbnail_tripPlan_whenGoogleMapsDisabled_shouldDoNothing() {
+        // Given
+        when(googleMapsProperties.isEnabled()).thenReturn(false);
+        TripPlan tripPlan = createTripPlan();
+
+        // When
+        thumbnailService.generateAndSaveThumbnail(tripPlan);
+
+        // Then - no exception, just returns
+    }
+
+    @Test
+    void generateAndSaveThumbnail_tripPlan_whenPlannedPolylineIsNull_shouldDoNothing() {
+        // Given
+        TripPlan tripPlan = createTripPlan();
+        tripPlan.setPlannedPolyline(null);
+
+        // When
+        thumbnailService.generateAndSaveThumbnail(tripPlan);
+
+        // Then - no exception, just returns
+    }
+
+    @Test
+    void generateAndSaveThumbnail_tripPlan_whenPlannedPolylineIsEmpty_shouldDoNothing() {
+        // Given
+        TripPlan tripPlan = createTripPlan();
+        tripPlan.setPlannedPolyline("");
+
+        // When
+        thumbnailService.generateAndSaveThumbnail(tripPlan);
+
+        // Then - no exception, just returns
+    }
+
+    // --- Profile picture overwrite (Files.write overwrites in place) ---
+
+    @Test
+    void processAndSaveProfilePicture_whenFileAlreadyExists_shouldOverwriteInPlace()
+            throws IOException {
+        // Given
+        UUID userId = UUID.randomUUID();
+        Path profilesDir = tempDir.resolve("profiles");
+        Files.createDirectories(profilesDir);
+        Path filePath = profilesDir.resolve(userId + ".png");
+
+        // Write initial content
+        byte[] oldContent = new byte[] {1, 2, 3};
+        Files.write(filePath, oldContent);
+        assertThat(Files.exists(filePath)).isTrue();
+
+        byte[] validImage = createTestPngBytes();
+
+        // When
+        thumbnailService.processAndSaveProfilePicture(
+                userId, validImage, "image/png", "avatar.png");
+
+        // Then - file still exists and content was overwritten
+        assertThat(Files.exists(filePath)).isTrue();
+        byte[] newContent = Files.readAllBytes(filePath);
+        assertThat(newContent).isNotEqualTo(oldContent);
+        assertThat(newContent.length).isGreaterThan(0);
+    }
+
+    @Test
+    void processAndSaveProfilePicture_withValidPng_shouldSaveResizedImage() throws IOException {
+        // Given
+        UUID userId = UUID.randomUUID();
+        byte[] validImage = createTestPngBytes();
+
+        // When
+        thumbnailService.processAndSaveProfilePicture(userId, validImage, "image/png", "photo.png");
+
+        // Then
+        Path filePath = tempDir.resolve("profiles").resolve(userId + ".png");
+        assertThat(Files.exists(filePath)).isTrue();
+        assertThat(Files.size(filePath)).isGreaterThan(0);
+    }
+
+    @Test
+    void processAndSaveProfilePicture_withValidJpeg_shouldSaveImage() throws IOException {
+        // Given
+        UUID userId = UUID.randomUUID();
+        byte[] validImage = createTestPngBytes();
+
+        // When
+        thumbnailService.processAndSaveProfilePicture(
+                userId, validImage, "image/jpeg", "photo.jpeg");
+
+        // Then
+        Path filePath = tempDir.resolve("profiles").resolve(userId + ".png");
+        assertThat(Files.exists(filePath)).isTrue();
+    }
+
+    @Test
+    void processAndSaveProfilePicture_withValidFilenameButNullContentType_shouldSaveImage()
+            throws IOException {
+        // Given
+        UUID userId = UUID.randomUUID();
+        byte[] validImage = createTestPngBytes();
+
+        // When
+        thumbnailService.processAndSaveProfilePicture(userId, validImage, null, "photo.png");
+
+        // Then
+        Path filePath = tempDir.resolve("profiles").resolve(userId + ".png");
+        assertThat(Files.exists(filePath)).isTrue();
+    }
+
+    @Test
+    void processAndSaveProfilePicture_withInvalidContentTypeAndFilename_shouldThrowException() {
+        // Given
+        UUID userId = UUID.randomUUID();
+        byte[] imageBytes = createTestPngBytes();
+
+        // When / Then
+        assertThatThrownBy(
+                        () ->
+                                thumbnailService.processAndSaveProfilePicture(
+                                        userId, imageBytes, "application/pdf", "document.pdf"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Invalid file type");
+    }
+
+    @Test
+    void processAndSaveProfilePicture_withOversizedFile_shouldThrowException() {
+        // Given
+        UUID userId = UUID.randomUUID();
+        byte[] oversizedBytes = new byte[6 * 1024 * 1024]; // 6MB > 5MB limit
+
+        // When / Then
+        assertThatThrownBy(
+                        () ->
+                                thumbnailService.processAndSaveProfilePicture(
+                                        userId, oversizedBytes, "image/png", "large.png"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("5MB");
+    }
+
+    // --- Delete and exists for other entity types ---
+
+    @Test
+    void deleteThumbnail_forTripPlan_whenFileExists_shouldDeleteFile() throws IOException {
+        // Given
+        UUID planId = UUID.randomUUID();
+        Path plansDir = tempDir.resolve("plans");
+        Files.createDirectories(plansDir);
+        Path thumbnailPath = plansDir.resolve(planId + ".png");
+        Files.createFile(thumbnailPath);
+
+        // When
+        thumbnailService.deleteThumbnail(planId, ThumbnailEntityType.TRIP_PLAN);
+
+        // Then
+        assertThat(Files.exists(thumbnailPath)).isFalse();
+    }
+
+    @Test
+    void deleteThumbnail_forUserProfile_whenFileExists_shouldDeleteFile() throws IOException {
+        // Given
+        UUID userId = UUID.randomUUID();
+        Path profilesDir = tempDir.resolve("profiles");
+        Files.createDirectories(profilesDir);
+        Path thumbnailPath = profilesDir.resolve(userId + ".png");
+        Files.createFile(thumbnailPath);
+
+        // When
+        thumbnailService.deleteThumbnail(userId, ThumbnailEntityType.USER_PROFILE);
+
+        // Then
+        assertThat(Files.exists(thumbnailPath)).isFalse();
+    }
+
+    @Test
+    void thumbnailExists_forTripPlan_whenFileExists_shouldReturnTrue() throws IOException {
+        // Given
+        UUID planId = UUID.randomUUID();
+        Path plansDir = tempDir.resolve("plans");
+        Files.createDirectories(plansDir);
+        Files.createFile(plansDir.resolve(planId + ".png"));
+
+        // When
+        boolean exists = thumbnailService.thumbnailExists(planId, ThumbnailEntityType.TRIP_PLAN);
+
+        // Then
+        assertThat(exists).isTrue();
+    }
+
+    @Test
+    void thumbnailExists_forUserProfile_whenFileExists_shouldReturnTrue() throws IOException {
+        // Given
+        UUID userId = UUID.randomUUID();
+        Path profilesDir = tempDir.resolve("profiles");
+        Files.createDirectories(profilesDir);
+        Files.createFile(profilesDir.resolve(userId + ".png"));
+
+        // When
+        boolean exists = thumbnailService.thumbnailExists(userId, ThumbnailEntityType.USER_PROFILE);
+
+        // Then
+        assertThat(exists).isTrue();
+    }
+
     private Trip createTrip() {
         return Trip.builder().id(UUID.randomUUID()).name("Test Trip").build();
     }
@@ -232,5 +457,39 @@ class ThumbnailServiceTest {
                 .tripUpdates(updates)
                 .encodedPolyline("encodedPolylineString")
                 .build();
+    }
+
+    private TripPlan createTripPlan() {
+        GeoLocation start = new GeoLocation();
+        start.setLat(42.8782);
+        start.setLon(-8.5448);
+
+        GeoLocation end = new GeoLocation();
+        end.setLat(42.8843);
+        end.setLon(-9.2626);
+
+        return TripPlan.builder()
+                .id(UUID.randomUUID())
+                .name("Test Plan")
+                .planType(TripPlanType.SIMPLE)
+                .userId(UUID.randomUUID())
+                .createdTimestamp(Instant.now())
+                .startDate(LocalDate.now())
+                .endDate(LocalDate.now().plusDays(7))
+                .startLocation(start)
+                .endLocation(end)
+                .plannedPolyline("encodedPolylineString")
+                .build();
+    }
+
+    private byte[] createTestPngBytes() {
+        try {
+            BufferedImage image = new BufferedImage(100, 100, BufferedImage.TYPE_INT_RGB);
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            ImageIO.write(image, "png", baos);
+            return baos.toByteArray();
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to create test PNG image", e);
+        }
     }
 }
