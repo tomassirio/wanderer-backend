@@ -178,13 +178,18 @@ public class ThumbnailServiceImpl implements ThumbnailService {
         try {
             ensureStorageDirectoryExists(entityType);
 
+            // Delete existing thumbnail first to ensure cache invalidation
+            Path filePath = resolveFilePath(id, entityType);
+            if (Files.exists(filePath)) {
+                Files.delete(filePath);
+                log.debug("Deleted existing thumbnail for {} {}", entityType.name().toLowerCase(), id);
+            }
+
             String staticMapUrl = buildStaticMapUrl(start, end, polyline);
             log.debug("Generating thumbnail from URL: {}", staticMapUrl);
 
             byte[] imageBytes = downloadImage(staticMapUrl);
 
-            String filename = id + PNG_EXTENSION;
-            Path filePath = getStoragePath(entityType).resolve(filename);
             Files.write(filePath, imageBytes);
 
             log.info(
