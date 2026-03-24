@@ -1,0 +1,12 @@
+databaseChangeLog:
+  - changeSet:
+      id: 039-add-distance-so-far-to-trip-updates
+      author: tomassirio
+      changes:
+        - addColumn:
+            tableName: trip_updates
+            columns:
+              - column:
+                  name: distance_so_far_km
+                  type: DOUBLE PRECISION
+                  remarks: Distance traveled so far at the time of this trip update (in kilometers)
