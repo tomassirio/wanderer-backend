@@ -56,8 +56,9 @@ public class TripUpdateServiceImpl implements TripUpdateService {
 
         // Calculate distance so far
         Double distanceSoFar = calculateDistanceSoFar(trip, request.location());
-        
-        log.debug("Trip update for trip {}: calculated distanceSoFar = {} km", tripId, distanceSoFar);
+
+        log.debug(
+                "Trip update for trip {}: calculated distanceSoFar = {} km", tripId, distanceSoFar);
 
         // Publish event - persistence handler will write to DB
         eventPublisher.publishEvent(
@@ -107,24 +108,17 @@ public class TripUpdateServiceImpl implements TripUpdateService {
         double cachedDistance =
                 trip.getCachedDistanceKm() != null ? trip.getCachedDistanceKm() : 0.0;
 
-        // Get the last trip update with a valid location
-        List<TripUpdate> updates =
-                tripUpdateRepository.findByTripIdOrderByTimestampAsc(trip.getId());
+        // Get only the last trip update with a valid location (efficient query)
+        Optional<TripUpdate> lastUpdateOpt =
+                tripUpdateRepository.findFirstByTripIdAndLocationIsNotNullOrderByTimestampDesc(
+                        trip.getId());
 
-        TripUpdate lastUpdate =
-                updates.stream()
-                        .filter(
-                                update ->
-                                        update.getLocation() != null
-                                                && update.getLocation().getLat() != null
-                                                && update.getLocation().getLon() != null)
-                        .reduce((first, second) -> second)
-                        .orElse(null);
-
-        if (lastUpdate == null) {
+        if (lastUpdateOpt.isEmpty()) {
             // First update with location
             return cachedDistance;
         }
+
+        TripUpdate lastUpdate = lastUpdateOpt.get();
 
         // Calculate distance from last point to new point
         List<LatLng> segment =

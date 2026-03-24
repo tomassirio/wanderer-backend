@@ -16,7 +16,6 @@ import com.tomassirio.wanderer.commons.domain.GeoLocation;
 import com.tomassirio.wanderer.commons.domain.Trip;
 import com.tomassirio.wanderer.commons.domain.UpdateType;
 import com.tomassirio.wanderer.commons.domain.WeatherCondition;
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -57,8 +56,6 @@ class TripUpdateServiceImplTest {
 
         Trip trip = Trip.builder().id(tripId).userId(userId).name("Euro Trip").build();
         when(tripRepository.findById(tripId)).thenReturn(Optional.of(trip));
-        when(tripUpdateRepository.findByTripIdOrderByTimestampAsc(tripId)).thenReturn(List.of());
-        when(tripUpdateRepository.findByTripIdOrderByTimestampAsc(tripId)).thenReturn(List.of());
         doNothing().when(ownershipValidator).validateOwnership(any(), any(), any(), any(), any());
         when(geocodingService.reverseGeocode(location))
                 .thenReturn(new GeocodingService.GeocodingResult("Paris", "France"));
@@ -92,7 +89,6 @@ class TripUpdateServiceImplTest {
 
         Trip trip = Trip.builder().id(tripId).userId(userId).name("Ocean Trip").build();
         when(tripRepository.findById(tripId)).thenReturn(Optional.of(trip));
-        when(tripUpdateRepository.findByTripIdOrderByTimestampAsc(tripId)).thenReturn(List.of());
         doNothing().when(ownershipValidator).validateOwnership(any(), any(), any(), any(), any());
         when(geocodingService.reverseGeocode(location)).thenReturn(null);
         when(weatherService.lookupCurrentWeather(location)).thenReturn(null);
@@ -122,7 +118,6 @@ class TripUpdateServiceImplTest {
 
         Trip trip = Trip.builder().id(tripId).userId(userId).name("Camino").build();
         when(tripRepository.findById(tripId)).thenReturn(Optional.of(trip));
-        when(tripUpdateRepository.findByTripIdOrderByTimestampAsc(tripId)).thenReturn(List.of());
         doNothing().when(ownershipValidator).validateOwnership(any(), any(), any(), any(), any());
         when(geocodingService.reverseGeocode(location))
                 .thenReturn(
@@ -157,7 +152,6 @@ class TripUpdateServiceImplTest {
 
         Trip trip = Trip.builder().id(tripId).userId(userId).name("Euro Trip").build();
         when(tripRepository.findById(tripId)).thenReturn(Optional.of(trip));
-        when(tripUpdateRepository.findByTripIdOrderByTimestampAsc(tripId)).thenReturn(List.of());
         doNothing().when(ownershipValidator).validateOwnership(any(), any(), any(), any(), any());
         when(geocodingService.reverseGeocode(location))
                 .thenReturn(new GeocodingService.GeocodingResult("Paris", "France"));
@@ -188,7 +182,6 @@ class TripUpdateServiceImplTest {
 
         Trip trip = Trip.builder().id(tripId).userId(userId).name("Camino").build();
         when(tripRepository.findById(tripId)).thenReturn(Optional.of(trip));
-        when(tripUpdateRepository.findByTripIdOrderByTimestampAsc(tripId)).thenReturn(List.of());
         doNothing().when(ownershipValidator).validateOwnership(any(), any(), any(), any(), any());
         when(geocodingService.reverseGeocode(location)).thenReturn(null);
         when(weatherService.lookupCurrentWeather(location)).thenReturn(null);
@@ -217,7 +210,6 @@ class TripUpdateServiceImplTest {
 
         Trip trip = Trip.builder().id(tripId).userId(userId).name("Camino").build();
         when(tripRepository.findById(tripId)).thenReturn(Optional.of(trip));
-        when(tripUpdateRepository.findByTripIdOrderByTimestampAsc(tripId)).thenReturn(List.of());
         doNothing().when(ownershipValidator).validateOwnership(any(), any(), any(), any(), any());
         when(geocodingService.reverseGeocode(location)).thenReturn(null);
         when(weatherService.lookupCurrentWeather(location)).thenReturn(null);
@@ -246,7 +238,6 @@ class TripUpdateServiceImplTest {
 
         Trip trip = Trip.builder().id(tripId).userId(userId).name("Camino").build();
         when(tripRepository.findById(tripId)).thenReturn(Optional.of(trip));
-        when(tripUpdateRepository.findByTripIdOrderByTimestampAsc(tripId)).thenReturn(List.of());
         doNothing().when(ownershipValidator).validateOwnership(any(), any(), any(), any(), any());
         when(geocodingService.reverseGeocode(location)).thenReturn(null);
         when(weatherService.lookupCurrentWeather(location)).thenReturn(null);
@@ -275,7 +266,6 @@ class TripUpdateServiceImplTest {
 
         Trip trip = Trip.builder().id(tripId).userId(userId).name("Camino").build();
         when(tripRepository.findById(tripId)).thenReturn(Optional.of(trip));
-        when(tripUpdateRepository.findByTripIdOrderByTimestampAsc(tripId)).thenReturn(List.of());
         doNothing().when(ownershipValidator).validateOwnership(any(), any(), any(), any(), any());
         when(geocodingService.reverseGeocode(location)).thenReturn(null);
         when(weatherService.lookupCurrentWeather(location)).thenReturn(null);
@@ -304,7 +294,6 @@ class TripUpdateServiceImplTest {
 
         Trip trip = Trip.builder().id(tripId).userId(userId).name("Euro Trip").build();
         when(tripRepository.findById(tripId)).thenReturn(Optional.of(trip));
-        when(tripUpdateRepository.findByTripIdOrderByTimestampAsc(tripId)).thenReturn(List.of());
         doNothing().when(ownershipValidator).validateOwnership(any(), any(), any(), any(), any());
         when(geocodingService.reverseGeocode(location)).thenReturn(null);
         when(weatherService.lookupCurrentWeather(location)).thenReturn(null);
