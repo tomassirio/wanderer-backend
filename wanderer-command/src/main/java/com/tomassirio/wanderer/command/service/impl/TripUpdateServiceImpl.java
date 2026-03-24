@@ -19,10 +19,12 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+@Slf4j
 @Service
 @AllArgsConstructor
 @Transactional
@@ -54,6 +56,8 @@ public class TripUpdateServiceImpl implements TripUpdateService {
 
         // Calculate distance so far
         Double distanceSoFar = calculateDistanceSoFar(trip, request.location());
+        
+        log.debug("Trip update for trip {}: calculated distanceSoFar = {} km", tripId, distanceSoFar);
 
         // Publish event - persistence handler will write to DB
         eventPublisher.publishEvent(

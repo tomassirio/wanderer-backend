@@ -58,6 +58,7 @@ public class TripUpdatedEvent implements DomainEvent, Broadcastable {
                 .temperatureCelsius(temperatureCelsius)
                 .weatherCondition(weatherCondition)
                 .updateType(updateType)
+                .distanceSoFarKm(distanceSoFarKm)
                 .build();
     }
 }

@@ -1,0 +1,18 @@
+databaseChangeLog:
+  - changeSet:
+      id: 040-backfill-distance-so-far-for-trip-updates
+      author: tomassirio
+      changes:
+        - sql:
+            comment: Backfill distance_so_far_km for existing trip updates using the trip's cached_distance_km at the time
+            sql: |
+              UPDATE trip_updates tu
+              SET distance_so_far_km = (
+                SELECT t.cached_distance_km 
+                FROM trips t 
+                WHERE t.id = tu.trip_id
+              )
+              WHERE tu.distance_so_far_km IS NULL
+              AND EXISTS (
+                SELECT 1 FROM trips t WHERE t.id = tu.trip_id AND t.cached_distance_km IS NOT NULL
+              );
