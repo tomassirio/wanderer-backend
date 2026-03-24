@@ -65,6 +65,9 @@ public class TripUpdate {
     @Column(name = "update_type")
     private UpdateType updateType;
 
+    @Column(name = "distance_so_far_km")
+    private Double distanceSoFarKm;
+
     @NotNull
     @Column(nullable = false)
     private Instant timestamp;

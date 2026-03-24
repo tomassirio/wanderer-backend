@@ -20,6 +20,7 @@ public record TripDTO(
         String encodedPolyline,
         String plannedPolyline,
         Instant polylineUpdatedAt,
+        Double accruedDistanceKm,
         Instant creationTimestamp,
         Boolean enabled) {
 

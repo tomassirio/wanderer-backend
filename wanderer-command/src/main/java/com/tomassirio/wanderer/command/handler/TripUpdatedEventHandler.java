@@ -51,6 +51,7 @@ public class TripUpdatedEventHandler implements EventHandler<TripUpdatedEvent> {
                         .temperatureCelsius(event.getTemperatureCelsius())
                         .weatherCondition(event.getWeatherCondition())
                         .updateType(event.getUpdateType())
+                        .distanceSoFarKm(event.getDistanceSoFarKm())
                         .timestamp(event.getTimestamp())
                         .build();
 

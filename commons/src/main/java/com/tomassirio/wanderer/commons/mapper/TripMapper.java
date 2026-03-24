@@ -29,6 +29,7 @@ public interface TripMapper {
             target = "tripPlanId",
             expression =
                     "java(trip.getTripPlanId() != null ? trip.getTripPlanId().toString() : null)")
+    @Mapping(source = "cachedDistanceKm", target = "accruedDistanceKm")
     TripDTO toDTO(Trip trip);
 
     @Mapping(
@@ -46,5 +47,6 @@ public interface TripMapper {
     @Mapping(target = "comments", ignore = true)
     @Mapping(target = "tripUpdates", ignore = true)
     @Mapping(target = "tripDays", ignore = true)
+    @Mapping(source = "accruedDistanceKm", target = "cachedDistanceKm")
     Trip toEntity(TripDTO tripDTO);
 }
