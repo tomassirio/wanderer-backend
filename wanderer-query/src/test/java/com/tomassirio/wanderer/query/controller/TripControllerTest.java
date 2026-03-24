@@ -486,6 +486,7 @@ class TripControllerTest {
                 null, // encodedPolyline
                 null, // plannedPolyline
                 null, // polylineUpdatedAt
+                null, // accruedDistanceKm
                 Instant.now(),
                 true);
     }
@@ -509,6 +510,7 @@ class TripControllerTest {
                 null, // encodedPolyline
                 null, // plannedPolyline
                 null, // polylineUpdatedAt
+                null, // accruedDistanceKm
                 Instant.now(),
                 true);
     }

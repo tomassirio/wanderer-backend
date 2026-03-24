@@ -43,16 +43,21 @@ public class LifecycleTripUpdateManager {
             return;
         }
 
+        // Get current accrued distance for this lifecycle marker
+        Double distanceSoFar = trip.getCachedDistanceKm();
+
         TripUpdate tripUpdate =
                 TripUpdate.builder()
                         .id(UUID.randomUUID())
                         .trip(trip)
                         .updateType(updateType)
+                        .distanceSoFarKm(distanceSoFar)
                         .timestamp(Instant.now())
                         .build();
 
         tripUpdateRepository.save(tripUpdate);
-        log.info("Created lifecycle trip update {} for trip {}", updateType, trip.getId());
+        log.info("Created lifecycle trip update {} for trip {} with distance {} km", 
+                updateType, trip.getId(), distanceSoFar);
     }
 
     /**

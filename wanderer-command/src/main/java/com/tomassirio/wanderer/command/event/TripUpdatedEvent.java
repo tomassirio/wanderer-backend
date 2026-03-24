@@ -27,6 +27,7 @@ public class TripUpdatedEvent implements DomainEvent, Broadcastable {
     private Double temperatureCelsius;
     private WeatherCondition weatherCondition;
     private UpdateType updateType;
+    private Double distanceSoFarKm;
     private Instant timestamp;
 
     @Override
@@ -57,6 +58,7 @@ public class TripUpdatedEvent implements DomainEvent, Broadcastable {
                 .temperatureCelsius(temperatureCelsius)
                 .weatherCondition(weatherCondition)
                 .updateType(updateType)
+                .distanceSoFarKm(distanceSoFarKm)
                 .build();
     }
 }

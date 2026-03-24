@@ -12,7 +12,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class PolylineUpdatedEvent implements Broadcastable {
+public class PolylineUpdatedEvent implements DomainEvent, Broadcastable {
     private UUID tripId;
     private String encodedPolyline;
 

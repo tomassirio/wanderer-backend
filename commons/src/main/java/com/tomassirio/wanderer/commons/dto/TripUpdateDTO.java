@@ -18,4 +18,5 @@ public record TripUpdateDTO(
         Double temperatureCelsius,
         WeatherCondition weatherCondition,
         UpdateType updateType,
+        Double distanceSoFarKm,
         Instant timestamp) {}

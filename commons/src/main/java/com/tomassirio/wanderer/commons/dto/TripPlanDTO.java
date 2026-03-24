@@ -1,10 +1,13 @@
 package com.tomassirio.wanderer.commons.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.tomassirio.wanderer.commons.domain.GeoLocation;
 import com.tomassirio.wanderer.commons.domain.TripPlanType;
+import com.tomassirio.wanderer.commons.service.ThumbnailUrlService;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.UUID;
 
 public record TripPlanDTO(
         String id,
@@ -19,4 +22,12 @@ public record TripPlanDTO(
         String encodedPolyline,
         String plannedPolyline,
         Instant polylineUpdatedAt,
-        Instant createdTimestamp) {}
+        Instant createdTimestamp) {
+
+    @JsonProperty("thumbnailUrl")
+    public String thumbnailUrl() {
+        return id != null
+                ? ThumbnailUrlService.generateTripPlanThumbnailUrl(UUID.fromString(id))
+                : null;
+    }
+}

@@ -27,7 +27,7 @@ import org.hibernate.annotations.Type;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class TripPlan implements Polylineable {
+public class TripPlan implements Polylineable, Thumbnailable {
 
     @Id private UUID id;
 
@@ -83,4 +83,9 @@ public class TripPlan implements Polylineable {
 
     @Column(name = "polyline_updated_at")
     private Instant polylineUpdatedAt;
+
+    @Override
+    public ThumbnailType getThumbnailType() {
+        return ThumbnailType.TRIP_PLAN;
+    }
 }

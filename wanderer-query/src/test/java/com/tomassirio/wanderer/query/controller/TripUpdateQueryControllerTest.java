@@ -261,6 +261,7 @@ class TripUpdateQueryControllerTest {
                         null,
                         null,
                         null,
+                        null,
                         Instant.now());
 
         TripUpdateDTO update2 =
@@ -271,6 +272,7 @@ class TripUpdateQueryControllerTest {
                         80,
                         "New York",
                         new Reactions(),
+                        null,
                         null,
                         null,
                         null,
@@ -310,6 +312,7 @@ class TripUpdateQueryControllerTest {
                 18.5,
                 WeatherCondition.PARTLY_CLOUDY,
                 null,
+                null,
                 Instant.now());
     }
 
@@ -328,6 +331,7 @@ class TripUpdateQueryControllerTest {
                 "Spain",
                 18.5,
                 WeatherCondition.PARTLY_CLOUDY,
+                null,
                 null,
                 timestamp);
     }

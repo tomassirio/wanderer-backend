@@ -19,7 +19,4 @@ public class UserDetails {
 
     @Column(name = "bio", length = 500)
     private String bio;
-
-    @Column(name = "avatar_url", length = 512)
-    private String avatarUrl;
 }

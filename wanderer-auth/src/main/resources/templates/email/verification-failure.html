@@ -52,13 +52,15 @@
             height: 80px;
             border-radius: 50%;
             background: rgba(255, 255, 255, 0.2);
-            line-height: 80px;
+            overflow: hidden;
             margin-bottom: 20px;
         }
         .card-header .logo-circle img {
-            width: 54px;
-            height: 54px;
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
             vertical-align: middle;
+            display: block;
         }
         .card-header h1 {
             margin: 0 0 4px;
@@ -165,7 +167,7 @@
             <!-- HEADER -->
             <div class="card-header">
                 <div class="logo-circle">
-                    <img src="{{logoSrc}}" alt="Wanderer" width="54" height="54">
+                    <img src="{{logoSrc}}" alt="Wanderer" width="80" height="80">
                 </div>
                 <h1>Wanderer</h1>
                 <p>Track your trips &amp; adventures</p>

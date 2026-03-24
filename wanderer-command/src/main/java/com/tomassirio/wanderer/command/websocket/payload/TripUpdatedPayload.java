@@ -25,4 +25,5 @@ public class TripUpdatedPayload {
     private Double temperatureCelsius;
     private WeatherCondition weatherCondition;
     private UpdateType updateType;
+    private Double distanceSoFarKm;
 }

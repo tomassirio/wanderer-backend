@@ -6,8 +6,8 @@ import com.tomassirio.wanderer.commons.domain.UserDetails;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 @Slf4j
@@ -19,9 +19,10 @@ public class UserDetailsUpdatedEventHandler implements EventHandler<UserDetailsU
 
     @Override
     @EventListener
-    @Transactional(propagation = Propagation.MANDATORY)
+    @Async
+    @Transactional
     public void handle(UserDetailsUpdatedEvent event) {
-        log.debug("Persisting UserDetailsUpdatedEvent for user: {}", event.getUserId());
+        log.debug("Processing UserDetailsUpdatedEvent for user: {}", event.getUserId());
 
         userRepository
                 .findById(event.getUserId())
@@ -37,9 +38,6 @@ public class UserDetailsUpdatedEventHandler implements EventHandler<UserDetailsU
                             }
                             if (event.getBio() != null) {
                                 details.setBio(event.getBio());
-                            }
-                            if (event.getAvatarUrl() != null) {
-                                details.setAvatarUrl(event.getAvatarUrl());
                             }
 
                             user.setUserDetails(details);

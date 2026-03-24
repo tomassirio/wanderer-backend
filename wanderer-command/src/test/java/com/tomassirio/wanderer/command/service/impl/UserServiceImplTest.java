@@ -259,9 +259,7 @@ class UserServiceImplTest {
         User user = User.builder().id(userId).username("johndoe").build();
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
 
-        UserDetailsRequest request =
-                new UserDetailsRequest(
-                        "John Doe", "Hiking enthusiast", "https://example.com/avatar.png");
+        UserDetailsRequest request = new UserDetailsRequest("John Doe", "Hiking enthusiast");
 
         // When
         UUID result = userService.updateUserDetails(userId, request);
@@ -277,7 +275,6 @@ class UserServiceImplTest {
         assertThat(event.getUserId()).isEqualTo(userId);
         assertThat(event.getDisplayName()).isEqualTo("John Doe");
         assertThat(event.getBio()).isEqualTo("Hiking enthusiast");
-        assertThat(event.getAvatarUrl()).isEqualTo("https://example.com/avatar.png");
     }
 
     @Test
@@ -287,7 +284,7 @@ class UserServiceImplTest {
         User user = User.builder().id(userId).username("johndoe").build();
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
 
-        UserDetailsRequest request = new UserDetailsRequest("New Name", null, null);
+        UserDetailsRequest request = new UserDetailsRequest("New Name", null);
 
         // When
         UUID result = userService.updateUserDetails(userId, request);
@@ -303,7 +300,6 @@ class UserServiceImplTest {
         assertThat(event.getUserId()).isEqualTo(userId);
         assertThat(event.getDisplayName()).isEqualTo("New Name");
         assertThat(event.getBio()).isNull();
-        assertThat(event.getAvatarUrl()).isNull();
     }
 
     @Test
@@ -312,7 +308,7 @@ class UserServiceImplTest {
         UUID userId = UUID.randomUUID();
         when(userRepository.findById(userId)).thenReturn(Optional.empty());
 
-        UserDetailsRequest request = new UserDetailsRequest("Name", "Bio", "https://example.com");
+        UserDetailsRequest request = new UserDetailsRequest("Name", "Bio");
 
         // When & Then
         assertThatThrownBy(() -> userService.updateUserDetails(userId, request))
