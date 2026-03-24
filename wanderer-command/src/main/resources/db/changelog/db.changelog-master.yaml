@@ -77,5 +77,3 @@ databaseChangeLog:
       file: db/changelog/038-remove-avatar-url-column.yaml
   - include:
       file: db/changelog/039-add-distance-so-far-to-trip-updates.yaml
-  - include:
-      file: db/changelog/040-backfill-distance-so-far-for-trip-updates.yaml
