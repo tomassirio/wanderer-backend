@@ -56,8 +56,9 @@ public class TripUpdateServiceImpl implements TripUpdateService {
 
         // Calculate distance so far
         Double distanceSoFar = calculateDistanceSoFar(trip, request.location());
-        
-        log.debug("Trip update for trip {}: calculated distanceSoFar = {} km", tripId, distanceSoFar);
+
+        log.debug(
+                "Trip update for trip {}: calculated distanceSoFar = {} km", tripId, distanceSoFar);
 
         // Publish event - persistence handler will write to DB
         eventPublisher.publishEvent(

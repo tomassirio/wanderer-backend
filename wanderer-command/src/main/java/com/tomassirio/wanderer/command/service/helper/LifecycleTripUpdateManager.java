@@ -56,8 +56,11 @@ public class LifecycleTripUpdateManager {
                         .build();
 
         tripUpdateRepository.save(tripUpdate);
-        log.info("Created lifecycle trip update {} for trip {} with distance {} km", 
-                updateType, trip.getId(), distanceSoFar);
+        log.info(
+                "Created lifecycle trip update {} for trip {} with distance {} km",
+                updateType,
+                trip.getId(),
+                distanceSoFar);
     }
 
     /**
