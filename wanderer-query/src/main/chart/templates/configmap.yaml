@@ -21,10 +21,11 @@ data:
     logging.level.com.tomassirio.wanderer.command={{ .Values.application.logging.level.command }}
     logging.level.root={{ .Values.application.logging.level.root }}
 
-    # Management endpoints
+    # Management endpoints for Prometheus metrics
     management.endpoints.web.base-path={{ .Values.application.management.endpoints.web.basePath }}
     management.endpoints.web.exposure.include={{ .Values.application.management.endpoints.web.exposure.include }}
     management.endpoint.health.show-details={{ .Values.application.management.endpoint.health.showDetails }}
+    management.metrics.export.prometheus.enabled=true
 
     # PostgreSQL Database Connection
     # TODO: Change back to spring.datasource.* after rebuilding Docker images with updated code

@@ -68,7 +68,7 @@ application:
       web:
         basePath: "/actuator"
         exposure:
-          include: "health,info"
+          include: "health,info,prometheus"
     endpoint:
       health:
         showDetails: "always"

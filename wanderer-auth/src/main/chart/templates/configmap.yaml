@@ -60,3 +60,9 @@ data:
     app.email.auth={{ .Values.application.email.auth }}
     app.email.start-tls={{ .Values.application.email.startTls }}
 
+    # Management endpoints for Prometheus metrics
+    management.endpoints.web.base-path=/actuator
+    management.endpoints.web.exposure.include=health,info,prometheus
+    management.endpoint.health.show-details=always
+    management.metrics.export.prometheus.enabled=true
+
