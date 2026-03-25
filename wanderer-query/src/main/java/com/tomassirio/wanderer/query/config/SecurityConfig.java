@@ -50,6 +50,8 @@ public class SecurityConfig {
                         authz ->
                                 authz.requestMatchers(ApiConstants.PublicEndpoints.getAll())
                                         .permitAll()
+                                        .requestMatchers("/actuator/**")
+                                        .permitAll()
                                         .anyRequest()
                                         .authenticated())
                 .oauth2ResourceServer(

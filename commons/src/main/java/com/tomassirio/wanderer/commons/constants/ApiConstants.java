@@ -235,6 +235,9 @@ public final class ApiConstants {
         public static final String SWAGGER_UI = "/swagger-ui/**";
         public static final String API_DOCS = "/v3/api-docs/**";
 
+        // Actuator endpoints (for monitoring/metrics)
+        public static final String ACTUATOR = "/actuator/**";
+
         /**
          * Returns all public endpoints as an array for use in Spring Security configuration.
          *
@@ -254,7 +257,8 @@ public final class ApiConstants {
                 USER_ACHIEVEMENTS,
                 TRIP_ACHIEVEMENTS,
                 SWAGGER_UI,
-                API_DOCS
+                API_DOCS,
+                ACTUATOR
             };
         }
     }
