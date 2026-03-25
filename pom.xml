@@ -11,7 +11,7 @@
 
     <groupId>com.tomassirio.wanderer</groupId>
     <artifactId>wanderer-backend</artifactId>
-    <version>1.0.2-SNAPSHOT</version>
+    <version>1.0.2</version>
     <packaging>pom</packaging>
     <name>wanderer-backend</name>
     <description>Wanderer Backend - CQRS Multi-Module Project</description>
