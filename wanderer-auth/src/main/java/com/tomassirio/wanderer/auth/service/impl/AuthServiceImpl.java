@@ -11,9 +11,11 @@ import com.tomassirio.wanderer.auth.service.AuthService;
 import com.tomassirio.wanderer.auth.service.EmailService;
 import com.tomassirio.wanderer.auth.service.JwtService;
 import com.tomassirio.wanderer.auth.service.TokenService;
+import com.tomassirio.wanderer.auth.strategy.UserLookupStrategy;
 import com.tomassirio.wanderer.commons.domain.User;
 import com.tomassirio.wanderer.commons.security.Role;
 import feign.FeignException;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
@@ -38,29 +40,24 @@ public class AuthServiceImpl implements AuthService {
     private final EmailService emailService;
     private final WandererCommandClient wandererCommandClient;
     private final WandererQueryClient wandererQueryClient;
+    private final List<UserLookupStrategy> userLookupStrategies;
 
     /**
      * Verify credentials and return access token and refresh token when valid.
+     * Supports login with either username or email.
      *
+     * @param identifier username or email address
+     * @param password user password
+     * @return LoginResponse with tokens
      * @throws IllegalArgumentException when credentials are invalid
      */
-    public LoginResponse login(String username, String password) {
-        // Lookup user via query service (read side) — normalize to lowercase
-        String normalizedUsername = username.toLowerCase(Locale.ROOT);
-        User user;
-        try {
-            user = wandererQueryClient.getUserByUsername(normalizedUsername);
-        } catch (FeignException e) {
-            if (e.status() == 404) {
-                throw new IllegalArgumentException("Invalid credentials");
-            } else {
-                throw new IllegalStateException("Failed to contact user query service", e);
-            }
-        }
-
-        if (user == null) {
-            throw new IllegalArgumentException("Invalid credentials");
-        }
+    public LoginResponse login(String identifier, String password) {
+        // Find the appropriate strategy to lookup the user
+        User user = userLookupStrategies.stream()
+                .filter(strategy -> strategy.canHandle(identifier))
+                .findFirst()
+                .flatMap(strategy -> strategy.lookupUser(identifier))
+                .orElseThrow(() -> new IllegalArgumentException("Invalid credentials"));
 
         // Find credentials by user id in the auth database
         Optional<Credential> maybeCred = credentialRepository.findById(user.getId());

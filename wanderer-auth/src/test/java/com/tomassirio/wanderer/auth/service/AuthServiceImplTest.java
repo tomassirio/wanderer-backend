@@ -15,12 +15,16 @@ import com.tomassirio.wanderer.auth.dto.RegisterPendingResponse;
 import com.tomassirio.wanderer.auth.dto.RegisterRequest;
 import com.tomassirio.wanderer.auth.repository.CredentialRepository;
 import com.tomassirio.wanderer.auth.service.impl.AuthServiceImpl;
+import com.tomassirio.wanderer.auth.strategy.EmailLookupStrategy;
+import com.tomassirio.wanderer.auth.strategy.UserLookupStrategy;
+import com.tomassirio.wanderer.auth.strategy.UsernameLookupStrategy;
 import com.tomassirio.wanderer.commons.domain.User;
 import com.tomassirio.wanderer.commons.security.Role;
 import feign.FeignException;
 import feign.FeignException.NotFound;
 import feign.Request;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -51,11 +55,13 @@ class AuthServiceImplTest {
 
     @Mock private WandererQueryClient wandererQueryClient;
 
-    @InjectMocks private AuthServiceImpl authService;
+    private AuthServiceImpl authService;
 
     private User testUser;
 
     private Credential testCredential;
+    
+    private List<UserLookupStrategy> strategies;
 
     @BeforeEach
     void setUp() {
@@ -68,6 +74,23 @@ class AuthServiceImplTest {
                         .email("user@email.com")
                         .roles(Set.of(Role.USER))
                         .build();
+        
+        // Create real strategy instances for testing
+        strategies = List.of(
+                new EmailLookupStrategy(credentialRepository, wandererQueryClient),
+                new UsernameLookupStrategy(wandererQueryClient)
+        );
+        
+        authService = new AuthServiceImpl(
+                credentialRepository,
+                passwordEncoder,
+                jwtService,
+                tokenService,
+                emailService,
+                wandererCommandClient,
+                wandererQueryClient,
+                strategies
+        );
     }
 
     @Test
@@ -147,6 +170,42 @@ class AuthServiceImplTest {
         assertThrows(
                 IllegalArgumentException.class,
                 () -> authService.login(testUser.getUsername(), "wrongpassword"));
+    }
+
+    @Test
+    void login_whenValidEmailProvided_shouldReturnLoginResponse() {
+        String email = "user@email.com";
+        String password = "password123";
+        String accessToken = "jwt.access.token";
+        String refreshToken = "refresh.token";
+        long expiresIn = 3600000L;
+
+        when(credentialRepository.findByEmail(email)).thenReturn(Optional.of(testCredential));
+        when(wandererQueryClient.getUserById(testUser.getId())).thenReturn(testUser);
+        when(credentialRepository.findById(testUser.getId()))
+                .thenReturn(Optional.of(testCredential));
+        when(passwordEncoder.matches(password, testCredential.getPasswordHash())).thenReturn(true);
+        when(jwtService.generateTokenWithJti(any(), any(), any())).thenReturn(accessToken);
+        when(tokenService.createRefreshToken(testUser.getId())).thenReturn(refreshToken);
+        when(jwtService.getExpirationMs()).thenReturn(expiresIn);
+
+        LoginResponse result = authService.login(email, password);
+
+        assertEquals(accessToken, result.accessToken());
+        assertEquals(refreshToken, result.refreshToken());
+        assertEquals(testUser.getUsername(), result.username());
+        verify(credentialRepository).findByEmail(email);
+        verify(wandererQueryClient).getUserById(testUser.getId());
+    }
+
+    @Test
+    void login_whenEmailNotFound_shouldThrowIllegalArgumentException() {
+        String email = "notfound@example.com";
+        when(credentialRepository.findByEmail(email)).thenReturn(Optional.empty());
+
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> authService.login(email, "password"));
     }
 
     @Test

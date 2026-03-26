@@ -70,10 +70,10 @@ public class AuthController {
     @PostMapping(value = ApiConstants.LOGIN_ENDPOINT, consumes = MediaType.APPLICATION_JSON_VALUE)
     @Operation(
             summary = "User login",
-            description = "Authenticates a user and returns access and refresh tokens")
+            description = "Authenticates a user with username or email and returns access and refresh tokens")
     public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
         log.info("Login attempt received");
-        LoginResponse response = authService.login(request.username(), request.password());
+        LoginResponse response = authService.login(request.identifier(), request.password());
         log.info("Login successful");
         return ResponseEntity.ok(response);
     }

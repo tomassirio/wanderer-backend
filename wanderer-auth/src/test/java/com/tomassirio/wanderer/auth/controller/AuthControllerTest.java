@@ -87,7 +87,7 @@ class AuthControllerTest {
                 new LoginResponse(
                         "jwt.access.token", "refresh.token", "Bearer", 3600000L, "testuser");
 
-        when(authService.login(request.username(), request.password())).thenReturn(response);
+        when(authService.login(request.identifier(), request.password())).thenReturn(response);
 
         mockMvc.perform(
                         post("/api/1/auth/login")
