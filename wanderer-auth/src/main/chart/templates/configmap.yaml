@@ -37,7 +37,7 @@ data:
     wanderer.query.url={{ .Values.application.wandererQueryUrl }}
 
     # Redis Configuration
-    spring.data.redis.host={{ .Values.application.redis.host }}
+    spring.data.redis.host={{ .Values.application.redis.host }}{{ .Values.environment.suffix }}
     spring.data.redis.port={{ .Values.application.redis.port }}
 
     # JTI Blacklist Validation
