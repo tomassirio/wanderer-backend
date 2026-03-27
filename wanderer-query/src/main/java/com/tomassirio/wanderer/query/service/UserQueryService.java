@@ -55,9 +55,11 @@ public interface UserQueryService {
      * then people followed by friends.
      *
      * @param currentUserId the ID of the current user
-     * @return list of discoverable users
+     * @param page the page number
+     * @param size the page size
+     * @return page of discoverable users
      */
-    List<UserResponse> getDiscoverableUsers(UUID currentUserId);
+    Page<UserResponse> getDiscoverableUsers(UUID currentUserId, int page, int size);
     
     /**
      * Retrieves users associated with the target user, showing their relationship status
@@ -65,7 +67,9 @@ public interface UserQueryService {
      *
      * @param currentUserId the ID of the current user making the request
      * @param targetUserId the ID of the user whose associated users to retrieve
-     * @return list of users with relationship status
+     * @param page the page number
+     * @param size the page size
+     * @return page of users with relationship status
      */
-    List<UserRelationshipResponse> getAssociatedUsers(UUID currentUserId, UUID targetUserId);
+    Page<UserRelationshipResponse> getAssociatedUsers(UUID currentUserId, UUID targetUserId, int page, int size);
 }

@@ -23,6 +23,8 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -76,13 +78,13 @@ public class UserQueryServiceImpl implements UserQueryService {
     }
 
     @Override
-    public List<UserResponse> getDiscoverableUsers(UUID currentUserId) {
+    public Page<UserResponse> getDiscoverableUsers(UUID currentUserId, int page, int size) {
         List<UUID> myFriendIds = friendshipRepository.findByUserId(currentUserId).stream()
                 .map(Friendship::getFriendId)
                 .collect(Collectors.toList());
         
         if (myFriendIds.isEmpty()) {
-            return List.of();
+            return Page.empty();
         }
 
         List<UUID> friendsOfFriends = friendshipRepository.findFriendsOfFriends(myFriendIds, currentUserId);
@@ -94,16 +96,26 @@ public class UserQueryServiceImpl implements UserQueryService {
         myFriendIds.forEach(discoverableUserIds::remove);
         
         if (discoverableUserIds.isEmpty()) {
-            return List.of();
+            return Page.empty();
         }
         
-        return userRepository.findAllById(new ArrayList<>(discoverableUserIds)).stream()
+        List<UserResponse> allUsers = userRepository.findAllById(new ArrayList<>(discoverableUserIds)).stream()
                 .map(this::toUserResponse)
                 .collect(Collectors.toList());
+        
+        int start = page * size;
+        int end = Math.min(start + size, allUsers.size());
+        
+        if (start >= allUsers.size()) {
+            return new PageImpl<>(List.of(), PageRequest.of(page, size), allUsers.size());
+        }
+        
+        List<UserResponse> pageContent = allUsers.subList(start, end);
+        return new PageImpl<>(pageContent, PageRequest.of(page, size), allUsers.size());
     }
     
     @Override
-    public List<UserRelationshipResponse> getAssociatedUsers(UUID currentUserId, UUID targetUserId) {
+    public Page<UserRelationshipResponse> getAssociatedUsers(UUID currentUserId, UUID targetUserId, int page, int size) {
         List<UUID> targetUserFriendIds = friendshipRepository.findByUserId(targetUserId).stream()
                 .map(Friendship::getFriendId)
                 .toList();
@@ -123,7 +135,7 @@ public class UserQueryServiceImpl implements UserQueryService {
         allAssociatedUserIds.remove(targetUserId);
         
         if (allAssociatedUserIds.isEmpty()) {
-            return List.of();
+            return Page.empty();
         }
         
         List<UUID> currentUserFriendIds = friendshipRepository.findByUserId(currentUserId).stream()
@@ -138,13 +150,23 @@ public class UserQueryServiceImpl implements UserQueryService {
                 .map(UserFollow::getFollowerId)
                 .collect(Collectors.toList());
         
-        return userRepository.findAllById(new ArrayList<>(allAssociatedUserIds)).stream()
+        List<UserRelationshipResponse> allUsers = userRepository.findAllById(new ArrayList<>(allAssociatedUserIds)).stream()
                 .map(user -> toUserRelationshipResponse(
                         user, 
                         currentUserFriendIds, 
                         currentUserFollowingIds, 
                         currentUserFollowerIds))
                 .collect(Collectors.toList());
+        
+        int start = page * size;
+        int end = Math.min(start + size, allUsers.size());
+        
+        if (start >= allUsers.size()) {
+            return new PageImpl<>(List.of(), PageRequest.of(page, size), allUsers.size());
+        }
+        
+        List<UserRelationshipResponse> pageContent = allUsers.subList(start, end);
+        return new PageImpl<>(pageContent, PageRequest.of(page, size), allUsers.size());
     }
 
     private UserResponse toUserResponse(User user) {

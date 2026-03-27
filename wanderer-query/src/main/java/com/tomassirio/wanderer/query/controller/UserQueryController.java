@@ -23,6 +23,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
@@ -104,11 +105,14 @@ public class UserQueryController {
             description = "Retrieves friends of friends and people followed by friends for user discovery")
     @ApiResponse(responseCode = "200", description = "Discoverable users retrieved successfully")
     @ApiResponse(responseCode = "401", description = "Unauthorized - valid JWT required")
-    public ResponseEntity<List<UserResponse>> getDiscoverableUsers(
-            @Parameter(hidden = true) @CurrentUserId UUID userId) {
-        log.info("Retrieving discoverable users for userId: {}", userId);
-        List<UserResponse> users = userQueryService.getDiscoverableUsers(userId);
-        log.info("Successfully retrieved {} discoverable users", users.size());
+    public ResponseEntity<Page<UserResponse>> getDiscoverableUsers(
+            @Parameter(hidden = true) @CurrentUserId UUID userId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        log.info("Retrieving discoverable users for userId: {}, page: {}, size: {}", userId, page, size);
+        Page<UserResponse> users = userQueryService.getDiscoverableUsers(userId, page, size);
+        log.info("Successfully retrieved {} discoverable users (page {} of {})", 
+                users.getContent().size(), users.getNumber() + 1, users.getTotalPages());
         return ResponseEntity.ok(users);
     }
     
@@ -120,12 +124,16 @@ public class UserQueryController {
                     + "with relationship status from the current user's perspective")
     @ApiResponse(responseCode = "200", description = "Associated users retrieved successfully")
     @ApiResponse(responseCode = "401", description = "Unauthorized - valid JWT required")
-    public ResponseEntity<List<UserRelationshipResponse>> getAssociatedUsers(
+    public ResponseEntity<Page<UserRelationshipResponse>> getAssociatedUsers(
             @Parameter(hidden = true) @CurrentUserId UUID currentUserId,
-            @PathVariable UUID targetUserId) {
-        log.info("Retrieving associated users for target user {} from current user {}", targetUserId, currentUserId);
-        List<UserRelationshipResponse> users = userQueryService.getAssociatedUsers(currentUserId, targetUserId);
-        log.info("Successfully retrieved {} associated users", users.size());
+            @PathVariable UUID targetUserId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        log.info("Retrieving associated users for target user {} from current user {}, page: {}, size: {}", 
+                targetUserId, currentUserId, page, size);
+        Page<UserRelationshipResponse> users = userQueryService.getAssociatedUsers(currentUserId, targetUserId, page, size);
+        log.info("Successfully retrieved {} associated users (page {} of {})", 
+                users.getContent().size(), users.getNumber() + 1, users.getTotalPages());
         return ResponseEntity.ok(users);
     }
 }
