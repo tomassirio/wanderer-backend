@@ -11,12 +11,13 @@ import com.tomassirio.wanderer.auth.service.AuthService;
 import com.tomassirio.wanderer.auth.service.EmailService;
 import com.tomassirio.wanderer.auth.service.JwtService;
 import com.tomassirio.wanderer.auth.service.LoginAttemptService;
-import com.tomassirio.wanderer.auth.service.RevokedTokenService;
 import com.tomassirio.wanderer.auth.service.TokenService;
 import com.tomassirio.wanderer.auth.strategy.UserLookupStrategy;
 import com.tomassirio.wanderer.commons.domain.User;
 import com.tomassirio.wanderer.commons.security.Role;
+import com.tomassirio.wanderer.commons.security.revocation.RevokedTokenCache;
 import feign.FeignException;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Locale;
@@ -44,7 +45,7 @@ public class AuthServiceImpl implements AuthService {
     private final WandererCommandClient wandererCommandClient;
     private final WandererQueryClient wandererQueryClient;
     private final List<UserLookupStrategy> userLookupStrategies;
-    private final RevokedTokenService revokedTokenService;
+    private final RevokedTokenCache revokedTokenCache;
     private final LoginAttemptService loginAttemptService;
 
     /**
@@ -248,9 +249,12 @@ public class AuthServiceImpl implements AuthService {
         // Revoke all refresh tokens
         tokenService.revokeAllRefreshTokensForUser(userId);
         
-        // Add current access token to blacklist
+        // Add current access token JTI to Redis blacklist
         if (jti != null && expiresAt != null) {
-            revokedTokenService.revokeToken(jti, userId, expiresAt);
+            long secondsUntilExpiry = Duration.between(Instant.now(), expiresAt).getSeconds();
+            if (secondsUntilExpiry > 0) {
+                revokedTokenCache.revokeToken(jti, secondsUntilExpiry);
+            }
         }
     }
 

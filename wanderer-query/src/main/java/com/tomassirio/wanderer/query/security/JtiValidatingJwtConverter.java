@@ -1,7 +1,6 @@
 package com.tomassirio.wanderer.query.security;
 
-import com.tomassirio.wanderer.query.client.AuthTokenValidatorClient;
-import feign.FeignException;
+import com.tomassirio.wanderer.commons.security.revocation.RevokedTokenCache;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.convert.converter.Converter;
@@ -17,28 +16,21 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * Custom JWT authentication converter that checks if the token's JTI is revoked via auth service.
+ * Custom JWT authentication converter that checks if the token's JTI is revoked via Redis.
  */
 @RequiredArgsConstructor
 @Slf4j
 public class JtiValidatingJwtConverter implements Converter<Jwt, AbstractAuthenticationToken> {
 
-    private final AuthTokenValidatorClient authTokenValidatorClient;
+    private final RevokedTokenCache revokedTokenCache;
 
     @Override
     public AbstractAuthenticationToken convert(@NonNull Jwt jwt) {
-        // Check if JTI is revoked via auth service
+        // Check if JTI is revoked via Redis
         String jti = jwt.getId();
-        if (jti != null) {
-            try {
-                boolean revoked = authTokenValidatorClient.isTokenRevoked(jti);
-                if (revoked) {
-                    log.warn("Attempted to use revoked token with JTI: {}", jti);
-                    throw new IllegalArgumentException("Token has been revoked");
-                }
-            } catch (FeignException e) {
-                log.error("Failed to check token revocation status, allowing request: {}", e.getMessage());
-            }
+        if (jti != null && revokedTokenCache.isTokenRevoked(jti)) {
+            log.warn("Attempted to use revoked token with JTI: {}", jti);
+            throw new IllegalArgumentException("Token has been revoked");
         }
 
         // Extract roles from JWT claims
