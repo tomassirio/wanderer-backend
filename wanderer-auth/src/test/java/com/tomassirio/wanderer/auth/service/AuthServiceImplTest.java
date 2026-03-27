@@ -2,6 +2,7 @@ package com.tomassirio.wanderer.auth.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -24,6 +25,7 @@ import feign.FeignException;
 import feign.FeignException.NotFound;
 import feign.Request;
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -54,6 +56,10 @@ class AuthServiceImplTest {
     @Mock private WandererCommandClient wandererCommandClient;
 
     @Mock private WandererQueryClient wandererQueryClient;
+    
+    @Mock private RevokedTokenService revokedTokenService;
+    
+    @Mock private LoginAttemptService loginAttemptService;
 
     private AuthServiceImpl authService;
 
@@ -89,7 +95,9 @@ class AuthServiceImplTest {
                 emailService,
                 wandererCommandClient,
                 wandererQueryClient,
-                strategies
+                strategies,
+                revokedTokenService,
+                loginAttemptService
         );
     }
 
@@ -99,7 +107,9 @@ class AuthServiceImplTest {
         String accessToken = "jwt.access.token";
         String refreshToken = "refresh.token";
         long expiresIn = 3600000L;
+        String ipAddress = "192.168.1.1";
 
+        when(loginAttemptService.isAccountLocked(testUser.getUsername())).thenReturn(false);
         when(wandererQueryClient.getUserByUsername(testUser.getUsername())).thenReturn(testUser);
         when(credentialRepository.findById(testUser.getId()))
                 .thenReturn(Optional.of(testCredential));
@@ -108,7 +118,7 @@ class AuthServiceImplTest {
         when(tokenService.createRefreshToken(testUser.getId())).thenReturn(refreshToken);
         when(jwtService.getExpirationMs()).thenReturn(expiresIn);
 
-        LoginResponse result = authService.login(testUser.getUsername(), password);
+        LoginResponse result = authService.login(testUser.getUsername(), password, ipAddress);
 
         assertEquals(accessToken, result.accessToken());
         assertEquals(refreshToken, result.refreshToken());
@@ -117,6 +127,7 @@ class AuthServiceImplTest {
         assertEquals(testUser.getUsername(), result.username());
         verify(jwtService).generateTokenWithJti(any(), any(), any());
         verify(tokenService).createRefreshToken(testUser.getId());
+        verify(loginAttemptService).recordSuccessfulLogin(testUser.getUsername(), testUser.getId(), ipAddress);
     }
 
     @Test
@@ -133,7 +144,7 @@ class AuthServiceImplTest {
                 .thenThrow(new NotFound("User not found", dummyRequest, null, null));
 
         assertThrows(
-                IllegalArgumentException.class, () -> authService.login("nonexistent", "password"));
+                IllegalArgumentException.class, () -> authService.login("nonexistent", "password", "127.0.0.1"));
     }
 
     @Test
@@ -143,7 +154,7 @@ class AuthServiceImplTest {
 
         assertThrows(
                 IllegalArgumentException.class,
-                () -> authService.login(testUser.getUsername(), "password"));
+                () -> authService.login(testUser.getUsername(), "password", "127.0.0.1"));
     }
 
     @Test
@@ -156,7 +167,7 @@ class AuthServiceImplTest {
 
         assertThrows(
                 IllegalArgumentException.class,
-                () -> authService.login(testUser.getUsername(), "password"));
+                () -> authService.login(testUser.getUsername(), "password", "127.0.0.1"));
     }
 
     @Test
@@ -169,7 +180,7 @@ class AuthServiceImplTest {
 
         assertThrows(
                 IllegalArgumentException.class,
-                () -> authService.login(testUser.getUsername(), "wrongpassword"));
+                () -> authService.login(testUser.getUsername(), "wrongpassword", "127.0.0.1"));
     }
 
     @Test
@@ -189,7 +200,7 @@ class AuthServiceImplTest {
         when(tokenService.createRefreshToken(testUser.getId())).thenReturn(refreshToken);
         when(jwtService.getExpirationMs()).thenReturn(expiresIn);
 
-        LoginResponse result = authService.login(email, password);
+        LoginResponse result = authService.login(email, password, "127.0.0.1");
 
         assertEquals(accessToken, result.accessToken());
         assertEquals(refreshToken, result.refreshToken());
@@ -205,7 +216,41 @@ class AuthServiceImplTest {
 
         assertThrows(
                 IllegalArgumentException.class,
-                () -> authService.login(email, "password"));
+                () -> authService.login(email, "password", "127.0.0.1"));
+    }
+
+    @Test
+    void login_whenAccountIsLocked_shouldThrowIllegalArgumentException() {
+        String identifier = "testuser";
+        String ipAddress = "192.168.1.1";
+        
+        when(loginAttemptService.isAccountLocked(identifier)).thenReturn(true);
+
+        IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
+                () -> authService.login(identifier, "password", ipAddress));
+
+        assertTrue(exception.getMessage().contains("Account temporarily locked"));
+        verify(loginAttemptService).recordFailedLogin(identifier, ipAddress);
+        verify(wandererQueryClient, never()).getUserByUsername(any());
+    }
+
+    @Test
+    void login_whenPasswordIncorrect_shouldRecordFailedAttempt() {
+        String ipAddress = "192.168.1.1";
+        
+        when(loginAttemptService.isAccountLocked(testUser.getUsername())).thenReturn(false);
+        when(wandererQueryClient.getUserByUsername(testUser.getUsername())).thenReturn(testUser);
+        when(credentialRepository.findById(testUser.getId()))
+                .thenReturn(Optional.of(testCredential));
+        when(passwordEncoder.matches("wrongpassword", testCredential.getPasswordHash()))
+                .thenReturn(false);
+
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> authService.login(testUser.getUsername(), "wrongpassword", ipAddress));
+
+        verify(loginAttemptService).recordFailedLogin(testUser.getUsername(), ipAddress);
     }
 
     @Test
@@ -412,10 +457,14 @@ class AuthServiceImplTest {
     }
 
     @Test
-    void logout_shouldRevokeRefreshTokens() {
-        authService.logout(testUser.getId());
+    void logout_shouldRevokeRefreshTokensAndAccessToken() {
+        String jti = "test-jti-123";
+        Instant expiresAt = Instant.now().plusSeconds(3600);
+        
+        authService.logout(testUser.getId(), jti, expiresAt);
 
         verify(tokenService).revokeAllRefreshTokensForUser(testUser.getId());
+        verify(revokedTokenService).revokeToken(jti, testUser.getId(), expiresAt);
     }
 
     @Test
@@ -556,7 +605,7 @@ class AuthServiceImplTest {
         IllegalArgumentException exception =
                 assertThrows(
                         IllegalArgumentException.class,
-                        () -> authService.login("testuser", "password"));
+                        () -> authService.login("testuser", "password", "127.0.0.1"));
 
         assertEquals("Invalid credentials", exception.getMessage());
         verify(credentialRepository, never()).findById(any());
@@ -582,7 +631,7 @@ class AuthServiceImplTest {
         IllegalStateException exception =
                 assertThrows(
                         IllegalStateException.class,
-                        () -> authService.login("testuser", "password"));
+                        () -> authService.login("testuser", "password", "127.0.0.1"));
 
         assertEquals("Failed to contact user query service", exception.getMessage());
         assertEquals(serverError, exception.getCause());
@@ -605,7 +654,7 @@ class AuthServiceImplTest {
         when(jwtService.getExpirationMs()).thenReturn(expiresIn);
 
         // Login with mixed case "TestUser" — should be normalized to "testuser"
-        LoginResponse result = authService.login("TestUser", password);
+        LoginResponse result = authService.login("TestUser", password, "127.0.0.1");
 
         assertEquals(accessToken, result.accessToken());
         verify(wandererQueryClient).getUserByUsername("testuser");

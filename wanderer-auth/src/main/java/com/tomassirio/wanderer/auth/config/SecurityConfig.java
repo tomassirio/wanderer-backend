@@ -1,7 +1,7 @@
 package com.tomassirio.wanderer.auth.config;
 
+import com.tomassirio.wanderer.auth.security.JtiValidatingJwtConverter;
 import com.tomassirio.wanderer.commons.config.JwtConfig;
-import com.tomassirio.wanderer.commons.config.JwtConverterConfig;
 import com.tomassirio.wanderer.commons.config.RateLimitConfig;
 import com.tomassirio.wanderer.commons.config.SecurityCorsConfig;
 import com.tomassirio.wanderer.commons.config.SecurityHeadersConfig;
@@ -10,14 +10,11 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
-import org.springframework.core.convert.converter.Converter;
-import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.web.cors.CorsConfigurationSource;
 
@@ -27,14 +24,13 @@ import org.springframework.web.cors.CorsConfigurationSource;
 @RequiredArgsConstructor
 @Import({
     JwtConfig.class,
-    JwtConverterConfig.class,
     SecurityCorsConfig.class,
     SecurityHeadersConfig.class,
     RateLimitConfig.class
 })
 public class SecurityConfig {
 
-    private final Converter<Jwt, AbstractAuthenticationToken> jwtAuthenticationConverter;
+    private final JtiValidatingJwtConverter jtiValidatingJwtConverter;
     private final CorsConfigurationSource corsConfigurationSource;
     private final SecurityHeadersCustomizer securityHeadersCustomizer;
 
@@ -62,7 +58,7 @@ public class SecurityConfig {
                                 oauth2.jwt(
                                         jwt ->
                                                 jwt.jwtAuthenticationConverter(
-                                                        jwtAuthenticationConverter)));
+                                                        jtiValidatingJwtConverter)));
         return http.build();
     }
 }

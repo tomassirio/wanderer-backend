@@ -3,6 +3,7 @@ package com.tomassirio.wanderer.auth.service;
 import com.tomassirio.wanderer.auth.dto.LoginResponse;
 import com.tomassirio.wanderer.auth.dto.RegisterPendingResponse;
 import com.tomassirio.wanderer.auth.dto.RegisterRequest;
+import java.time.Instant;
 import java.util.UUID;
 
 /**
@@ -14,16 +15,17 @@ import java.util.UUID;
 public interface AuthService {
 
     /**
-     * Authenticates a user with the provided username and password. If authentication is
+     * Authenticates a user with the provided username or email and password. If authentication is
      * successful, returns a JWT token and refresh token.
      *
-     * @param username the username of the user attempting to log in
+     * @param identifier username or email of the user attempting to log in
      * @param password the password of the user
+     * @param ipAddress the IP address of the client
      * @return a LoginResponse containing access token, refresh token, and metadata
-     * @throws IllegalArgumentException if the credentials are invalid or the account is disabled
+     * @throws IllegalArgumentException if the credentials are invalid, account is disabled, or account is locked
      * @throws IllegalStateException if there is an issue contacting the user query service
      */
-    LoginResponse login(String username, String password);
+    LoginResponse login(String identifier, String password, String ipAddress);
 
     /**
      * Registers a new user with the provided registration details. Creates a pending email
@@ -50,11 +52,13 @@ public interface AuthService {
     LoginResponse verifyEmail(String token);
 
     /**
-     * Logs out a user by revoking all refresh tokens.
+     * Logs out a user by revoking the current access token and all refresh tokens.
      *
      * @param userId the user ID (extracted from authenticated user)
+     * @param jti the JWT ID of the current access token
+     * @param expiresAt when the access token expires
      */
-    void logout(UUID userId);
+    void logout(UUID userId, String jti, Instant expiresAt);
 
     /**
      * Initiates a password reset by creating a reset token and returning it. In a production

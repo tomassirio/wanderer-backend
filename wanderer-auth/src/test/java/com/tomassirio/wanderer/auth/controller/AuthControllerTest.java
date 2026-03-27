@@ -1,6 +1,8 @@
 package com.tomassirio.wanderer.auth.controller;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -66,11 +68,16 @@ class AuthControllerTest {
 
     /** Helper method to create a JWT authentication request post processor */
     private RequestPostProcessor jwtAuth(String subject) {
+        return jwtAuth(subject, "test-jti");
+    }
+    
+    private RequestPostProcessor jwtAuth(String subject, String jti) {
         return request -> {
             Jwt jwt =
                     Jwt.withTokenValue("mock.jwt.token")
                             .header("alg", "HS256")
                             .subject(subject)
+                            .jti(jti)
                             .issuedAt(Instant.now())
                             .expiresAt(Instant.now().plusSeconds(3600))
                             .build();
@@ -87,7 +94,7 @@ class AuthControllerTest {
                 new LoginResponse(
                         "jwt.access.token", "refresh.token", "Bearer", 3600000L, "testuser");
 
-        when(authService.login(request.identifier(), request.password())).thenReturn(response);
+        when(authService.login(eq(request.identifier()), eq(request.password()), any(String.class))).thenReturn(response);
 
         mockMvc.perform(
                         post("/api/1/auth/login")
@@ -203,14 +210,15 @@ class AuthControllerTest {
     @Test
     void logout_whenValidToken_shouldReturnOk() throws Exception {
         UUID userId = UUID.randomUUID();
+        String jti = "test-jti";
+        
+        doNothing().when(authService).logout(any(UUID.class), any(String.class), any(Instant.class));
 
-        doNothing().when(authService).logout(userId);
-
-        mockMvc.perform(post("/api/1/auth/logout").with(jwtAuth(userId.toString())))
+        mockMvc.perform(post("/api/1/auth/logout").with(jwtAuth(userId.toString(), jti)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.message").value("Logged out successfully"));
 
-        verify(authService).logout(userId);
+        verify(authService).logout(any(UUID.class), any(String.class), any(Instant.class));
     }
 
     @Test
