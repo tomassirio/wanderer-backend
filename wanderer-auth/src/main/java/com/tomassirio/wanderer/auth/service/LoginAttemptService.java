@@ -2,9 +2,7 @@ package com.tomassirio.wanderer.auth.service;
 
 import java.util.UUID;
 
-/**
- * Service for tracking and managing login attempts for brute-force protection.
- */
+/** Service for tracking and managing login attempts for brute-force protection. */
 public interface LoginAttemptService {
 
     /**
@@ -33,8 +31,7 @@ public interface LoginAttemptService {
     boolean isAccountLocked(String identifier);
 
     /**
-     * Clean up old login attempts.
-     * Should be called periodically by a scheduled task.
+     * Clean up old login attempts. Should be called periodically by a scheduled task.
      *
      * @return number of attempts removed
      */

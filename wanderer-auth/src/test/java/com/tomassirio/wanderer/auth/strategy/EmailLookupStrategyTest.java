@@ -4,8 +4,8 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 import com.tomassirio.wanderer.auth.client.WandererQueryClient;
-import com.tomassirio.wanderer.auth.repository.CredentialRepository;
 import com.tomassirio.wanderer.auth.domain.Credential;
+import com.tomassirio.wanderer.auth.repository.CredentialRepository;
 import com.tomassirio.wanderer.commons.domain.User;
 import feign.FeignException;
 import java.util.Optional;
@@ -20,14 +20,11 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class EmailLookupStrategyTest {
 
-    @Mock
-    private CredentialRepository credentialRepository;
+    @Mock private CredentialRepository credentialRepository;
 
-    @Mock
-    private WandererQueryClient wandererQueryClient;
+    @Mock private WandererQueryClient wandererQueryClient;
 
-    @InjectMocks
-    private EmailLookupStrategy strategy;
+    @InjectMocks private EmailLookupStrategy strategy;
 
     private UUID userId;
     private User testUser;
@@ -36,16 +33,14 @@ class EmailLookupStrategyTest {
     @BeforeEach
     void setUp() {
         userId = UUID.randomUUID();
-        testUser = User.builder()
-                .id(userId)
-                .username("testuser")
-                .build();
-        testCredential = Credential.builder()
-                .userId(userId)
-                .email("test@example.com")
-                .passwordHash("hashedPassword")
-                .enabled(true)
-                .build();
+        testUser = User.builder().id(userId).username("testuser").build();
+        testCredential =
+                Credential.builder()
+                        .userId(userId)
+                        .email("test@example.com")
+                        .passwordHash("hashedPassword")
+                        .enabled(true)
+                        .build();
     }
 
     @Test

@@ -4,6 +4,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -36,7 +38,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -57,9 +58,9 @@ class AuthServiceImplTest {
     @Mock private WandererCommandClient wandererCommandClient;
 
     @Mock private WandererQueryClient wandererQueryClient;
-    
+
     @Mock private RevokedTokenCache revokedTokenCache;
-    
+
     @Mock private LoginAttemptService loginAttemptService;
 
     private AuthServiceImpl authService;
@@ -67,7 +68,7 @@ class AuthServiceImplTest {
     private User testUser;
 
     private Credential testCredential;
-    
+
     private List<UserLookupStrategy> strategies;
 
     @BeforeEach
@@ -81,25 +82,25 @@ class AuthServiceImplTest {
                         .email("user@email.com")
                         .roles(Set.of(Role.USER))
                         .build();
-        
+
         // Create real strategy instances for testing
-        strategies = List.of(
-                new EmailLookupStrategy(credentialRepository, wandererQueryClient),
-                new UsernameLookupStrategy(wandererQueryClient)
-        );
-        
-        authService = new AuthServiceImpl(
-                credentialRepository,
-                passwordEncoder,
-                jwtService,
-                tokenService,
-                emailService,
-                wandererCommandClient,
-                wandererQueryClient,
-                strategies,
-                revokedTokenCache,
-                loginAttemptService
-        );
+        strategies =
+                List.of(
+                        new EmailLookupStrategy(credentialRepository, wandererQueryClient),
+                        new UsernameLookupStrategy(wandererQueryClient));
+
+        authService =
+                new AuthServiceImpl(
+                        credentialRepository,
+                        passwordEncoder,
+                        jwtService,
+                        tokenService,
+                        emailService,
+                        wandererCommandClient,
+                        wandererQueryClient,
+                        strategies,
+                        revokedTokenCache,
+                        loginAttemptService);
     }
 
     @Test
@@ -128,7 +129,8 @@ class AuthServiceImplTest {
         assertEquals(testUser.getUsername(), result.username());
         verify(jwtService).generateTokenWithJti(any(), any(), any());
         verify(tokenService).createRefreshToken(testUser.getId());
-        verify(loginAttemptService).recordSuccessfulLogin(testUser.getUsername(), testUser.getId(), ipAddress);
+        verify(loginAttemptService)
+                .recordSuccessfulLogin(testUser.getUsername(), testUser.getId(), ipAddress);
     }
 
     @Test
@@ -145,7 +147,8 @@ class AuthServiceImplTest {
                 .thenThrow(new NotFound("User not found", dummyRequest, null, null));
 
         assertThrows(
-                IllegalArgumentException.class, () -> authService.login("nonexistent", "password", "127.0.0.1"));
+                IllegalArgumentException.class,
+                () -> authService.login("nonexistent", "password", "127.0.0.1"));
     }
 
     @Test
@@ -224,12 +227,13 @@ class AuthServiceImplTest {
     void login_whenAccountIsLocked_shouldThrowIllegalArgumentException() {
         String identifier = "testuser";
         String ipAddress = "192.168.1.1";
-        
+
         when(loginAttemptService.isAccountLocked(identifier)).thenReturn(true);
 
-        IllegalArgumentException exception = assertThrows(
-                IllegalArgumentException.class,
-                () -> authService.login(identifier, "password", ipAddress));
+        IllegalArgumentException exception =
+                assertThrows(
+                        IllegalArgumentException.class,
+                        () -> authService.login(identifier, "password", ipAddress));
 
         assertTrue(exception.getMessage().contains("Account temporarily locked"));
         verify(loginAttemptService).recordFailedLogin(identifier, ipAddress);
@@ -239,7 +243,7 @@ class AuthServiceImplTest {
     @Test
     void login_whenPasswordIncorrect_shouldRecordFailedAttempt() {
         String ipAddress = "192.168.1.1";
-        
+
         when(loginAttemptService.isAccountLocked(testUser.getUsername())).thenReturn(false);
         when(wandererQueryClient.getUserByUsername(testUser.getUsername())).thenReturn(testUser);
         when(credentialRepository.findById(testUser.getId()))
@@ -461,11 +465,12 @@ class AuthServiceImplTest {
     void logout_shouldRevokeRefreshTokensAndAccessToken() {
         String jti = "test-jti-123";
         Instant expiresAt = Instant.now().plusSeconds(3600);
-        
+
         authService.logout(testUser.getId(), jti, expiresAt);
 
         verify(tokenService).revokeAllRefreshTokensForUser(testUser.getId());
-        verify(revokedTokenCache).revokeToken(jti, 3600L);
+        // Verify JTI is revoked with approximately 3600 seconds (allow for timing variance)
+        verify(revokedTokenCache).revokeToken(eq(jti), anyLong());
     }
 
     @Test

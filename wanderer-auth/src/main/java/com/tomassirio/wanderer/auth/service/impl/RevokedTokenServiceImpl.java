@@ -10,9 +10,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/**
- * Service implementation for managing revoked access tokens.
- */
+/** Service implementation for managing revoked access tokens. */
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -23,12 +21,9 @@ public class RevokedTokenServiceImpl implements RevokedTokenService {
     @Override
     @Transactional
     public void revokeToken(String jti, UUID userId, Instant expiresAt) {
-        RevokedAccessToken revokedToken = RevokedAccessToken.builder()
-                .jti(jti)
-                .userId(userId)
-                .expiresAt(expiresAt)
-                .build();
-        
+        RevokedAccessToken revokedToken =
+                RevokedAccessToken.builder().jti(jti).userId(userId).expiresAt(expiresAt).build();
+
         revokedAccessTokenRepository.save(revokedToken);
         log.debug("Revoked access token with JTI: {} for user: {}", jti, userId);
     }

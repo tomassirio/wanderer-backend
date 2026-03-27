@@ -18,11 +18,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class RevokedTokenServiceImplTest {
 
-    @Mock
-    private RevokedAccessTokenRepository revokedAccessTokenRepository;
+    @Mock private RevokedAccessTokenRepository revokedAccessTokenRepository;
 
-    @InjectMocks
-    private RevokedTokenServiceImpl revokedTokenService;
+    @InjectMocks private RevokedTokenServiceImpl revokedTokenService;
 
     private UUID userId;
     private String jti;
@@ -39,7 +37,8 @@ class RevokedTokenServiceImplTest {
     void revokeToken_shouldSaveRevokedToken() {
         revokedTokenService.revokeToken(jti, userId, expiresAt);
 
-        ArgumentCaptor<RevokedAccessToken> captor = ArgumentCaptor.forClass(RevokedAccessToken.class);
+        ArgumentCaptor<RevokedAccessToken> captor =
+                ArgumentCaptor.forClass(RevokedAccessToken.class);
         verify(revokedAccessTokenRepository).save(captor.capture());
 
         RevokedAccessToken saved = captor.getValue();
@@ -82,8 +81,7 @@ class RevokedTokenServiceImplTest {
 
     @Test
     void cleanupExpiredTokens_whenNoTokensToDelete_shouldReturnZero() {
-        when(revokedAccessTokenRepository.deleteExpiredTokens(any(Instant.class)))
-                .thenReturn(0);
+        when(revokedAccessTokenRepository.deleteExpiredTokens(any(Instant.class))).thenReturn(0);
 
         int result = revokedTokenService.cleanupExpiredTokens();
 

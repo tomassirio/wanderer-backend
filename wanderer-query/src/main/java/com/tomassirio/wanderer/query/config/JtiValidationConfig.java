@@ -9,9 +9,7 @@ import org.springframework.core.convert.converter.Converter;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.oauth2.jwt.Jwt;
 
-/**
- * Configuration for JTI validation via Redis.
- */
+/** Configuration for JTI validation via Redis. */
 @Configuration
 @ConditionalOnProperty(name = "app.security.jti-validation.enabled", havingValue = "true")
 public class JtiValidationConfig {

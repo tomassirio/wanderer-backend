@@ -17,32 +17,34 @@ class PasswordComplexityValidatorTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {
-        "SecurePass1!",
-        "MyTrip2026@",
-        "Wanderer#123",
-        "Test1234$",
-        "ComplexP@ss1",
-        "Abcd1234!",
-        "MyP@ssw0rd"
-    })
+    @ValueSource(
+            strings = {
+                "SecurePass1!",
+                "MyTrip2026@",
+                "Wanderer#123",
+                "Test1234$",
+                "ComplexP@ss1",
+                "Abcd1234!",
+                "MyP@ssw0rd"
+            })
     void isValid_whenPasswordMeetsAllRequirements_shouldReturnTrue(String password) {
         assertTrue(validator.isValid(password, null));
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {
-        "password123",      // No uppercase, no special
-        "PASSWORD123!",     // No lowercase
-        "MyPassword",       // No number, no special
-        "Pass1!",           // Too short (< 8 chars)
-        "mypassword1!",     // No uppercase
-        "MYPASSWORD1!",     // No lowercase
-        "MyPassword!",      // No number
-        "MyPassword1",      // No special character
-        "Short1!",          // Only 7 characters
-        ""                  // Empty (handled by @NotBlank but tested here)
-    })
+    @ValueSource(
+            strings = {
+                "password123", // No uppercase, no special
+                "PASSWORD123!", // No lowercase
+                "MyPassword", // No number, no special
+                "Pass1!", // Too short (< 8 chars)
+                "mypassword1!", // No uppercase
+                "MYPASSWORD1!", // No lowercase
+                "MyPassword!", // No number
+                "MyPassword1", // No special character
+                "Short1!", // Only 7 characters
+                "" // Empty (handled by @NotBlank but tested here)
+            })
     void isValid_whenPasswordDoesNotMeetRequirements_shouldReturnFalse(String password) {
         assertFalse(validator.isValid(password, null));
     }

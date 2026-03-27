@@ -3,9 +3,7 @@ package com.tomassirio.wanderer.auth.service;
 import java.time.Instant;
 import java.util.UUID;
 
-/**
- * Service for managing revoked access tokens (JTI blacklist).
- */
+/** Service for managing revoked access tokens (JTI blacklist). */
 public interface RevokedTokenService {
 
     /**
@@ -26,8 +24,7 @@ public interface RevokedTokenService {
     boolean isTokenRevoked(String jti);
 
     /**
-     * Clean up expired revoked tokens.
-     * Should be called periodically by a scheduled task.
+     * Clean up expired revoked tokens. Should be called periodically by a scheduled task.
      *
      * @return number of tokens removed
      */

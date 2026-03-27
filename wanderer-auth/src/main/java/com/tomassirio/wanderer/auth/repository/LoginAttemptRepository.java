@@ -20,8 +20,10 @@ public interface LoginAttemptRepository extends JpaRepository<LoginAttempt, UUID
      * @param since start of the time window
      * @return count of failed attempts
      */
-    @Query("SELECT COUNT(l) FROM LoginAttempt l WHERE l.identifier = :identifier AND l.success = false AND l.attemptedAt >= :since")
-    int countRecentFailedAttempts(@Param("identifier") String identifier, @Param("since") Instant since);
+    @Query(
+            "SELECT COUNT(l) FROM LoginAttempt l WHERE l.identifier = :identifier AND l.success = false AND l.attemptedAt >= :since")
+    int countRecentFailedAttempts(
+            @Param("identifier") String identifier, @Param("since") Instant since);
 
     /**
      * Find recent login attempts for a user.
@@ -30,7 +32,8 @@ public interface LoginAttemptRepository extends JpaRepository<LoginAttempt, UUID
      * @param since start of the time window
      * @return list of login attempts
      */
-    List<LoginAttempt> findByUserIdAndAttemptedAtAfterOrderByAttemptedAtDesc(UUID userId, Instant since);
+    List<LoginAttempt> findByUserIdAndAttemptedAtAfterOrderByAttemptedAtDesc(
+            UUID userId, Instant since);
 
     /**
      * Delete old login attempts to prevent table growth.

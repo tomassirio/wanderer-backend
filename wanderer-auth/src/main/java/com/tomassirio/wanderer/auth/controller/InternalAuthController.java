@@ -9,8 +9,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * Internal API endpoints for inter-service communication.
- * Not exposed in public API documentation.
+ * Internal API endpoints for inter-service communication. Not exposed in public API documentation.
  */
 @RestController
 @RequestMapping("/api/1/auth/internal")
@@ -21,8 +20,7 @@ public class InternalAuthController {
     private final RevokedTokenService revokedTokenService;
 
     /**
-     * Check if a token is revoked.
-     * Called by other services to validate JTI against the blacklist.
+     * Check if a token is revoked. Called by other services to validate JTI against the blacklist.
      *
      * @param jti the JWT ID
      * @return true if the token is revoked

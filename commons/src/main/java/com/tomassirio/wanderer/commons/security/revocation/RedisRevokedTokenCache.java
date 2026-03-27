@@ -1,15 +1,14 @@
 package com.tomassirio.wanderer.commons.security.revocation;
 
+import java.time.Duration;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
-import java.time.Duration;
-
 /**
- * Redis-based implementation for managing revoked JWT tokens.
- * Tokens are stored with automatic expiration matching their natural JWT expiry.
+ * Redis-based implementation for managing revoked JWT tokens. Tokens are stored with automatic
+ * expiration matching their natural JWT expiry.
  */
 @Service
 @RequiredArgsConstructor
@@ -17,7 +16,7 @@ import java.time.Duration;
 public class RedisRevokedTokenCache implements RevokedTokenCache {
 
     private static final String KEY_PREFIX = "revoked:jti:";
-    
+
     private final StringRedisTemplate redisTemplate;
 
     @Override

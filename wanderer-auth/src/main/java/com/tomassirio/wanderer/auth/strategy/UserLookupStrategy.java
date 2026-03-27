@@ -3,11 +3,9 @@ package com.tomassirio.wanderer.auth.strategy;
 import com.tomassirio.wanderer.commons.domain.User;
 import java.util.Optional;
 
-/**
- * Strategy interface for looking up users by different identifiers.
- */
+/** Strategy interface for looking up users by different identifiers. */
 public interface UserLookupStrategy {
-    
+
     /**
      * Checks if this strategy can handle the given identifier.
      *
@@ -15,7 +13,7 @@ public interface UserLookupStrategy {
      * @return true if this strategy can handle the identifier
      */
     boolean canHandle(String identifier);
-    
+
     /**
      * Looks up a user by the given identifier.
      *

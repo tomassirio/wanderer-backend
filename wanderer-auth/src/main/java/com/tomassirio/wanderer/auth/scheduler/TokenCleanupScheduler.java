@@ -8,8 +8,8 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 /**
- * Scheduled task to clean up expired revoked access tokens and old login attempts.
- * Runs hourly to prevent tables from growing indefinitely.
+ * Scheduled task to clean up expired revoked access tokens and old login attempts. Runs hourly to
+ * prevent tables from growing indefinitely.
  */
 @Component
 @RequiredArgsConstructor
@@ -20,8 +20,8 @@ public class TokenCleanupScheduler {
     private final LoginAttemptService loginAttemptService;
 
     /**
-     * Clean up expired revoked tokens every hour.
-     * Tokens are only kept until they expire, then removed to save space.
+     * Clean up expired revoked tokens every hour. Tokens are only kept until they expire, then
+     * removed to save space.
      */
     @Scheduled(cron = "0 0 * * * *") // Every hour at :00
     public void cleanupExpiredTokens() {
@@ -31,8 +31,7 @@ public class TokenCleanupScheduler {
     }
 
     /**
-     * Clean up old login attempts daily.
-     * Keeps last 30 days for analysis, removes older records.
+     * Clean up old login attempts daily. Keeps last 30 days for analysis, removes older records.
      */
     @Scheduled(cron = "0 0 2 * * *") // Daily at 2 AM
     public void cleanupOldLoginAttempts() {

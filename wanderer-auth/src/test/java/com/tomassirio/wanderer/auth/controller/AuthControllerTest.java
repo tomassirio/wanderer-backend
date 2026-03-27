@@ -1,7 +1,6 @@
 package com.tomassirio.wanderer.auth.controller;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.verify;
@@ -70,7 +69,7 @@ class AuthControllerTest {
     private RequestPostProcessor jwtAuth(String subject) {
         return jwtAuth(subject, "test-jti");
     }
-    
+
     private RequestPostProcessor jwtAuth(String subject, String jti) {
         return request -> {
             Jwt jwt =
@@ -94,7 +93,8 @@ class AuthControllerTest {
                 new LoginResponse(
                         "jwt.access.token", "refresh.token", "Bearer", 3600000L, "testuser");
 
-        when(authService.login(eq(request.identifier()), eq(request.password()), any(String.class))).thenReturn(response);
+        when(authService.login(eq(request.identifier()), eq(request.password()), any(String.class)))
+                .thenReturn(response);
 
         mockMvc.perform(
                         post("/api/1/auth/login")
@@ -110,7 +110,7 @@ class AuthControllerTest {
     @Test
     void login_whenInvalidCredentials_shouldReturnBadRequest() throws Exception {
         LoginRequest request = new LoginRequest("testuser", "WrongPass1!");
-        
+
         when(authService.login(eq(request.identifier()), eq(request.password()), any(String.class)))
                 .thenThrow(new IllegalArgumentException("Invalid credentials"));
 
@@ -214,8 +214,10 @@ class AuthControllerTest {
     void logout_whenValidToken_shouldReturnOk() throws Exception {
         UUID userId = UUID.randomUUID();
         String jti = "test-jti";
-        
-        doNothing().when(authService).logout(any(UUID.class), any(String.class), any(Instant.class));
+
+        doNothing()
+                .when(authService)
+                .logout(any(UUID.class), any(String.class), any(Instant.class));
 
         mockMvc.perform(post("/api/1/auth/logout").with(jwtAuth(userId.toString(), jti)))
                 .andExpect(status().isOk())
@@ -258,8 +260,7 @@ class AuthControllerTest {
     @Test
     void changePassword_whenValidRequest_shouldReturnOk() throws Exception {
         UUID userId = UUID.randomUUID();
-        PasswordChangeRequest request =
-                new PasswordChangeRequest("CurrentPass1!", "NewPass456!");
+        PasswordChangeRequest request = new PasswordChangeRequest("CurrentPass1!", "NewPass456!");
 
         doNothing()
                 .when(authService)

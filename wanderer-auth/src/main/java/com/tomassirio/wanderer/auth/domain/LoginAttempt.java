@@ -12,9 +12,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 
-/**
- * Entity tracking failed login attempts for brute-force protection.
- */
+/** Entity tracking failed login attempts for brute-force protection. */
 @Entity
 @Table(name = "login_attempts")
 @Data

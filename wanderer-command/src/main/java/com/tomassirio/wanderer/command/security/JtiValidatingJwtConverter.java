@@ -1,6 +1,9 @@
 package com.tomassirio.wanderer.command.security;
 
 import com.tomassirio.wanderer.commons.security.revocation.RevokedTokenCache;
+import java.util.Collection;
+import java.util.List;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.convert.converter.Converter;
@@ -11,13 +14,7 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 
-import java.util.Collection;
-import java.util.List;
-import java.util.stream.Collectors;
-
-/**
- * Custom JWT authentication converter that checks if the token's JTI is revoked via Redis.
- */
+/** Custom JWT authentication converter that checks if the token's JTI is revoked via Redis. */
 @RequiredArgsConstructor
 @Slf4j
 public class JtiValidatingJwtConverter implements Converter<Jwt, AbstractAuthenticationToken> {

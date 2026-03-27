@@ -1,8 +1,6 @@
 package com.tomassirio.wanderer.commons.security.revocation;
 
-/**
- * Service for managing revoked JWT tokens using Redis.
- */
+/** Service for managing revoked JWT tokens using Redis. */
 public interface RevokedTokenCache {
 
     /**

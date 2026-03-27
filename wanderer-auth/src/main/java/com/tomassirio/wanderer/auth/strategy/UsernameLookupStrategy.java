@@ -10,22 +10,22 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 /**
- * Strategy for looking up users by username.
- * Normalizes username to lowercase and queries the user service.
+ * Strategy for looking up users by username. Normalizes username to lowercase and queries the user
+ * service.
  */
 @Component
 @RequiredArgsConstructor
 @Slf4j
 public class UsernameLookupStrategy implements UserLookupStrategy {
-    
+
     private final WandererQueryClient wandererQueryClient;
-    
+
     @Override
     public boolean canHandle(String identifier) {
         // Username strategy handles anything that's not an email
         return identifier != null && !identifier.contains("@");
     }
-    
+
     @Override
     public Optional<User> lookupUser(String identifier) {
         String normalizedUsername = identifier.toLowerCase(Locale.ROOT);

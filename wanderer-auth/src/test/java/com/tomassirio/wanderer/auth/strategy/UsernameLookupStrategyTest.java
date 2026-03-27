@@ -21,11 +21,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class UsernameLookupStrategyTest {
 
-    @Mock
-    private WandererQueryClient wandererQueryClient;
+    @Mock private WandererQueryClient wandererQueryClient;
 
-    @InjectMocks
-    private UsernameLookupStrategy strategy;
+    @InjectMocks private UsernameLookupStrategy strategy;
 
     private UUID userId;
     private User testUser;
@@ -33,10 +31,7 @@ class UsernameLookupStrategyTest {
     @BeforeEach
     void setUp() {
         userId = UUID.randomUUID();
-        testUser = User.builder()
-                .id(userId)
-                .username("testuser")
-                .build();
+        testUser = User.builder().id(userId).username("testuser").build();
     }
 
     @Test
@@ -73,13 +68,14 @@ class UsernameLookupStrategyTest {
     @Test
     void lookupUser_whenUsernameNotFound_shouldReturnEmpty() {
         String username = "nonexistent";
-        Request mockRequest = Request.create(
-                Request.HttpMethod.GET,
-                "/users/username/nonexistent",
-                Map.of(),
-                null,
-                StandardCharsets.UTF_8,
-                null);
+        Request mockRequest =
+                Request.create(
+                        Request.HttpMethod.GET,
+                        "/users/username/nonexistent",
+                        Map.of(),
+                        null,
+                        StandardCharsets.UTF_8,
+                        null);
         when(wandererQueryClient.getUserByUsername(username))
                 .thenThrow(new FeignException.NotFound("Not found", mockRequest, null, null));
 
@@ -92,15 +88,18 @@ class UsernameLookupStrategyTest {
     @Test
     void lookupUser_whenServiceError_shouldThrowIllegalStateException() {
         String username = "testuser";
-        Request mockRequest = Request.create(
-                Request.HttpMethod.GET,
-                "/users/username/testuser",
-                Map.of(),
-                null,
-                StandardCharsets.UTF_8,
-                null);
+        Request mockRequest =
+                Request.create(
+                        Request.HttpMethod.GET,
+                        "/users/username/testuser",
+                        Map.of(),
+                        null,
+                        StandardCharsets.UTF_8,
+                        null);
         when(wandererQueryClient.getUserByUsername(username))
-                .thenThrow(new FeignException.InternalServerError("Server error", mockRequest, null, null));
+                .thenThrow(
+                        new FeignException.InternalServerError(
+                                "Server error", mockRequest, null, null));
 
         assertThrows(IllegalStateException.class, () -> strategy.lookupUser(username));
         verify(wandererQueryClient).getUserByUsername(username);

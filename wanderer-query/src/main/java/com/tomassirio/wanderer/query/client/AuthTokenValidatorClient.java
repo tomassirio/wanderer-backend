@@ -4,9 +4,7 @@ import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
-/**
- * Feign client for checking token revocation status in the auth service.
- */
+/** Feign client for checking token revocation status in the auth service. */
 @FeignClient(name = "wanderer-auth-token-validator-query", url = "${app.auth-service.url}")
 public interface AuthTokenValidatorClient {
 

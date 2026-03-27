@@ -71,12 +71,14 @@ public class AuthController {
     @PostMapping(value = ApiConstants.LOGIN_ENDPOINT, consumes = MediaType.APPLICATION_JSON_VALUE)
     @Operation(
             summary = "User login",
-            description = "Authenticates a user with username or email and returns access and refresh tokens")
-    public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request, 
-                                                HttpServletRequest httpRequest) {
+            description =
+                    "Authenticates a user with username or email and returns access and refresh tokens")
+    public ResponseEntity<LoginResponse> login(
+            @Valid @RequestBody LoginRequest request, HttpServletRequest httpRequest) {
         log.info("Login attempt received");
         String ipAddress = extractIpAddress(httpRequest);
-        LoginResponse response = authService.login(request.identifier(), request.password(), ipAddress);
+        LoginResponse response =
+                authService.login(request.identifier(), request.password(), ipAddress);
         log.info("Login successful");
         return ResponseEntity.ok(response);
     }

@@ -12,9 +12,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/**
- * Service implementation for tracking login attempts and providing brute-force protection.
- */
+/** Service implementation for tracking login attempts and providing brute-force protection. */
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -34,13 +32,14 @@ public class LoginAttemptServiceImpl implements LoginAttemptService {
     @Override
     @Transactional
     public void recordSuccessfulLogin(String identifier, UUID userId, String ipAddress) {
-        LoginAttempt attempt = LoginAttempt.builder()
-                .id(UUID.randomUUID())
-                .userId(userId)
-                .identifier(identifier.toLowerCase())
-                .ipAddress(ipAddress)
-                .success(true)
-                .build();
+        LoginAttempt attempt =
+                LoginAttempt.builder()
+                        .id(UUID.randomUUID())
+                        .userId(userId)
+                        .identifier(identifier.toLowerCase())
+                        .ipAddress(ipAddress)
+                        .success(true)
+                        .build();
 
         loginAttemptRepository.save(attempt);
         log.debug("Recorded successful login for identifier: {}", identifier);
@@ -49,31 +48,37 @@ public class LoginAttemptServiceImpl implements LoginAttemptService {
     @Override
     @Transactional
     public void recordFailedLogin(String identifier, String ipAddress) {
-        LoginAttempt attempt = LoginAttempt.builder()
-                .id(UUID.randomUUID())
-                .identifier(identifier.toLowerCase())
-                .ipAddress(ipAddress)
-                .success(false)
-                .build();
+        LoginAttempt attempt =
+                LoginAttempt.builder()
+                        .id(UUID.randomUUID())
+                        .identifier(identifier.toLowerCase())
+                        .ipAddress(ipAddress)
+                        .success(false)
+                        .build();
 
         loginAttemptRepository.save(attempt);
-        log.warn("Recorded failed login attempt for identifier: {} from IP: {}", identifier, ipAddress);
+        log.warn(
+                "Recorded failed login attempt for identifier: {} from IP: {}",
+                identifier,
+                ipAddress);
     }
 
     @Override
     public boolean isAccountLocked(String identifier) {
         Instant windowStart = Instant.now().minus(attemptWindowMinutes, ChronoUnit.MINUTES);
-        int failedAttempts = loginAttemptRepository.countRecentFailedAttempts(
-                identifier.toLowerCase(), 
-                windowStart
-        );
+        int failedAttempts =
+                loginAttemptRepository.countRecentFailedAttempts(
+                        identifier.toLowerCase(), windowStart);
 
         boolean locked = failedAttempts >= maxFailedAttempts;
-        
+
         if (locked) {
-            log.warn("Account locked for identifier: {} ({} failed attempts)", identifier, failedAttempts);
+            log.warn(
+                    "Account locked for identifier: {} ({} failed attempts)",
+                    identifier,
+                    failedAttempts);
         }
-        
+
         return locked;
     }
 
@@ -82,11 +87,11 @@ public class LoginAttemptServiceImpl implements LoginAttemptService {
     public int cleanupOldAttempts() {
         Instant cutoff = Instant.now().minus(30, ChronoUnit.DAYS);
         int deleted = loginAttemptRepository.deleteOldAttempts(cutoff);
-        
+
         if (deleted > 0) {
             log.info("Cleaned up {} old login attempts", deleted);
         }
-        
+
         return deleted;
     }
 }

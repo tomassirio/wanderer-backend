@@ -13,8 +13,8 @@ import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 
 /**
- * Entity representing a revoked access token (JWT).
- * Used to implement immediate token invalidation on logout.
+ * Entity representing a revoked access token (JWT). Used to implement immediate token invalidation
+ * on logout.
  */
 @Entity
 @Table(name = "revoked_access_tokens")

@@ -49,9 +49,8 @@ public class AuthServiceImpl implements AuthService {
     private final LoginAttemptService loginAttemptService;
 
     /**
-     * Verify credentials and return access token and refresh token when valid.
-     * Supports login with either username or email.
-     * Tracks login attempts for brute-force protection.
+     * Verify credentials and return access token and refresh token when valid. Supports login with
+     * either username or email. Tracks login attempts for brute-force protection.
      *
      * @param identifier username or email address
      * @param password user password
@@ -63,17 +62,19 @@ public class AuthServiceImpl implements AuthService {
         // Check if account is locked due to failed attempts
         if (loginAttemptService.isAccountLocked(identifier)) {
             loginAttemptService.recordFailedLogin(identifier, ipAddress);
-            throw new IllegalArgumentException("Account temporarily locked due to too many failed login attempts. Please try again later.");
+            throw new IllegalArgumentException(
+                    "Account temporarily locked due to too many failed login attempts. Please try again later.");
         }
 
         User user;
         try {
             // Find the appropriate strategy to lookup the user
-            user = userLookupStrategies.stream()
-                    .filter(strategy -> strategy.canHandle(identifier))
-                    .findFirst()
-                    .flatMap(strategy -> strategy.lookupUser(identifier))
-                    .orElseThrow(() -> new IllegalArgumentException("Invalid credentials"));
+            user =
+                    userLookupStrategies.stream()
+                            .filter(strategy -> strategy.canHandle(identifier))
+                            .findFirst()
+                            .flatMap(strategy -> strategy.lookupUser(identifier))
+                            .orElseThrow(() -> new IllegalArgumentException("Invalid credentials"));
         } catch (IllegalArgumentException e) {
             loginAttemptService.recordFailedLogin(identifier, ipAddress);
             throw e;
@@ -248,7 +249,7 @@ public class AuthServiceImpl implements AuthService {
     public void logout(UUID userId, String jti, Instant expiresAt) {
         // Revoke all refresh tokens
         tokenService.revokeAllRefreshTokensForUser(userId);
-        
+
         // Add current access token JTI to Redis blacklist
         if (jti != null && expiresAt != null) {
             long secondsUntilExpiry = Duration.between(Instant.now(), expiresAt).getSeconds();

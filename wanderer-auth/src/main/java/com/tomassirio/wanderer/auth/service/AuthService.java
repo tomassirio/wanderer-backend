@@ -22,7 +22,8 @@ public interface AuthService {
      * @param password the password of the user
      * @param ipAddress the IP address of the client
      * @return a LoginResponse containing access token, refresh token, and metadata
-     * @throws IllegalArgumentException if the credentials are invalid, account is disabled, or account is locked
+     * @throws IllegalArgumentException if the credentials are invalid, account is disabled, or
+     *     account is locked
      * @throws IllegalStateException if there is an issue contacting the user query service
      */
     LoginResponse login(String identifier, String password, String ipAddress);

@@ -17,7 +17,10 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtAut
 public class JwtConverterConfig {
 
     @Bean
-    @ConditionalOnProperty(name = "app.security.jti-validation.enabled", havingValue = "false", matchIfMissing = true)
+    @ConditionalOnProperty(
+            name = "app.security.jti-validation.enabled",
+            havingValue = "false",
+            matchIfMissing = true)
     public Converter<Jwt, AbstractAuthenticationToken> jwtAuthenticationConverter() {
         return jwt -> {
             List<String> roles = jwt.getClaimAsStringList("roles");

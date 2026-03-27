@@ -19,11 +19,9 @@ import org.springframework.test.util.ReflectionTestUtils;
 @ExtendWith(MockitoExtension.class)
 class LoginAttemptServiceImplTest {
 
-    @Mock
-    private LoginAttemptRepository loginAttemptRepository;
+    @Mock private LoginAttemptRepository loginAttemptRepository;
 
-    @InjectMocks
-    private LoginAttemptServiceImpl loginAttemptService;
+    @InjectMocks private LoginAttemptServiceImpl loginAttemptService;
 
     private UUID userId;
     private String identifier;
@@ -34,7 +32,7 @@ class LoginAttemptServiceImplTest {
         userId = UUID.randomUUID();
         identifier = "testuser";
         ipAddress = "192.168.1.1";
-        
+
         // Set default config values
         ReflectionTestUtils.setField(loginAttemptService, "maxFailedAttempts", 10);
         ReflectionTestUtils.setField(loginAttemptService, "lockoutDurationMinutes", 15);
@@ -102,8 +100,7 @@ class LoginAttemptServiceImplTest {
     @Test
     void cleanupOldAttempts_shouldDeleteOldRecords() {
         int deletedCount = 100;
-        when(loginAttemptRepository.deleteOldAttempts(any(Instant.class)))
-                .thenReturn(deletedCount);
+        when(loginAttemptRepository.deleteOldAttempts(any(Instant.class))).thenReturn(deletedCount);
 
         int result = loginAttemptService.cleanupOldAttempts();
 

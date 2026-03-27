@@ -20,8 +20,8 @@ public interface RevokedAccessTokenRepository extends JpaRepository<RevokedAcces
     boolean existsByJti(String jti);
 
     /**
-     * Delete all revoked tokens that have expired.
-     * Called by scheduled cleanup job to prevent table growth.
+     * Delete all revoked tokens that have expired. Called by scheduled cleanup job to prevent table
+     * growth.
      *
      * @param now the current timestamp
      * @return number of deleted records
