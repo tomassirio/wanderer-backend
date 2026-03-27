@@ -3,6 +3,7 @@ package com.tomassirio.wanderer.commons.config;
 import com.tomassirio.wanderer.commons.security.Role;
 import java.util.List;
 import java.util.stream.Collectors;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.convert.converter.Converter;
@@ -16,6 +17,7 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtAut
 public class JwtConverterConfig {
 
     @Bean
+    @ConditionalOnProperty(name = "app.security.jti-validation.enabled", havingValue = "false", matchIfMissing = true)
     public Converter<Jwt, AbstractAuthenticationToken> jwtAuthenticationConverter() {
         return jwt -> {
             List<String> roles = jwt.getClaimAsStringList("roles");
