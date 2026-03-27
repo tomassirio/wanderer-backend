@@ -10,7 +10,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
-import org.springframework.core.annotation.Order;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -35,20 +34,7 @@ public class SecurityConfig {
     private final CorsConfigurationSource corsConfigurationSource;
     private final SecurityHeadersCustomizer securityHeadersCustomizer;
 
-    // Internal endpoints - no authentication required
     @Bean
-    @Order(1)
-    public SecurityFilterChain internalSecurityFilterChain(HttpSecurity http) throws Exception {
-        http.securityMatcher("/api/1/auth/internal/**")
-                .cors(cors -> cors.configurationSource(corsConfigurationSource))
-                .csrf(AbstractHttpConfigurer::disable)
-                .authorizeHttpRequests(authz -> authz.anyRequest().permitAll());
-        return http.build();
-    }
-
-    // Public and protected endpoints
-    @Bean
-    @Order(2)
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http.cors(cors -> cors.configurationSource(corsConfigurationSource))
                 .csrf(AbstractHttpConfigurer::disable)
