@@ -89,7 +89,7 @@ class AuthControllerTest {
 
     @Test
     void login_whenValidRequest_shouldReturnOk() throws Exception {
-        LoginRequest request = new LoginRequest("testuser", "password123");
+        LoginRequest request = new LoginRequest("testuser", "SecurePass1!");
         LoginResponse response =
                 new LoginResponse(
                         "jwt.access.token", "refresh.token", "Bearer", 3600000L, "testuser");
@@ -108,8 +108,11 @@ class AuthControllerTest {
     }
 
     @Test
-    void login_whenInvalidPassword_shouldReturnBadRequest() throws Exception {
-        LoginRequest request = new LoginRequest("testuser", "short");
+    void login_whenInvalidCredentials_shouldReturnBadRequest() throws Exception {
+        LoginRequest request = new LoginRequest("testuser", "WrongPass1!");
+        
+        when(authService.login(eq(request.identifier()), eq(request.password()), any(String.class)))
+                .thenThrow(new IllegalArgumentException("Invalid credentials"));
 
         mockMvc.perform(
                         post("/api/1/auth/login")
@@ -121,7 +124,7 @@ class AuthControllerTest {
     @Test
     void register_whenValidRequest_shouldReturnAccepted() throws Exception {
         RegisterRequest request =
-                new RegisterRequest("testuser", "test@example.com", "password123");
+                new RegisterRequest("testuser", "test@example.com", "SecurePass1!");
         RegisterPendingResponse response =
                 new RegisterPendingResponse(
                         "Registration pending. Please check your email to verify your account.");
@@ -142,7 +145,7 @@ class AuthControllerTest {
 
     @Test
     void register_whenInvalidEmail_shouldReturnBadRequest() throws Exception {
-        RegisterRequest request = new RegisterRequest("testuser", "invalid-email", "password123");
+        RegisterRequest request = new RegisterRequest("testuser", "invalid-email", "SecurePass1!");
 
         mockMvc.perform(
                         post("/api/1/auth/register")
@@ -224,7 +227,7 @@ class AuthControllerTest {
     @Test
     void resetPassword_whenValidToken_shouldReturnOk() throws Exception {
         PasswordResetConfirmRequest request =
-                new PasswordResetConfirmRequest("valid.reset.token", "newPassword123");
+                new PasswordResetConfirmRequest("valid.reset.token", "NewPass123!");
 
         when(authService.resetPassword(request.token(), request.newPassword()))
                 .thenReturn("testuser");
@@ -256,7 +259,7 @@ class AuthControllerTest {
     void changePassword_whenValidRequest_shouldReturnOk() throws Exception {
         UUID userId = UUID.randomUUID();
         PasswordChangeRequest request =
-                new PasswordChangeRequest("currentPassword123", "newPassword456");
+                new PasswordChangeRequest("CurrentPass1!", "NewPass456!");
 
         doNothing()
                 .when(authService)
@@ -277,7 +280,7 @@ class AuthControllerTest {
     @Test
     void changePassword_whenInvalidNewPassword_shouldReturnBadRequest() throws Exception {
         UUID userId = UUID.randomUUID();
-        PasswordChangeRequest request = new PasswordChangeRequest("currentPassword123", "short");
+        PasswordChangeRequest request = new PasswordChangeRequest("CurrentPass1!", "short");
 
         mockMvc.perform(
                         put("/api/1/auth/password/change")

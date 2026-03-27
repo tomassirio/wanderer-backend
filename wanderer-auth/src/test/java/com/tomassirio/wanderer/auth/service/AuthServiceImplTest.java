@@ -103,7 +103,7 @@ class AuthServiceImplTest {
 
     @Test
     void login_whenValidCredentials_shouldReturnLoginResponse() {
-        String password = "password123";
+        String password = "SecurePass1!";
         String accessToken = "jwt.access.token";
         String refreshToken = "refresh.token";
         long expiresIn = 3600000L;
@@ -186,7 +186,7 @@ class AuthServiceImplTest {
     @Test
     void login_whenValidEmailProvided_shouldReturnLoginResponse() {
         String email = "user@email.com";
-        String password = "password123";
+        String password = "SecurePass1!";
         String accessToken = "jwt.access.token";
         String refreshToken = "refresh.token";
         long expiresIn = 3600000L;
@@ -256,7 +256,7 @@ class AuthServiceImplTest {
     @Test
     void register_whenValidRequest_shouldCreatePendingVerificationAndSendEmail() {
         RegisterRequest request =
-                new RegisterRequest("testuser", "test@example.com", "password123");
+                new RegisterRequest("testuser", "test@example.com", "SecurePass1!");
         String verificationToken = "verification.token";
         Request dummyRequest =
                 Request.create(
@@ -288,7 +288,7 @@ class AuthServiceImplTest {
     @Test
     void register_whenMixedCaseUsername_shouldNormalizeToLowercase() {
         RegisterRequest request =
-                new RegisterRequest("TestUser", "test@example.com", "password123");
+                new RegisterRequest("TestUser", "test@example.com", "SecurePass1!");
         String verificationToken = "verification.token";
         Request dummyRequest =
                 Request.create(
@@ -323,7 +323,7 @@ class AuthServiceImplTest {
     @Test
     void register_whenEmailAlreadyExists_shouldThrowException() {
         RegisterRequest request =
-                new RegisterRequest("testuser", "existing@example.com", "password123");
+                new RegisterRequest("testuser", "existing@example.com", "SecurePass1!");
 
         when(credentialRepository.findByEmail(request.email()))
                 .thenReturn(Optional.of(testCredential));
@@ -336,7 +336,7 @@ class AuthServiceImplTest {
     @Test
     void register_whenUsernameAlreadyExists_shouldThrowException() {
         RegisterRequest request =
-                new RegisterRequest("existinguser", "test@example.com", "password123");
+                new RegisterRequest("existinguser", "test@example.com", "SecurePass1!");
 
         when(credentialRepository.findByEmail(request.email())).thenReturn(Optional.empty());
         when(wandererQueryClient.getUserByUsername("existinguser")).thenReturn(testUser);
@@ -522,7 +522,7 @@ class AuthServiceImplTest {
     @Test
     void resetPassword_whenValidToken_shouldUpdatePassword() {
         String token = "reset.token";
-        String newPassword = "newPassword123";
+        String newPassword = "NewPass123!";
         UUID userId = testUser.getId();
 
         when(tokenService.validatePasswordResetToken(token)).thenReturn(userId);
@@ -541,7 +541,7 @@ class AuthServiceImplTest {
     @Test
     void resetPassword_whenCredentialNotFound_shouldThrowException() {
         String token = "reset.token";
-        String newPassword = "newPassword123";
+        String newPassword = "NewPass123!";
         UUID userId = UUID.randomUUID();
 
         when(tokenService.validatePasswordResetToken(token)).thenReturn(userId);
@@ -554,7 +554,7 @@ class AuthServiceImplTest {
     @Test
     void changePassword_whenValidCurrentPassword_shouldUpdatePassword() {
         String currentPassword = "currentPassword";
-        String newPassword = "newPassword123";
+        String newPassword = "NewPass123!";
         UUID userId = testUser.getId();
 
         when(credentialRepository.findById(userId)).thenReturn(Optional.of(testCredential));
@@ -571,7 +571,7 @@ class AuthServiceImplTest {
     @Test
     void changePassword_whenInvalidCurrentPassword_shouldThrowException() {
         String currentPassword = "wrongPassword";
-        String newPassword = "newPassword123";
+        String newPassword = "NewPass123!";
         UUID userId = testUser.getId();
 
         when(credentialRepository.findById(userId)).thenReturn(Optional.of(testCredential));
@@ -587,7 +587,7 @@ class AuthServiceImplTest {
     @Test
     void changePassword_whenCredentialNotFound_shouldThrowException() {
         String currentPassword = "currentPassword";
-        String newPassword = "newPassword123";
+        String newPassword = "NewPass123!";
         UUID userId = UUID.randomUUID();
 
         when(credentialRepository.findById(userId)).thenReturn(Optional.empty());
@@ -640,7 +640,7 @@ class AuthServiceImplTest {
 
     @Test
     void login_whenMixedCaseUsername_shouldNormalizeToLowercase() {
-        String password = "password123";
+        String password = "SecurePass1!";
         String accessToken = "jwt.access.token";
         String refreshToken = "refresh.token";
         long expiresIn = 3600000L;
