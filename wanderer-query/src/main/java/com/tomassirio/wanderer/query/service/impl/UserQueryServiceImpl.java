@@ -1,9 +1,12 @@
 package com.tomassirio.wanderer.query.service.impl;
 
+import com.tomassirio.wanderer.commons.domain.Friendship;
 import com.tomassirio.wanderer.commons.domain.User;
+import com.tomassirio.wanderer.commons.domain.UserFollow;
 import com.tomassirio.wanderer.commons.dto.UserDetailsDTO;
 import com.tomassirio.wanderer.commons.mapper.UserDetailsMapper;
 import com.tomassirio.wanderer.query.dto.UserAdminResponse;
+import com.tomassirio.wanderer.query.dto.UserRelationshipResponse;
 import com.tomassirio.wanderer.query.dto.UserResponse;
 import com.tomassirio.wanderer.query.repository.FriendshipRepository;
 import com.tomassirio.wanderer.query.repository.TripRepository;
@@ -11,10 +14,17 @@ import com.tomassirio.wanderer.query.repository.UserFollowRepository;
 import com.tomassirio.wanderer.query.repository.UserRepository;
 import com.tomassirio.wanderer.query.service.UserQueryService;
 import jakarta.persistence.EntityNotFoundException;
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -67,6 +77,98 @@ public class UserQueryServiceImpl implements UserQueryService {
         return userRepository.findAll(pageable).map(this::mapToAdminResponse);
     }
 
+    @Override
+    public Page<UserResponse> getDiscoverableUsers(UUID currentUserId, int page, int size) {
+        List<UUID> myFriendIds = friendshipRepository.findByUserId(currentUserId).stream()
+                .map(Friendship::getFriendId)
+                .collect(Collectors.toList());
+        
+        if (myFriendIds.isEmpty()) {
+            return Page.empty();
+        }
+
+        List<UUID> friendsOfFriends = friendshipRepository.findFriendsOfFriends(myFriendIds, currentUserId);
+        Set<UUID> discoverableUserIds = new LinkedHashSet<>(friendsOfFriends);
+        
+        List<UUID> usersFollowedByFriends = userFollowRepository.findUsersFollowedByFriends(myFriendIds, currentUserId);
+        discoverableUserIds.addAll(usersFollowedByFriends);
+        
+        myFriendIds.forEach(discoverableUserIds::remove);
+        
+        if (discoverableUserIds.isEmpty()) {
+            return Page.empty();
+        }
+        
+        List<UserResponse> allUsers = userRepository.findAllById(new ArrayList<>(discoverableUserIds)).stream()
+                .map(this::toUserResponse)
+                .collect(Collectors.toList());
+        
+        int start = page * size;
+        int end = Math.min(start + size, allUsers.size());
+        
+        if (start >= allUsers.size()) {
+            return new PageImpl<>(List.of(), PageRequest.of(page, size), allUsers.size());
+        }
+        
+        List<UserResponse> pageContent = allUsers.subList(start, end);
+        return new PageImpl<>(pageContent, PageRequest.of(page, size), allUsers.size());
+    }
+    
+    @Override
+    public Page<UserRelationshipResponse> getAssociatedUsers(UUID currentUserId, UUID targetUserId, int page, int size) {
+        List<UUID> targetUserFriendIds = friendshipRepository.findByUserId(targetUserId).stream()
+                .map(Friendship::getFriendId)
+                .toList();
+        
+        List<UUID> targetUserFollowingIds = userFollowRepository.findByFollowerId(targetUserId).stream()
+                .map(UserFollow::getFollowedId)
+                .toList();
+        
+        List<UUID> targetUserFollowerIds = userFollowRepository.findByFollowedId(targetUserId).stream()
+                .map(UserFollow::getFollowerId)
+                .toList();
+        
+        Set<UUID> allAssociatedUserIds = new LinkedHashSet<>();
+        allAssociatedUserIds.addAll(targetUserFriendIds);
+        allAssociatedUserIds.addAll(targetUserFollowingIds);
+        allAssociatedUserIds.addAll(targetUserFollowerIds);
+        allAssociatedUserIds.remove(targetUserId);
+        
+        if (allAssociatedUserIds.isEmpty()) {
+            return Page.empty();
+        }
+        
+        List<UUID> currentUserFriendIds = friendshipRepository.findByUserId(currentUserId).stream()
+                .map(Friendship::getFriendId)
+                .collect(Collectors.toList());
+        
+        List<UUID> currentUserFollowingIds = userFollowRepository.findByFollowerId(currentUserId).stream()
+                .map(UserFollow::getFollowedId)
+                .collect(Collectors.toList());
+        
+        List<UUID> currentUserFollowerIds = userFollowRepository.findByFollowedId(currentUserId).stream()
+                .map(UserFollow::getFollowerId)
+                .collect(Collectors.toList());
+        
+        List<UserRelationshipResponse> allUsers = userRepository.findAllById(new ArrayList<>(allAssociatedUserIds)).stream()
+                .map(user -> toUserRelationshipResponse(
+                        user, 
+                        currentUserFriendIds, 
+                        currentUserFollowingIds, 
+                        currentUserFollowerIds))
+                .collect(Collectors.toList());
+        
+        int start = page * size;
+        int end = Math.min(start + size, allUsers.size());
+        
+        if (start >= allUsers.size()) {
+            return new PageImpl<>(List.of(), PageRequest.of(page, size), allUsers.size());
+        }
+        
+        List<UserRelationshipResponse> pageContent = allUsers.subList(start, end);
+        return new PageImpl<>(pageContent, PageRequest.of(page, size), allUsers.size());
+    }
+
     private UserResponse toUserResponse(User user) {
         UserDetailsDTO detailsDTO = UserDetailsMapper.INSTANCE.toDTO(user.getUserDetails());
         return new UserResponse(user.getId(), user.getUsername(), detailsDTO);
@@ -86,5 +188,21 @@ public class UserQueryServiceImpl implements UserQueryService {
                 followersCount,
                 tripsCount,
                 user.getCreatedAt());
+    }
+    
+    private UserRelationshipResponse toUserRelationshipResponse(
+            User user,
+            List<UUID> currentUserFriendIds,
+            List<UUID> currentUserFollowingIds,
+            List<UUID> currentUserFollowerIds) {
+        UserDetailsDTO detailsDTO = UserDetailsMapper.INSTANCE.toDTO(user.getUserDetails());
+        
+        return new UserRelationshipResponse(
+                user.getId(),
+                user.getUsername(),
+                detailsDTO,
+                currentUserFriendIds.contains(user.getId()),
+                currentUserFollowingIds.contains(user.getId()),
+                currentUserFollowerIds.contains(user.getId()));
     }
 }

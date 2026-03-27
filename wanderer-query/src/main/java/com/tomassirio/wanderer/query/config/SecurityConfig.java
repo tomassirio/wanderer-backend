@@ -1,7 +1,6 @@
 package com.tomassirio.wanderer.query.config;
 
 import com.tomassirio.wanderer.commons.config.JwtConfig;
-import com.tomassirio.wanderer.commons.config.JwtConverterConfig;
 import com.tomassirio.wanderer.commons.config.RateLimitConfig;
 import com.tomassirio.wanderer.commons.config.SecurityCorsConfig;
 import com.tomassirio.wanderer.commons.config.SecurityHeadersConfig;
@@ -28,7 +27,7 @@ import org.springframework.web.cors.CorsConfigurationSource;
 @RequiredArgsConstructor
 @Import({
     JwtConfig.class,
-    JwtConverterConfig.class,
+    JtiValidationConfig.class,
     SecurityCorsConfig.class,
     SecurityHeadersConfig.class,
     RateLimitConfig.class

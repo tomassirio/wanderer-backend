@@ -10,10 +10,16 @@ import com.tomassirio.wanderer.auth.repository.CredentialRepository;
 import com.tomassirio.wanderer.auth.service.AuthService;
 import com.tomassirio.wanderer.auth.service.EmailService;
 import com.tomassirio.wanderer.auth.service.JwtService;
+import com.tomassirio.wanderer.auth.service.LoginAttemptService;
 import com.tomassirio.wanderer.auth.service.TokenService;
+import com.tomassirio.wanderer.auth.strategy.UserLookupStrategy;
 import com.tomassirio.wanderer.commons.domain.User;
 import com.tomassirio.wanderer.commons.security.Role;
+import com.tomassirio.wanderer.commons.security.revocation.RevokedTokenCache;
 import feign.FeignException;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
@@ -38,42 +44,57 @@ public class AuthServiceImpl implements AuthService {
     private final EmailService emailService;
     private final WandererCommandClient wandererCommandClient;
     private final WandererQueryClient wandererQueryClient;
+    private final List<UserLookupStrategy> userLookupStrategies;
+    private final RevokedTokenCache revokedTokenCache;
+    private final LoginAttemptService loginAttemptService;
 
     /**
-     * Verify credentials and return access token and refresh token when valid.
+     * Verify credentials and return access token and refresh token when valid. Supports login with
+     * either username or email. Tracks login attempts for brute-force protection.
      *
-     * @throws IllegalArgumentException when credentials are invalid
+     * @param identifier username or email address
+     * @param password user password
+     * @param ipAddress the IP address of the client
+     * @return LoginResponse with tokens
+     * @throws IllegalArgumentException when credentials are invalid or account is locked
      */
-    public LoginResponse login(String username, String password) {
-        // Lookup user via query service (read side) — normalize to lowercase
-        String normalizedUsername = username.toLowerCase(Locale.ROOT);
-        User user;
-        try {
-            user = wandererQueryClient.getUserByUsername(normalizedUsername);
-        } catch (FeignException e) {
-            if (e.status() == 404) {
-                throw new IllegalArgumentException("Invalid credentials");
-            } else {
-                throw new IllegalStateException("Failed to contact user query service", e);
-            }
+    public LoginResponse login(String identifier, String password, String ipAddress) {
+        // Check if account is locked due to failed attempts
+        if (loginAttemptService.isAccountLocked(identifier)) {
+            loginAttemptService.recordFailedLogin(identifier, ipAddress);
+            throw new IllegalArgumentException(
+                    "Account temporarily locked due to too many failed login attempts. Please try again later.");
         }
 
-        if (user == null) {
-            throw new IllegalArgumentException("Invalid credentials");
+        User user;
+        try {
+            // Find the appropriate strategy to lookup the user
+            user =
+                    userLookupStrategies.stream()
+                            .filter(strategy -> strategy.canHandle(identifier))
+                            .findFirst()
+                            .flatMap(strategy -> strategy.lookupUser(identifier))
+                            .orElseThrow(() -> new IllegalArgumentException("Invalid credentials"));
+        } catch (IllegalArgumentException e) {
+            loginAttemptService.recordFailedLogin(identifier, ipAddress);
+            throw e;
         }
 
         // Find credentials by user id in the auth database
         Optional<Credential> maybeCred = credentialRepository.findById(user.getId());
         if (maybeCred.isEmpty()) {
+            loginAttemptService.recordFailedLogin(identifier, ipAddress);
             throw new IllegalArgumentException("Invalid credentials");
         }
         Credential cred = maybeCred.get();
 
         if (!cred.isEnabled()) {
+            loginAttemptService.recordFailedLogin(identifier, ipAddress);
             throw new IllegalArgumentException("Account disabled");
         }
 
         if (!passwordEncoder.matches(password, cred.getPasswordHash())) {
+            loginAttemptService.recordFailedLogin(identifier, ipAddress);
             throw new IllegalArgumentException("Invalid credentials");
         }
 
@@ -81,6 +102,9 @@ public class AuthServiceImpl implements AuthService {
         String jti = UUID.randomUUID().toString();
         String accessToken = jwtService.generateTokenWithJti(user, jti, cred.getRoles());
         String refreshToken = tokenService.createRefreshToken(user.getId());
+
+        // Record successful login
+        loginAttemptService.recordSuccessfulLogin(identifier, user.getId(), ipAddress);
 
         return new LoginResponse(
                 accessToken,
@@ -222,8 +246,17 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    public void logout(UUID userId) {
+    public void logout(UUID userId, String jti, Instant expiresAt) {
+        // Revoke all refresh tokens
         tokenService.revokeAllRefreshTokensForUser(userId);
+
+        // Add current access token JTI to Redis blacklist
+        if (jti != null && expiresAt != null) {
+            long secondsUntilExpiry = Duration.between(Instant.now(), expiresAt).getSeconds();
+            if (secondsUntilExpiry > 0) {
+                revokedTokenCache.revokeToken(jti, secondsUntilExpiry);
+            }
+        }
     }
 
     @Override

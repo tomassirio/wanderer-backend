@@ -16,6 +16,7 @@ import com.tomassirio.wanderer.commons.constants.ApiConstants;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import java.io.IOException;
 import java.io.InputStream;
@@ -70,12 +71,24 @@ public class AuthController {
     @PostMapping(value = ApiConstants.LOGIN_ENDPOINT, consumes = MediaType.APPLICATION_JSON_VALUE)
     @Operation(
             summary = "User login",
-            description = "Authenticates a user and returns access and refresh tokens")
-    public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
+            description =
+                    "Authenticates a user with username or email and returns access and refresh tokens")
+    public ResponseEntity<LoginResponse> login(
+            @Valid @RequestBody LoginRequest request, HttpServletRequest httpRequest) {
         log.info("Login attempt received");
-        LoginResponse response = authService.login(request.username(), request.password());
+        String ipAddress = extractIpAddress(httpRequest);
+        LoginResponse response =
+                authService.login(request.identifier(), request.password(), ipAddress);
         log.info("Login successful");
         return ResponseEntity.ok(response);
+    }
+
+    private String extractIpAddress(HttpServletRequest request) {
+        String xff = request.getHeader("X-Forwarded-For");
+        if (xff != null && !xff.isBlank()) {
+            return xff.split(",")[0].trim();
+        }
+        return request.getRemoteAddr();
     }
 
     @PostMapping(
@@ -175,8 +188,9 @@ public class AuthController {
             security = @SecurityRequirement(name = "Bearer Authentication"))
     public ResponseEntity<Map<String, String>> logout(@AuthenticationPrincipal Jwt jwt) {
         UUID userId = UUID.fromString(jwt.getSubject());
+        String jti = jwt.getId(); // Get JTI from JWT
         log.info("Logout request for userId: {}", userId);
-        authService.logout(userId);
+        authService.logout(userId, jti, jwt.getExpiresAt());
         log.info("Logout successful for userId: {}", userId);
         return ResponseEntity.ok(Map.of("message", "Logged out successfully"));
     }

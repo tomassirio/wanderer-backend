@@ -22,10 +22,13 @@ public interface TripRepository extends JpaRepository<Trip, UUID> {
 
     /**
      * Find trips by user ID that are visible to the requester based on visibility rules. Returns
-     * PUBLIC and PROTECTED trips for any requester.
+     * PUBLIC and PROTECTED trips for any requester. Excludes CREATED (draft) trips unless they are
+     * pre-announced.
      */
     @Query(
-            "SELECT t FROM Trip t WHERE t.userId = :userId AND t.tripSettings.visibility IN :visibilities")
+            "SELECT t FROM Trip t WHERE t.userId = :userId AND t.tripSettings.visibility IN :visibilities "
+                    + "AND (t.tripSettings.tripStatus != com.tomassirio.wanderer.commons.domain.TripStatus.CREATED OR "
+                    + "EXISTS (SELECT 1 FROM PromotedTrip p WHERE p.tripId = t.id AND p.preAnnounced = true))")
     List<Trip> findByUserIdAndVisibilityIn(
             @Param("userId") UUID userId, @Param("visibilities") List<TripVisibility> visibilities);
 

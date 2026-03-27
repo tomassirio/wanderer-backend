@@ -36,6 +36,13 @@ data:
     wanderer.command.url={{ .Values.application.wandererCommandUrl }}
     wanderer.query.url={{ .Values.application.wandererQueryUrl }}
 
+    # Redis Configuration
+    spring.data.redis.host={{ .Values.application.redis.host }}{{ .Values.environment.suffix }}
+    spring.data.redis.port={{ .Values.application.redis.port }}
+
+    # JTI Blacklist Validation
+    app.security.jti-validation.enabled={{ .Values.application.security.jtiValidation.enabled }}
+
     # Disable Spring Cloud compatibility verifier
     spring.cloud.compatibility-verifier.enabled={{ .Values.application.springCloud.compatibilityVerifierEnabled }}
 

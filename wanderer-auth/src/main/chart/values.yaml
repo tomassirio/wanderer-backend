@@ -56,6 +56,16 @@ application:
   wandererCommandUrl: "http://wanderer-command:8081"
   wandererQueryUrl: "http://wanderer-query:8082"
 
+  # Redis Configuration
+  redis:
+    host: "redis-service"
+    port: 6379
+
+  # JTI Blacklist Validation
+  security:
+    jtiValidation:
+      enabled: true
+
   # Rate Limiting (lower limit for auth service to prevent brute-force)
   rateLimit:
     enabled: true

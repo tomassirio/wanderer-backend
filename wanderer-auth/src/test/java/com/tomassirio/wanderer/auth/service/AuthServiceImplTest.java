@@ -2,7 +2,10 @@ package com.tomassirio.wanderer.auth.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -15,12 +18,18 @@ import com.tomassirio.wanderer.auth.dto.RegisterPendingResponse;
 import com.tomassirio.wanderer.auth.dto.RegisterRequest;
 import com.tomassirio.wanderer.auth.repository.CredentialRepository;
 import com.tomassirio.wanderer.auth.service.impl.AuthServiceImpl;
+import com.tomassirio.wanderer.auth.strategy.EmailLookupStrategy;
+import com.tomassirio.wanderer.auth.strategy.UserLookupStrategy;
+import com.tomassirio.wanderer.auth.strategy.UsernameLookupStrategy;
 import com.tomassirio.wanderer.commons.domain.User;
 import com.tomassirio.wanderer.commons.security.Role;
+import com.tomassirio.wanderer.commons.security.revocation.RevokedTokenCache;
 import feign.FeignException;
 import feign.FeignException.NotFound;
 import feign.Request;
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -29,7 +38,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -51,11 +59,17 @@ class AuthServiceImplTest {
 
     @Mock private WandererQueryClient wandererQueryClient;
 
-    @InjectMocks private AuthServiceImpl authService;
+    @Mock private RevokedTokenCache revokedTokenCache;
+
+    @Mock private LoginAttemptService loginAttemptService;
+
+    private AuthServiceImpl authService;
 
     private User testUser;
 
     private Credential testCredential;
+
+    private List<UserLookupStrategy> strategies;
 
     @BeforeEach
     void setUp() {
@@ -68,15 +82,36 @@ class AuthServiceImplTest {
                         .email("user@email.com")
                         .roles(Set.of(Role.USER))
                         .build();
+
+        // Create real strategy instances for testing
+        strategies =
+                List.of(
+                        new EmailLookupStrategy(credentialRepository, wandererQueryClient),
+                        new UsernameLookupStrategy(wandererQueryClient));
+
+        authService =
+                new AuthServiceImpl(
+                        credentialRepository,
+                        passwordEncoder,
+                        jwtService,
+                        tokenService,
+                        emailService,
+                        wandererCommandClient,
+                        wandererQueryClient,
+                        strategies,
+                        revokedTokenCache,
+                        loginAttemptService);
     }
 
     @Test
     void login_whenValidCredentials_shouldReturnLoginResponse() {
-        String password = "password123";
+        String password = "SecurePass1!";
         String accessToken = "jwt.access.token";
         String refreshToken = "refresh.token";
         long expiresIn = 3600000L;
+        String ipAddress = "192.168.1.1";
 
+        when(loginAttemptService.isAccountLocked(testUser.getUsername())).thenReturn(false);
         when(wandererQueryClient.getUserByUsername(testUser.getUsername())).thenReturn(testUser);
         when(credentialRepository.findById(testUser.getId()))
                 .thenReturn(Optional.of(testCredential));
@@ -85,7 +120,7 @@ class AuthServiceImplTest {
         when(tokenService.createRefreshToken(testUser.getId())).thenReturn(refreshToken);
         when(jwtService.getExpirationMs()).thenReturn(expiresIn);
 
-        LoginResponse result = authService.login(testUser.getUsername(), password);
+        LoginResponse result = authService.login(testUser.getUsername(), password, ipAddress);
 
         assertEquals(accessToken, result.accessToken());
         assertEquals(refreshToken, result.refreshToken());
@@ -94,6 +129,8 @@ class AuthServiceImplTest {
         assertEquals(testUser.getUsername(), result.username());
         verify(jwtService).generateTokenWithJti(any(), any(), any());
         verify(tokenService).createRefreshToken(testUser.getId());
+        verify(loginAttemptService)
+                .recordSuccessfulLogin(testUser.getUsername(), testUser.getId(), ipAddress);
     }
 
     @Test
@@ -110,7 +147,8 @@ class AuthServiceImplTest {
                 .thenThrow(new NotFound("User not found", dummyRequest, null, null));
 
         assertThrows(
-                IllegalArgumentException.class, () -> authService.login("nonexistent", "password"));
+                IllegalArgumentException.class,
+                () -> authService.login("nonexistent", "password", "127.0.0.1"));
     }
 
     @Test
@@ -120,7 +158,7 @@ class AuthServiceImplTest {
 
         assertThrows(
                 IllegalArgumentException.class,
-                () -> authService.login(testUser.getUsername(), "password"));
+                () -> authService.login(testUser.getUsername(), "password", "127.0.0.1"));
     }
 
     @Test
@@ -133,7 +171,7 @@ class AuthServiceImplTest {
 
         assertThrows(
                 IllegalArgumentException.class,
-                () -> authService.login(testUser.getUsername(), "password"));
+                () -> authService.login(testUser.getUsername(), "password", "127.0.0.1"));
     }
 
     @Test
@@ -146,13 +184,84 @@ class AuthServiceImplTest {
 
         assertThrows(
                 IllegalArgumentException.class,
-                () -> authService.login(testUser.getUsername(), "wrongpassword"));
+                () -> authService.login(testUser.getUsername(), "wrongpassword", "127.0.0.1"));
+    }
+
+    @Test
+    void login_whenValidEmailProvided_shouldReturnLoginResponse() {
+        String email = "user@email.com";
+        String password = "SecurePass1!";
+        String accessToken = "jwt.access.token";
+        String refreshToken = "refresh.token";
+        long expiresIn = 3600000L;
+
+        when(credentialRepository.findByEmail(email)).thenReturn(Optional.of(testCredential));
+        when(wandererQueryClient.getUserById(testUser.getId())).thenReturn(testUser);
+        when(credentialRepository.findById(testUser.getId()))
+                .thenReturn(Optional.of(testCredential));
+        when(passwordEncoder.matches(password, testCredential.getPasswordHash())).thenReturn(true);
+        when(jwtService.generateTokenWithJti(any(), any(), any())).thenReturn(accessToken);
+        when(tokenService.createRefreshToken(testUser.getId())).thenReturn(refreshToken);
+        when(jwtService.getExpirationMs()).thenReturn(expiresIn);
+
+        LoginResponse result = authService.login(email, password, "127.0.0.1");
+
+        assertEquals(accessToken, result.accessToken());
+        assertEquals(refreshToken, result.refreshToken());
+        assertEquals(testUser.getUsername(), result.username());
+        verify(credentialRepository).findByEmail(email);
+        verify(wandererQueryClient).getUserById(testUser.getId());
+    }
+
+    @Test
+    void login_whenEmailNotFound_shouldThrowIllegalArgumentException() {
+        String email = "notfound@example.com";
+        when(credentialRepository.findByEmail(email)).thenReturn(Optional.empty());
+
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> authService.login(email, "password", "127.0.0.1"));
+    }
+
+    @Test
+    void login_whenAccountIsLocked_shouldThrowIllegalArgumentException() {
+        String identifier = "testuser";
+        String ipAddress = "192.168.1.1";
+
+        when(loginAttemptService.isAccountLocked(identifier)).thenReturn(true);
+
+        IllegalArgumentException exception =
+                assertThrows(
+                        IllegalArgumentException.class,
+                        () -> authService.login(identifier, "password", ipAddress));
+
+        assertTrue(exception.getMessage().contains("Account temporarily locked"));
+        verify(loginAttemptService).recordFailedLogin(identifier, ipAddress);
+        verify(wandererQueryClient, never()).getUserByUsername(any());
+    }
+
+    @Test
+    void login_whenPasswordIncorrect_shouldRecordFailedAttempt() {
+        String ipAddress = "192.168.1.1";
+
+        when(loginAttemptService.isAccountLocked(testUser.getUsername())).thenReturn(false);
+        when(wandererQueryClient.getUserByUsername(testUser.getUsername())).thenReturn(testUser);
+        when(credentialRepository.findById(testUser.getId()))
+                .thenReturn(Optional.of(testCredential));
+        when(passwordEncoder.matches("wrongpassword", testCredential.getPasswordHash()))
+                .thenReturn(false);
+
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> authService.login(testUser.getUsername(), "wrongpassword", ipAddress));
+
+        verify(loginAttemptService).recordFailedLogin(testUser.getUsername(), ipAddress);
     }
 
     @Test
     void register_whenValidRequest_shouldCreatePendingVerificationAndSendEmail() {
         RegisterRequest request =
-                new RegisterRequest("testuser", "test@example.com", "password123");
+                new RegisterRequest("testuser", "test@example.com", "SecurePass1!");
         String verificationToken = "verification.token";
         Request dummyRequest =
                 Request.create(
@@ -184,7 +293,7 @@ class AuthServiceImplTest {
     @Test
     void register_whenMixedCaseUsername_shouldNormalizeToLowercase() {
         RegisterRequest request =
-                new RegisterRequest("TestUser", "test@example.com", "password123");
+                new RegisterRequest("TestUser", "test@example.com", "SecurePass1!");
         String verificationToken = "verification.token";
         Request dummyRequest =
                 Request.create(
@@ -219,7 +328,7 @@ class AuthServiceImplTest {
     @Test
     void register_whenEmailAlreadyExists_shouldThrowException() {
         RegisterRequest request =
-                new RegisterRequest("testuser", "existing@example.com", "password123");
+                new RegisterRequest("testuser", "existing@example.com", "SecurePass1!");
 
         when(credentialRepository.findByEmail(request.email()))
                 .thenReturn(Optional.of(testCredential));
@@ -232,7 +341,7 @@ class AuthServiceImplTest {
     @Test
     void register_whenUsernameAlreadyExists_shouldThrowException() {
         RegisterRequest request =
-                new RegisterRequest("existinguser", "test@example.com", "password123");
+                new RegisterRequest("existinguser", "test@example.com", "SecurePass1!");
 
         when(credentialRepository.findByEmail(request.email())).thenReturn(Optional.empty());
         when(wandererQueryClient.getUserByUsername("existinguser")).thenReturn(testUser);
@@ -353,10 +462,15 @@ class AuthServiceImplTest {
     }
 
     @Test
-    void logout_shouldRevokeRefreshTokens() {
-        authService.logout(testUser.getId());
+    void logout_shouldRevokeRefreshTokensAndAccessToken() {
+        String jti = "test-jti-123";
+        Instant expiresAt = Instant.now().plusSeconds(3600);
+
+        authService.logout(testUser.getId(), jti, expiresAt);
 
         verify(tokenService).revokeAllRefreshTokensForUser(testUser.getId());
+        // Verify JTI is revoked with approximately 3600 seconds (allow for timing variance)
+        verify(revokedTokenCache).revokeToken(eq(jti), anyLong());
     }
 
     @Test
@@ -414,7 +528,7 @@ class AuthServiceImplTest {
     @Test
     void resetPassword_whenValidToken_shouldUpdatePassword() {
         String token = "reset.token";
-        String newPassword = "newPassword123";
+        String newPassword = "NewPass123!";
         UUID userId = testUser.getId();
 
         when(tokenService.validatePasswordResetToken(token)).thenReturn(userId);
@@ -433,7 +547,7 @@ class AuthServiceImplTest {
     @Test
     void resetPassword_whenCredentialNotFound_shouldThrowException() {
         String token = "reset.token";
-        String newPassword = "newPassword123";
+        String newPassword = "NewPass123!";
         UUID userId = UUID.randomUUID();
 
         when(tokenService.validatePasswordResetToken(token)).thenReturn(userId);
@@ -446,7 +560,7 @@ class AuthServiceImplTest {
     @Test
     void changePassword_whenValidCurrentPassword_shouldUpdatePassword() {
         String currentPassword = "currentPassword";
-        String newPassword = "newPassword123";
+        String newPassword = "NewPass123!";
         UUID userId = testUser.getId();
 
         when(credentialRepository.findById(userId)).thenReturn(Optional.of(testCredential));
@@ -463,7 +577,7 @@ class AuthServiceImplTest {
     @Test
     void changePassword_whenInvalidCurrentPassword_shouldThrowException() {
         String currentPassword = "wrongPassword";
-        String newPassword = "newPassword123";
+        String newPassword = "NewPass123!";
         UUID userId = testUser.getId();
 
         when(credentialRepository.findById(userId)).thenReturn(Optional.of(testCredential));
@@ -479,7 +593,7 @@ class AuthServiceImplTest {
     @Test
     void changePassword_whenCredentialNotFound_shouldThrowException() {
         String currentPassword = "currentPassword";
-        String newPassword = "newPassword123";
+        String newPassword = "NewPass123!";
         UUID userId = UUID.randomUUID();
 
         when(credentialRepository.findById(userId)).thenReturn(Optional.empty());
@@ -497,7 +611,7 @@ class AuthServiceImplTest {
         IllegalArgumentException exception =
                 assertThrows(
                         IllegalArgumentException.class,
-                        () -> authService.login("testuser", "password"));
+                        () -> authService.login("testuser", "password", "127.0.0.1"));
 
         assertEquals("Invalid credentials", exception.getMessage());
         verify(credentialRepository, never()).findById(any());
@@ -523,7 +637,7 @@ class AuthServiceImplTest {
         IllegalStateException exception =
                 assertThrows(
                         IllegalStateException.class,
-                        () -> authService.login("testuser", "password"));
+                        () -> authService.login("testuser", "password", "127.0.0.1"));
 
         assertEquals("Failed to contact user query service", exception.getMessage());
         assertEquals(serverError, exception.getCause());
@@ -532,7 +646,7 @@ class AuthServiceImplTest {
 
     @Test
     void login_whenMixedCaseUsername_shouldNormalizeToLowercase() {
-        String password = "password123";
+        String password = "SecurePass1!";
         String accessToken = "jwt.access.token";
         String refreshToken = "refresh.token";
         long expiresIn = 3600000L;
@@ -546,7 +660,7 @@ class AuthServiceImplTest {
         when(jwtService.getExpirationMs()).thenReturn(expiresIn);
 
         // Login with mixed case "TestUser" — should be normalized to "testuser"
-        LoginResponse result = authService.login("TestUser", password);
+        LoginResponse result = authService.login("TestUser", password, "127.0.0.1");
 
         assertEquals(accessToken, result.accessToken());
         verify(wandererQueryClient).getUserByUsername("testuser");

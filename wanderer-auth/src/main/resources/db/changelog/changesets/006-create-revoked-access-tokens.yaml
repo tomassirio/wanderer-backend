@@ -1,0 +1,50 @@
+databaseChangeLog:
+  - changeSet:
+      id: 006-create-revoked-access-tokens
+      author: copilot
+      changes:
+        - createTable:
+            tableName: revoked_access_tokens
+            columns:
+              - column:
+                  name: jti
+                  type: varchar(255)
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: user_id
+                  type: uuid
+                  constraints:
+                    nullable: false
+              - column:
+                  name: expires_at
+                  type: timestamp
+                  constraints:
+                    nullable: false
+              - column:
+                  name: revoked_at
+                  type: timestamp
+                  constraints:
+                    nullable: false
+        - createIndex:
+            indexName: idx_revoked_tokens_user_id
+            tableName: revoked_access_tokens
+            columns:
+              - column:
+                  name: user_id
+        - createIndex:
+            indexName: idx_revoked_tokens_expires_at
+            tableName: revoked_access_tokens
+            columns:
+              - column:
+                  name: expires_at
+      rollback:
+        - dropIndex:
+            indexName: idx_revoked_tokens_expires_at
+            tableName: revoked_access_tokens
+        - dropIndex:
+            indexName: idx_revoked_tokens_user_id
+            tableName: revoked_access_tokens
+        - dropTable:
+            tableName: revoked_access_tokens

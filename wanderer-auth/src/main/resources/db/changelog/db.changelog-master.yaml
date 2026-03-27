@@ -9,3 +9,7 @@ databaseChangeLog:
       file: db/changelog/changesets/004-create-password-reset-tokens.yaml
   - include:
       file: db/changelog/changesets/005-create-email-verification-tokens.yaml
+  - include:
+      file: db/changelog/changesets/006-create-revoked-access-tokens.yaml
+  - include:
+      file: db/changelog/changesets/007-create-login-attempts.yaml

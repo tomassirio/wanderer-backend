@@ -43,6 +43,13 @@ data:
 
     # Wanderer service URLs
     wanderer.auth.url={{ .Values.application.wanderer.authUrl }}
+    
+    # Redis Configuration
+    spring.data.redis.host={{ .Values.application.redis.host }}{{ .Values.environment.suffix }}
+    spring.data.redis.port={{ .Values.application.redis.port }}
+    
+    # JTI Blacklist Validation
+    app.security.jti-validation.enabled={{ .Values.application.security.jtiValidation.enabled }}
 
     # Google Maps Configuration
     google.maps.api-key={{ .Values.application.googleMaps.apiKey }}

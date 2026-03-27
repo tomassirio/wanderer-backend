@@ -1,6 +1,7 @@
 package com.tomassirio.wanderer.auth.controller;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -66,11 +67,16 @@ class AuthControllerTest {
 
     /** Helper method to create a JWT authentication request post processor */
     private RequestPostProcessor jwtAuth(String subject) {
+        return jwtAuth(subject, "test-jti");
+    }
+
+    private RequestPostProcessor jwtAuth(String subject, String jti) {
         return request -> {
             Jwt jwt =
                     Jwt.withTokenValue("mock.jwt.token")
                             .header("alg", "HS256")
                             .subject(subject)
+                            .jti(jti)
                             .issuedAt(Instant.now())
                             .expiresAt(Instant.now().plusSeconds(3600))
                             .build();
@@ -82,12 +88,13 @@ class AuthControllerTest {
 
     @Test
     void login_whenValidRequest_shouldReturnOk() throws Exception {
-        LoginRequest request = new LoginRequest("testuser", "password123");
+        LoginRequest request = new LoginRequest("testuser", "SecurePass1!");
         LoginResponse response =
                 new LoginResponse(
                         "jwt.access.token", "refresh.token", "Bearer", 3600000L, "testuser");
 
-        when(authService.login(request.username(), request.password())).thenReturn(response);
+        when(authService.login(eq(request.identifier()), eq(request.password()), any(String.class)))
+                .thenReturn(response);
 
         mockMvc.perform(
                         post("/api/1/auth/login")
@@ -101,8 +108,11 @@ class AuthControllerTest {
     }
 
     @Test
-    void login_whenInvalidPassword_shouldReturnBadRequest() throws Exception {
-        LoginRequest request = new LoginRequest("testuser", "short");
+    void login_whenInvalidCredentials_shouldReturnBadRequest() throws Exception {
+        LoginRequest request = new LoginRequest("testuser", "WrongPass1!");
+
+        when(authService.login(eq(request.identifier()), eq(request.password()), any(String.class)))
+                .thenThrow(new IllegalArgumentException("Invalid credentials"));
 
         mockMvc.perform(
                         post("/api/1/auth/login")
@@ -114,7 +124,7 @@ class AuthControllerTest {
     @Test
     void register_whenValidRequest_shouldReturnAccepted() throws Exception {
         RegisterRequest request =
-                new RegisterRequest("testuser", "test@example.com", "password123");
+                new RegisterRequest("testuser", "test@example.com", "SecurePass1!");
         RegisterPendingResponse response =
                 new RegisterPendingResponse(
                         "Registration pending. Please check your email to verify your account.");
@@ -135,7 +145,7 @@ class AuthControllerTest {
 
     @Test
     void register_whenInvalidEmail_shouldReturnBadRequest() throws Exception {
-        RegisterRequest request = new RegisterRequest("testuser", "invalid-email", "password123");
+        RegisterRequest request = new RegisterRequest("testuser", "invalid-email", "SecurePass1!");
 
         mockMvc.perform(
                         post("/api/1/auth/register")
@@ -203,20 +213,23 @@ class AuthControllerTest {
     @Test
     void logout_whenValidToken_shouldReturnOk() throws Exception {
         UUID userId = UUID.randomUUID();
+        String jti = "test-jti";
 
-        doNothing().when(authService).logout(userId);
+        doNothing()
+                .when(authService)
+                .logout(any(UUID.class), any(String.class), any(Instant.class));
 
-        mockMvc.perform(post("/api/1/auth/logout").with(jwtAuth(userId.toString())))
+        mockMvc.perform(post("/api/1/auth/logout").with(jwtAuth(userId.toString(), jti)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.message").value("Logged out successfully"));
 
-        verify(authService).logout(userId);
+        verify(authService).logout(any(UUID.class), any(String.class), any(Instant.class));
     }
 
     @Test
     void resetPassword_whenValidToken_shouldReturnOk() throws Exception {
         PasswordResetConfirmRequest request =
-                new PasswordResetConfirmRequest("valid.reset.token", "newPassword123");
+                new PasswordResetConfirmRequest("valid.reset.token", "NewPass123!");
 
         when(authService.resetPassword(request.token(), request.newPassword()))
                 .thenReturn("testuser");
@@ -247,8 +260,7 @@ class AuthControllerTest {
     @Test
     void changePassword_whenValidRequest_shouldReturnOk() throws Exception {
         UUID userId = UUID.randomUUID();
-        PasswordChangeRequest request =
-                new PasswordChangeRequest("currentPassword123", "newPassword456");
+        PasswordChangeRequest request = new PasswordChangeRequest("CurrentPass1!", "NewPass456!");
 
         doNothing()
                 .when(authService)
@@ -269,7 +281,7 @@ class AuthControllerTest {
     @Test
     void changePassword_whenInvalidNewPassword_shouldReturnBadRequest() throws Exception {
         UUID userId = UUID.randomUUID();
-        PasswordChangeRequest request = new PasswordChangeRequest("currentPassword123", "short");
+        PasswordChangeRequest request = new PasswordChangeRequest("CurrentPass1!", "short");
 
         mockMvc.perform(
                         put("/api/1/auth/password/change")

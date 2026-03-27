@@ -1,0 +1,69 @@
+databaseChangeLog:
+  - changeSet:
+      id: 007-create-login-attempts
+      author: copilot
+      changes:
+        - createTable:
+            tableName: login_attempts
+            columns:
+              - column:
+                  name: id
+                  type: uuid
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: user_id
+                  type: uuid
+                  constraints:
+                    nullable: true
+              - column:
+                  name: identifier
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: ip_address
+                  type: varchar(45)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: success
+                  type: boolean
+                  constraints:
+                    nullable: false
+              - column:
+                  name: attempted_at
+                  type: timestamp
+                  constraints:
+                    nullable: false
+        - createIndex:
+            indexName: idx_login_attempts_identifier
+            tableName: login_attempts
+            columns:
+              - column:
+                  name: identifier
+        - createIndex:
+            indexName: idx_login_attempts_attempted_at
+            tableName: login_attempts
+            columns:
+              - column:
+                  name: attempted_at
+        - createIndex:
+            indexName: idx_login_attempts_user_id
+            tableName: login_attempts
+            columns:
+              - column:
+                  name: user_id
+      rollback:
+        - dropIndex:
+            indexName: idx_login_attempts_user_id
+            tableName: login_attempts
+        - dropIndex:
+            indexName: idx_login_attempts_attempted_at
+            tableName: login_attempts
+        - dropIndex:
+            indexName: idx_login_attempts_identifier
+            tableName: login_attempts
+        - dropTable:
+            tableName: login_attempts

@@ -1,7 +1,9 @@
 package com.tomassirio.wanderer.query.service;
 
 import com.tomassirio.wanderer.query.dto.UserAdminResponse;
+import com.tomassirio.wanderer.query.dto.UserRelationshipResponse;
 import com.tomassirio.wanderer.query.dto.UserResponse;
+import java.util.List;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -47,4 +49,27 @@ public interface UserQueryService {
      * @return a page of user admin responses with statistics
      */
     Page<UserAdminResponse> getAllUsersWithStats(Pageable pageable);
+    
+    /**
+     * Retrieves discoverable users for the current user. Returns friends of friends first,
+     * then people followed by friends.
+     *
+     * @param currentUserId the ID of the current user
+     * @param page the page number
+     * @param size the page size
+     * @return page of discoverable users
+     */
+    Page<UserResponse> getDiscoverableUsers(UUID currentUserId, int page, int size);
+    
+    /**
+     * Retrieves users associated with the target user, showing their relationship status
+     * (friend, following, followed) from the perspective of the current user.
+     *
+     * @param currentUserId the ID of the current user making the request
+     * @param targetUserId the ID of the user whose associated users to retrieve
+     * @param page the page number
+     * @param size the page size
+     * @return page of users with relationship status
+     */
+    Page<UserRelationshipResponse> getAssociatedUsers(UUID currentUserId, UUID targetUserId, int page, int size);
 }
