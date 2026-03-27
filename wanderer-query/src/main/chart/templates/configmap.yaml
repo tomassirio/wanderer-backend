@@ -42,6 +42,12 @@ data:
 
     # Wanderer service URLs
     wanderer.auth.url={{ .Values.application.wanderer.authUrl }}
+    
+    # Auth service URL for token validation
+    app.auth-service.url={{ .Values.application.wanderer.authUrl }}
+    
+    # JTI Blacklist Validation
+    app.security.jti-validation.enabled={{ .Values.application.security.jtiValidation.enabled }}
 
     # Rate Limiting
     app.rate-limit.enabled={{ .Values.application.rateLimit.enabled }}

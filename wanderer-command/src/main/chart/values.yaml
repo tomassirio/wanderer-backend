@@ -93,6 +93,11 @@ application:
   wanderer:
     authUrl: "http://wanderer-auth:8083"
 
+  # JTI Blacklist Validation
+  security:
+    jtiValidation:
+      enabled: true
+
   # Rate Limiting
   rateLimit:
     enabled: true

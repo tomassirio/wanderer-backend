@@ -43,6 +43,12 @@ data:
 
     # Wanderer service URLs
     wanderer.auth.url={{ .Values.application.wanderer.authUrl }}
+    
+    # Auth service URL for token validation
+    app.auth-service.url={{ .Values.application.wanderer.authUrl }}
+    
+    # JTI Blacklist Validation
+    app.security.jti-validation.enabled={{ .Values.application.security.jtiValidation.enabled }}
 
     # Google Maps Configuration
     google.maps.api-key={{ .Values.application.googleMaps.apiKey }}

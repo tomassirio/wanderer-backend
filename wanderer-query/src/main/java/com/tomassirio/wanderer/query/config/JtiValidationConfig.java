@@ -1,0 +1,26 @@
+package com.tomassirio.wanderer.query.config;
+
+import com.tomassirio.wanderer.query.client.AuthTokenValidatorClient;
+import com.tomassirio.wanderer.query.security.JtiValidatingJwtConverter;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.cloud.openfeign.EnableFeignClients;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.core.convert.converter.Converter;
+import org.springframework.security.authentication.AbstractAuthenticationToken;
+import org.springframework.security.oauth2.jwt.Jwt;
+
+/**
+ * Configuration for JTI validation via auth service.
+ */
+@Configuration
+@EnableFeignClients(basePackageClasses = AuthTokenValidatorClient.class)
+@ConditionalOnProperty(name = "app.security.jti-validation.enabled", havingValue = "true")
+public class JtiValidationConfig {
+
+    @Bean
+    public Converter<Jwt, AbstractAuthenticationToken> jwtAuthenticationConverter(
+            AuthTokenValidatorClient authTokenValidatorClient) {
+        return new JtiValidatingJwtConverter(authTokenValidatorClient);
+    }
+}

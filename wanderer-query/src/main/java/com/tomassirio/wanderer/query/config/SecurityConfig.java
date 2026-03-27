@@ -28,7 +28,7 @@ import org.springframework.web.cors.CorsConfigurationSource;
 @RequiredArgsConstructor
 @Import({
     JwtConfig.class,
-    JwtConverterConfig.class,
+    JtiValidationConfig.class,
     SecurityCorsConfig.class,
     SecurityHeadersConfig.class,
     RateLimitConfig.class
