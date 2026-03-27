@@ -21,6 +21,7 @@ import com.tomassirio.wanderer.auth.strategy.UserLookupStrategy;
 import com.tomassirio.wanderer.auth.strategy.UsernameLookupStrategy;
 import com.tomassirio.wanderer.commons.domain.User;
 import com.tomassirio.wanderer.commons.security.Role;
+import com.tomassirio.wanderer.commons.security.revocation.RevokedTokenCache;
 import feign.FeignException;
 import feign.FeignException.NotFound;
 import feign.Request;
@@ -57,7 +58,7 @@ class AuthServiceImplTest {
 
     @Mock private WandererQueryClient wandererQueryClient;
     
-    @Mock private RevokedTokenService revokedTokenService;
+    @Mock private RevokedTokenCache revokedTokenCache;
     
     @Mock private LoginAttemptService loginAttemptService;
 
@@ -96,7 +97,7 @@ class AuthServiceImplTest {
                 wandererCommandClient,
                 wandererQueryClient,
                 strategies,
-                revokedTokenService,
+                revokedTokenCache,
                 loginAttemptService
         );
     }
@@ -464,7 +465,7 @@ class AuthServiceImplTest {
         authService.logout(testUser.getId(), jti, expiresAt);
 
         verify(tokenService).revokeAllRefreshTokensForUser(testUser.getId());
-        verify(revokedTokenService).revokeToken(jti, testUser.getId(), expiresAt);
+        verify(revokedTokenCache).revokeToken(jti, 3600L);
     }
 
     @Test
