@@ -1,0 +1,19 @@
+{{- if .Values.redis.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-service{{ .Values.environment.suffix }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: redis
+    environment: {{ .Values.environment.name }}
+spec:
+  type: {{ .Values.redis.service.type }}
+  selector:
+    app: redis
+  ports:
+  - port: {{ .Values.redis.service.port }}
+    targetPort: {{ .Values.redis.service.targetPort }}
+    protocol: TCP
+    name: redis
+{{- end }}

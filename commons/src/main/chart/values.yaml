@@ -32,6 +32,25 @@ postgres:
   authUsername: wanderer_auth
   authPassword: password
 
+# Redis Configuration
+redis:
+  enabled: true
+  image:
+    repository: redis
+    tag: "7-alpine"
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 6379
+    targetPort: 6379
+  resources:
+    limits:
+      cpu: 200m
+      memory: 256Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+
 # Persistent Storage
 # Uses existing PVC created by infra repo
 persistence:
