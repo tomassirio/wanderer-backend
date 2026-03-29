@@ -488,7 +488,11 @@ class TripControllerTest {
                 null, // polylineUpdatedAt
                 null, // accruedDistanceKm
                 Instant.now(),
-                true);
+                true,
+                false, // isPromoted
+                null, // promotedAt
+                false, // isPreAnnounced
+                null); // countdownStartDate
     }
 
     private TripDTO createTripDTOWithStatus(
@@ -512,6 +516,10 @@ class TripControllerTest {
                 null, // polylineUpdatedAt
                 null, // accruedDistanceKm
                 Instant.now(),
-                true);
+                true,
+                false, // isPromoted
+                null, // promotedAt
+                false, // isPreAnnounced
+                null); // countdownStartDate
     }
 }

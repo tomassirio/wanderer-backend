@@ -205,6 +205,8 @@ public class TripServiceImpl implements TripService {
                                         trip.creationTimestamp(),
                                         trip.enabled(),
                                         null,
+                                        null,
+                                        null,
                                         null))
                 .toList();
     }
@@ -244,7 +246,9 @@ public class TripServiceImpl implements TripService {
                 trip.creationTimestamp(),
                 trip.enabled(),
                 trip.isPromoted(),
-                trip.promotedAt());
+                trip.promotedAt(),
+                trip.isPreAnnounced(),
+                trip.countdownStartDate());
     }
 
     /**
@@ -309,7 +313,9 @@ public class TripServiceImpl implements TripService {
                                             trip.getCreationTimestamp(),
                                             trip.getEnabled(),
                                             isPromoted,
-                                            promotedInfo != null ? promotedInfo.getPromotedAt() : null);
+                                            promotedInfo != null ? promotedInfo.getPromotedAt() : null,
+                                            promotedInfo != null ? promotedInfo.isPreAnnounced() : false,
+                                            promotedInfo != null ? promotedInfo.getCountdownStartDate() : null);
                                 })
                         .toList();
 

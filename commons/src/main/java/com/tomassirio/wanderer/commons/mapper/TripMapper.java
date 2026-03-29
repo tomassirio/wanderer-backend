@@ -33,6 +33,8 @@ public interface TripMapper {
     @Mapping(target = "tripDays", ignore = true)
     @Mapping(target = "isPromoted", ignore = true)
     @Mapping(target = "promotedAt", ignore = true)
+    @Mapping(target = "isPreAnnounced", ignore = true)
+    @Mapping(target = "countdownStartDate", ignore = true)
     TripDTO toDTO(Trip trip);
 
     @Mapping(

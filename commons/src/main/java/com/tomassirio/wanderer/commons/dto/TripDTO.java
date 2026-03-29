@@ -24,7 +24,9 @@ public record TripDTO(
         Instant creationTimestamp,
         Boolean enabled,
         Boolean isPromoted,
-        Instant promotedAt) {
+        Instant promotedAt,
+        Boolean isPreAnnounced,
+        Instant countdownStartDate) {
 
     @JsonProperty("thumbnailUrl")
     public String thumbnailUrl() {
