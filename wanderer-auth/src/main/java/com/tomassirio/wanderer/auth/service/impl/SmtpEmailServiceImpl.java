@@ -10,6 +10,7 @@ import jakarta.mail.internet.MimeMessage;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.concurrent.CompletableFuture;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -18,6 +19,7 @@ import org.springframework.mail.MailAuthenticationException;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.JavaMailSenderImpl;
 import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 /**
@@ -80,7 +82,8 @@ public class SmtpEmailServiceImpl implements EmailService {
     }
 
     @Override
-    public void sendVerificationEmail(String email, String username, String verificationToken) {
+    @Async
+    public CompletableFuture<Void> sendVerificationEmail(String email, String username, String verificationToken) {
         try {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper =
@@ -95,6 +98,7 @@ public class SmtpEmailServiceImpl implements EmailService {
 
             mailSender.send(message);
             log.info("Verification email sent successfully to: {}", email);
+            return CompletableFuture.completedFuture(null);
         } catch (MailAuthenticationException e) {
             log.error(
                     "SMTP authentication failed while sending email to: {}. "
@@ -123,7 +127,8 @@ public class SmtpEmailServiceImpl implements EmailService {
     }
 
     @Override
-    public void sendPasswordResetEmail(String email, String username, String resetToken) {
+    @Async
+    public CompletableFuture<Void> sendPasswordResetEmail(String email, String username, String resetToken) {
         try {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper =
@@ -138,6 +143,7 @@ public class SmtpEmailServiceImpl implements EmailService {
 
             mailSender.send(message);
             log.info("Password reset email sent successfully to: {}", email);
+            return CompletableFuture.completedFuture(null);
         } catch (MailAuthenticationException e) {
             log.error(
                     "SMTP authentication failed while sending password reset email to: {}. "
