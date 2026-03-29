@@ -1,0 +1,102 @@
+databaseChangeLog:
+  - changeSet:
+      id: 040-add-performance-indexes
+      author: tomassirio
+      comment: Add additional indexes to improve query performance on frequently queried columns
+      changes:
+        # Trips table indexes (new)
+        - createIndex:
+            indexName: idx_trips_user_id
+            tableName: trips
+            columns:
+              - column:
+                  name: user_id
+        
+        - createIndex:
+            indexName: idx_trips_status
+            tableName: trips
+            columns:
+              - column:
+                  name: status
+        
+        - createIndex:
+            indexName: idx_trips_visibility
+            tableName: trips
+            columns:
+              - column:
+                  name: visibility
+        
+        - createIndex:
+            indexName: idx_trips_user_status_visibility
+            tableName: trips
+            columns:
+              - column:
+                  name: user_id
+              - column:
+                  name: status
+              - column:
+                  name: visibility
+        
+        - createIndex:
+            indexName: idx_trips_created_at
+            tableName: trips
+            columns:
+              - column:
+                  name: creation_timestamp
+                  descending: true
+        
+        # Comments table indexes (new)
+        - createIndex:
+            indexName: idx_comments_trip_id
+            tableName: comments
+            columns:
+              - column:
+                  name: trip_id
+        
+        - createIndex:
+            indexName: idx_comments_user_id
+            tableName: comments
+            columns:
+              - column:
+                  name: user_id
+        
+        - createIndex:
+            indexName: idx_comments_parent_comment_id
+            tableName: comments
+            columns:
+              - column:
+                  name: parent_comment_id
+        
+        # Promoted Trips table indexes (new)
+        - createIndex:
+            indexName: idx_promoted_trips_trip_id
+            tableName: promoted_trips
+            columns:
+              - column:
+                  name: trip_id
+        
+        - createIndex:
+            indexName: idx_promoted_trips_promoted_at
+            tableName: promoted_trips
+            columns:
+              - column:
+                  name: promoted_at
+                  descending: true
+        
+        # Trip Days composite index (new - complements existing trip_id index)
+        - createIndex:
+            indexName: idx_trip_days_trip_day_number
+            tableName: trip_days
+            columns:
+              - column:
+                  name: trip_id
+              - column:
+                  name: day_number
+        
+        # Friend Requests individual indexes (complement existing composite)
+        - createIndex:
+            indexName: idx_friend_requests_receiver_id
+            tableName: friend_requests
+            columns:
+              - column:
+                  name: receiver_id
