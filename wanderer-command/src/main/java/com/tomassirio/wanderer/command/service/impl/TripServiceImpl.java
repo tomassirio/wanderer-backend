@@ -15,6 +15,7 @@ import com.tomassirio.wanderer.command.repository.TripRepository;
 import com.tomassirio.wanderer.command.repository.UserRepository;
 import com.tomassirio.wanderer.command.service.TripService;
 import com.tomassirio.wanderer.command.service.validator.OwnershipValidator;
+import com.tomassirio.wanderer.commons.config.RedisCacheConfig;
 import com.tomassirio.wanderer.commons.domain.Trip;
 import com.tomassirio.wanderer.commons.domain.TripModality;
 import com.tomassirio.wanderer.commons.domain.TripPlan;
@@ -29,6 +30,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -74,6 +77,7 @@ public class TripServiceImpl implements TripService {
     }
 
     @Override
+    @CacheEvict(value = RedisCacheConfig.TRIPS_CACHE, key = "#id")
     public UUID updateTrip(UUID userId, UUID id, TripUpdateRequest request) {
         // Validate trip exists and ownership
         Trip trip =

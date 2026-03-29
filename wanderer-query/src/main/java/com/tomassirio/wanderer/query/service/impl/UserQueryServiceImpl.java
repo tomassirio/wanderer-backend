@@ -1,5 +1,6 @@
 package com.tomassirio.wanderer.query.service.impl;
 
+import com.tomassirio.wanderer.commons.config.RedisCacheConfig;
 import com.tomassirio.wanderer.commons.domain.Friendship;
 import com.tomassirio.wanderer.commons.domain.User;
 import com.tomassirio.wanderer.commons.domain.UserFollow;
@@ -22,6 +23,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -46,6 +48,7 @@ public class UserQueryServiceImpl implements UserQueryService {
     private final TripRepository tripRepository;
 
     @Override
+    @Cacheable(value = RedisCacheConfig.USERS_CACHE, key = "#id", unless = "#result == null")
     public UserResponse getUserById(UUID id) {
         if (id == null) {
             throw new ResponseStatusException(
@@ -59,6 +62,7 @@ public class UserQueryServiceImpl implements UserQueryService {
     }
 
     @Override
+    @Cacheable(value = RedisCacheConfig.USER_BY_USERNAME_CACHE, key = "#username.toLowerCase()", unless = "#result == null")
     public UserResponse getUserByUsername(String username) {
         var user =
                 userRepository

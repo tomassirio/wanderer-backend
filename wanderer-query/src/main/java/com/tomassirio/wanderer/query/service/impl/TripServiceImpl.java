@@ -1,5 +1,6 @@
 package com.tomassirio.wanderer.query.service.impl;
 
+import com.tomassirio.wanderer.commons.config.RedisCacheConfig;
 import com.tomassirio.wanderer.commons.domain.Friendship;
 import com.tomassirio.wanderer.commons.domain.Trip;
 import com.tomassirio.wanderer.commons.domain.TripStatus;
@@ -22,6 +23,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import lombok.AllArgsConstructor;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -40,6 +42,7 @@ public class TripServiceImpl implements TripService {
     private final TripMapper tripMapper = TripMapper.INSTANCE;
 
     @Override
+    @Cacheable(value = RedisCacheConfig.TRIPS_CACHE, key = "#id", unless = "#result == null")
     public TripDTO getTrip(UUID id) {
         Trip trip =
                 tripRepository

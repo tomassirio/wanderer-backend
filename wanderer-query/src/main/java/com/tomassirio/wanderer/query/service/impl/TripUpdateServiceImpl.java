@@ -1,8 +1,8 @@
 package com.tomassirio.wanderer.query.service.impl;
 
+import com.tomassirio.wanderer.commons.config.RedisCacheConfig;
 import com.tomassirio.wanderer.commons.dto.TripUpdateDTO;
 import com.tomassirio.wanderer.commons.mapper.TripUpdateMapper;
-import com.tomassirio.wanderer.query.config.CacheConfig;
 import com.tomassirio.wanderer.query.repository.TripUpdateRepository;
 import com.tomassirio.wanderer.query.service.TripUpdateService;
 import jakarta.persistence.EntityNotFoundException;
@@ -35,7 +35,7 @@ public class TripUpdateServiceImpl implements TripUpdateService {
 
     @Override
     @Cacheable(
-            value = CacheConfig.TRIP_UPDATES_CACHE,
+            value = RedisCacheConfig.TRIP_UPDATES_CACHE,
             key =
                     "#tripId + '-' + #pageable.pageNumber + '-' + #pageable.pageSize + '-' + #pageable.sort")
     public Page<TripUpdateDTO> getTripUpdatesForTrip(UUID tripId, Pageable pageable) {

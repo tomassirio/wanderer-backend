@@ -1,5 +1,6 @@
 package com.tomassirio.wanderer.query.service.impl;
 
+import com.tomassirio.wanderer.commons.config.RedisCacheConfig;
 import com.tomassirio.wanderer.commons.domain.PromotedTrip;
 import com.tomassirio.wanderer.commons.domain.Trip;
 import com.tomassirio.wanderer.commons.domain.User;
@@ -13,6 +14,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -33,6 +35,7 @@ public class PromotedTripQueryServiceImpl implements PromotedTripQueryService {
     private final UserRepository userRepository;
 
     @Override
+    @Cacheable(value = RedisCacheConfig.PROMOTED_TRIPS_CACHE, key = "'all'")
     public List<PromotedTripResponse> getAllPromotedTrips() {
         return promotedTripRepository.findAll().stream()
                 .map(this::mapToResponse)
@@ -40,6 +43,7 @@ public class PromotedTripQueryServiceImpl implements PromotedTripQueryService {
     }
 
     @Override
+    @Cacheable(value = RedisCacheConfig.PROMOTED_TRIPS_CACHE, key = "#tripId", unless = "#result == null")
     public PromotedTripResponse getPromotionByTripId(UUID tripId) {
         PromotedTrip promotedTrip =
                 promotedTripRepository
