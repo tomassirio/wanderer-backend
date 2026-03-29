@@ -1,5 +1,6 @@
 package com.tomassirio.wanderer.commons.config;
 
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
@@ -84,7 +85,8 @@ public class RedisCacheConfig {
         
         objectMapper.activateDefaultTyping(
                 objectMapper.getPolymorphicTypeValidator(),
-                ObjectMapper.DefaultTyping.NON_FINAL);
+                ObjectMapper.DefaultTyping.NON_FINAL,
+                JsonTypeInfo.As.PROPERTY);
         
         GenericJackson2JsonRedisSerializer serializer = 
                 new GenericJackson2JsonRedisSerializer(objectMapper);
