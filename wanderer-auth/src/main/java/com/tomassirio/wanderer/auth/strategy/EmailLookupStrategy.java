@@ -3,6 +3,7 @@ package com.tomassirio.wanderer.auth.strategy;
 import com.tomassirio.wanderer.auth.client.WandererQueryClient;
 import com.tomassirio.wanderer.auth.repository.CredentialRepository;
 import com.tomassirio.wanderer.commons.domain.User;
+import com.tomassirio.wanderer.commons.dto.UserBasicInfo;
 import feign.FeignException;
 import java.util.Optional;
 import java.util.UUID;
@@ -35,8 +36,12 @@ public class EmailLookupStrategy implements UserLookupStrategy {
                         credential -> {
                             UUID userId = credential.getUserId();
                             try {
-                                User user = wandererQueryClient.getUserById(userId);
-                                return Optional.ofNullable(user);
+                                UserBasicInfo userInfo = wandererQueryClient.getUserById(userId, "basic");
+                                // Convert UserBasicInfo to User entity for authentication
+                                User user = new User();
+                                user.setId(userInfo.id());
+                                user.setUsername(userInfo.username());
+                                return Optional.of(user);
                             } catch (FeignException e) {
                                 log.debug(
                                         "User not found in query service for email lookup: {}",

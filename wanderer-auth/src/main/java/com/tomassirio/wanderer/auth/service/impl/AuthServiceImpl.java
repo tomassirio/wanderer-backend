@@ -14,6 +14,7 @@ import com.tomassirio.wanderer.auth.service.LoginAttemptService;
 import com.tomassirio.wanderer.auth.service.TokenService;
 import com.tomassirio.wanderer.auth.strategy.UserLookupStrategy;
 import com.tomassirio.wanderer.commons.domain.User;
+import com.tomassirio.wanderer.commons.dto.UserBasicInfo;
 import com.tomassirio.wanderer.commons.security.Role;
 import com.tomassirio.wanderer.commons.security.revocation.RevokedTokenCache;
 import feign.FeignException;
@@ -130,7 +131,7 @@ public class AuthServiceImpl implements AuthService {
 
         // Check if username is already taken by querying the read side
         try {
-            User existingUser = wandererQueryClient.getUserByUsername(normalizedUsername);
+            UserBasicInfo existingUser = wandererQueryClient.getUserByUsername(normalizedUsername, "basic");
             if (existingUser != null) {
                 throw new IllegalArgumentException("Username already taken: " + normalizedUsername);
             }
@@ -187,7 +188,10 @@ public class AuthServiceImpl implements AuthService {
         // 2) Fetch the created user from query service to get full User object
         User createdUser;
         try {
-            createdUser = wandererQueryClient.getUserById(createdUserId);
+            UserBasicInfo userInfo = wandererQueryClient.getUserById(createdUserId, "basic");
+            createdUser = new User();
+            createdUser.setId(userInfo.id());
+            createdUser.setUsername(userInfo.username());
         } catch (FeignException e) {
             // Attempt to delete the created user since we can't proceed
             try {
@@ -273,8 +277,8 @@ public class AuthServiceImpl implements AuthService {
         // Fetch the user to get the username for the email
         String username;
         try {
-            User user = wandererQueryClient.getUserById(cred.getUserId());
-            username = user.getUsername();
+            UserBasicInfo userInfo = wandererQueryClient.getUserById(cred.getUserId(), "basic");
+            username = userInfo.username();
         } catch (FeignException e) {
             // Fall back to email as the greeting name if user lookup fails
             username = email;
@@ -312,8 +316,8 @@ public class AuthServiceImpl implements AuthService {
 
         // Fetch the username for the response
         try {
-            User user = wandererQueryClient.getUserById(userId);
-            return user.getUsername();
+            UserBasicInfo userInfo = wandererQueryClient.getUserById(userId, "basic");
+            return userInfo.username();
         } catch (FeignException e) {
             return null;
         }

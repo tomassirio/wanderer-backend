@@ -69,19 +69,33 @@ public class UserQueryController {
 
     @GetMapping(ApiConstants.USER_BY_ID_ENDPOINT)
     @Operation(summary = "Get user by ID", description = "Retrieves a specific user by their ID")
-    public ResponseEntity<UserResponse> getUser(@PathVariable UUID id) {
+    public ResponseEntity<?> getUser(
+            @PathVariable UUID id,
+            @RequestParam(value = "format", required = false, defaultValue = "full") String format) {
         log.info("Retrieving user by ID: {}", id);
         UserResponse user = userQueryService.getUserById(id);
         log.info("Successfully retrieved user with ID: {}", id);
+        
+        // Return basic info for internal service-to-service calls
+        if ("basic".equals(format)) {
+            return ResponseEntity.ok(new com.tomassirio.wanderer.commons.dto.UserBasicInfo(user.id(), user.username()));
+        }
         return ResponseEntity.ok(user);
     }
 
     @GetMapping(ApiConstants.USERNAME_ENDPOINT)
     @Operation(summary = "Get user by username", description = "Retrieves a user by their username")
-    public ResponseEntity<UserResponse> getUserByUsername(@PathVariable String username) {
+    public ResponseEntity<?> getUserByUsername(
+            @PathVariable String username,
+            @RequestParam(value = "format", required = false, defaultValue = "full") String format) {
         log.info("Retrieving user by username");
         UserResponse user = userQueryService.getUserByUsername(username);
         log.info("Successfully retrieved user by username");
+        
+        // Return basic info for internal service-to-service calls
+        if ("basic".equals(format)) {
+            return ResponseEntity.ok(new com.tomassirio.wanderer.commons.dto.UserBasicInfo(user.id(), user.username()));
+        }
         return ResponseEntity.ok(user);
     }
 
