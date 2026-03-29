@@ -54,14 +54,7 @@ databaseChangeLog:
               - column:
                   name: used
         
-        # Email Verification Tokens table indexes
-        - createIndex:
-            indexName: idx_email_verification_tokens_user_id
-            tableName: email_verification_tokens
-            columns:
-              - column:
-                  name: user_id
-        
+        # Email Verification Tokens table indexes - idx_email_verification_tokens_email and idx_email_verification_tokens_token_hash already exist from 005-create-email-verification-tokens
         - createIndex:
             indexName: idx_email_verification_tokens_expires_at
             tableName: email_verification_tokens
@@ -70,11 +63,11 @@ databaseChangeLog:
                   name: expires_at
         
         - createIndex:
-            indexName: idx_email_verification_tokens_used
+            indexName: idx_email_verification_tokens_verified
             tableName: email_verification_tokens
             columns:
               - column:
-                  name: used
+                  name: verified
         
         # Login Attempts table indexes - idx_login_attempts_user_id, idx_login_attempts_identifier, and idx_login_attempts_attempted_at already exist from 007-create-login-attempts
         - createIndex:
