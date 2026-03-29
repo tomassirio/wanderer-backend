@@ -1,7 +1,7 @@
 package com.tomassirio.wanderer.query.repository;
 
 import com.tomassirio.wanderer.commons.domain.User;
-import com.tomassirio.wanderer.query.projection.UserSummary;
+import com.tomassirio.wanderer.query.dto.UserSummaryDto;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -17,28 +17,28 @@ public interface UserRepository extends JpaRepository<User, UUID> {
     Optional<User> findByUsername(String username);
     
     /**
-     * Find user summary by ID (projection for lightweight access)
+     * Find user summary by ID (DTO projection for lightweight access)
      */
-    @Query("SELECT u.id as id, u.username as username, u.userDetails.displayName as displayName, CONCAT('/thumbnails/profiles/', CAST(u.id AS string), '.png') as profilePictureUrl FROM User u WHERE u.id = :id")
-    Optional<UserSummary> findUserSummaryById(@Param("id") UUID id);
+    @Query("SELECT new com.tomassirio.wanderer.query.dto.UserSummaryDto(u.id, u.username, u.userDetails.displayName, CONCAT('/thumbnails/profiles/', CAST(u.id AS string), '.png')) FROM User u WHERE u.id = :id")
+    Optional<UserSummaryDto> findUserSummaryById(@Param("id") UUID id);
     
     /**
      * Find multiple user summaries by IDs (batch fetch)
      */
-    @Query("SELECT u.id as id, u.username as username, u.userDetails.displayName as displayName, CONCAT('/thumbnails/profiles/', CAST(u.id AS string), '.png') as profilePictureUrl FROM User u WHERE u.id IN :ids")
-    List<UserSummary> findUserSummariesByIdIn(@Param("ids") List<UUID> ids);
+    @Query("SELECT new com.tomassirio.wanderer.query.dto.UserSummaryDto(u.id, u.username, u.userDetails.displayName, CONCAT('/thumbnails/profiles/', CAST(u.id AS string), '.png')) FROM User u WHERE u.id IN :ids")
+    List<UserSummaryDto> findUserSummariesByIdIn(@Param("ids") List<UUID> ids);
     
     /**
      * Find user summaries with pagination
      */
-    @Query("SELECT u.id as id, u.username as username, u.userDetails.displayName as displayName, CONCAT('/thumbnails/profiles/', CAST(u.id AS string), '.png') as profilePictureUrl FROM User u")
-    Page<UserSummary> findAllUserSummaries(Pageable pageable);
+    @Query("SELECT new com.tomassirio.wanderer.query.dto.UserSummaryDto(u.id, u.username, u.userDetails.displayName, CONCAT('/thumbnails/profiles/', CAST(u.id AS string), '.png')) FROM User u")
+    Page<UserSummaryDto> findAllUserSummaries(Pageable pageable);
     
     /**
-     * Search users by username or display name (projection)
+     * Search users by username or display name (DTO projection)
      */
-    @Query("SELECT u.id as id, u.username as username, u.userDetails.displayName as displayName, CONCAT('/thumbnails/profiles/', CAST(u.id AS string), '.png') as profilePictureUrl " +
+    @Query("SELECT new com.tomassirio.wanderer.query.dto.UserSummaryDto(u.id, u.username, u.userDetails.displayName, CONCAT('/thumbnails/profiles/', CAST(u.id AS string), '.png')) " +
            "FROM User u WHERE LOWER(u.username) LIKE LOWER(CONCAT('%', :searchTerm, '%')) " +
            "OR LOWER(u.userDetails.displayName) LIKE LOWER(CONCAT('%', :searchTerm, '%'))")
-    Page<UserSummary> searchUserSummaries(@Param("searchTerm") String searchTerm, Pageable pageable);
+    Page<UserSummaryDto> searchUserSummaries(@Param("searchTerm") String searchTerm, Pageable pageable);
 }
