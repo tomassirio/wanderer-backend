@@ -3,24 +3,11 @@ databaseChangeLog:
       id: 008-add-performance-indexes
       author: tomassirio
       comment: Add indexes to improve query performance on auth tables
+      failOnError: false
       preConditions:
         - onFail: MARK_RAN
       changes:
-        # Refresh Tokens table indexes
-        - createIndex:
-            indexName: idx_refresh_tokens_user_id
-            tableName: refresh_tokens
-            columns:
-              - column:
-                  name: user_id
-        
-        - createIndex:
-            indexName: idx_refresh_tokens_token_hash
-            tableName: refresh_tokens
-            columns:
-              - column:
-                  name: token_hash
-        
+        # Refresh Tokens table indexes - idx_refresh_tokens_user_id and idx_refresh_tokens_token_hash already exist from 003-create-refresh-tokens
         - createIndex:
             indexName: idx_refresh_tokens_expires_at
             tableName: refresh_tokens
@@ -50,14 +37,7 @@ databaseChangeLog:
               - column:
                   name: enabled
         
-        # Password Reset Tokens table indexes
-        - createIndex:
-            indexName: idx_password_reset_tokens_user_id
-            tableName: password_reset_tokens
-            columns:
-              - column:
-                  name: user_id
-        
+        # Password Reset Tokens table indexes - idx_password_reset_tokens_user_id already exists from 004-create-password-reset-tokens
         - createIndex:
             indexName: idx_password_reset_tokens_expires_at
             tableName: password_reset_tokens
@@ -94,29 +74,7 @@ databaseChangeLog:
               - column:
                   name: used
         
-        # Login Attempts table indexes
-        - createIndex:
-            indexName: idx_login_attempts_user_id
-            tableName: login_attempts
-            columns:
-              - column:
-                  name: user_id
-        
-        - createIndex:
-            indexName: idx_login_attempts_identifier
-            tableName: login_attempts
-            columns:
-              - column:
-                  name: identifier
-        
-        - createIndex:
-            indexName: idx_login_attempts_attempted_at
-            tableName: login_attempts
-            columns:
-              - column:
-                  name: attempted_at
-                  descending: true
-        
+        # Login Attempts table indexes - idx_login_attempts_user_id, idx_login_attempts_identifier, and idx_login_attempts_attempted_at already exist from 007-create-login-attempts
         - createIndex:
             indexName: idx_login_attempts_user_success_attempted
             tableName: login_attempts

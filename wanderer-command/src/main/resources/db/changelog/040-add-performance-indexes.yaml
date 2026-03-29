@@ -3,6 +3,7 @@ databaseChangeLog:
       id: 040-add-performance-indexes
       author: tomassirio
       comment: Add additional indexes to improve query performance on frequently queried columns
+      failOnError: false
       changes:
         # Trips table indexes (new)
         - createIndex:
@@ -45,21 +46,7 @@ databaseChangeLog:
                   name: creation_timestamp
                   descending: true
         
-        # Comments table indexes (new)
-        - createIndex:
-            indexName: idx_comments_trip_id
-            tableName: comments
-            columns:
-              - column:
-                  name: trip_id
-        
-        - createIndex:
-            indexName: idx_comments_user_id
-            tableName: comments
-            columns:
-              - column:
-                  name: user_id
-        
+        # Comments table indexes (new) - idx_comments_trip_id and idx_comments_user_id already exist from 004-create-comments-table
         - createIndex:
             indexName: idx_comments_parent_comment_id
             tableName: comments
