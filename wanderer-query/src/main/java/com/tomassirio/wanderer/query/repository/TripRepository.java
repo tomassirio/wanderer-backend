@@ -20,15 +20,20 @@ import org.springframework.stereotype.Repository;
 public interface TripRepository extends JpaRepository<Trip, UUID> {
     
     /**
-     * Find trip by ID with related entities eagerly loaded to prevent N+1 queries
+     * Find trip by ID with trip days eagerly loaded to prevent N+1 queries
+     * Note: tripUpdates are fetched separately to avoid MultipleBagFetchException
      */
-    @EntityGraph(attributePaths = {"tripDays", "tripUpdates"})
+    @EntityGraph(attributePaths = {"tripDays"})
     Optional<Trip> findWithDetailsById(UUID id);
 
     @EntityGraph(attributePaths = {"tripDays"})
     List<Trip> findByTripSettingsVisibility(TripVisibility visibility);
 
-    @EntityGraph(attributePaths = {"tripDays", "tripUpdates"})
+    /**
+     * Find trips by user ID with trip days eagerly loaded
+     * Note: tripUpdates are fetched separately to avoid MultipleBagFetchException
+     */
+    @EntityGraph(attributePaths = {"tripDays"})
     List<Trip> findByUserId(UUID userId);
 
     /**
