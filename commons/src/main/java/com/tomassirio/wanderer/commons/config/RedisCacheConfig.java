@@ -3,7 +3,6 @@ package com.tomassirio.wanderer.commons.config;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.databind.jsontype.BasicPolymorphicTypeValidator;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import java.time.Duration;
 import org.springframework.beans.factory.annotation.Value;
@@ -36,7 +35,7 @@ import org.springframework.data.redis.serializer.StringRedisSerializer;
 @ConditionalOnProperty(name = "spring.cache.type", havingValue = "redis", matchIfMissing = true)
 public class RedisCacheConfig {
 
-    private static final String CACHE_VERSION = "v3"; // Increment to invalidate all caches
+    private static final String CACHE_VERSION = "v1";
 
     public static final String USERS_CACHE = CACHE_VERSION + ":users";
     public static final String USER_BY_USERNAME_CACHE = CACHE_VERSION + ":usersByUsername";
@@ -83,7 +82,10 @@ public class RedisCacheConfig {
         objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
         objectMapper.configure(DeserializationFeature.FAIL_ON_INVALID_SUBTYPE, false);
         
-        // Don't use polymorphic type handling - cache specific DTOs/entities only
+        objectMapper.activateDefaultTyping(
+                objectMapper.getPolymorphicTypeValidator(),
+                ObjectMapper.DefaultTyping.NON_FINAL);
+        
         GenericJackson2JsonRedisSerializer serializer = 
                 new GenericJackson2JsonRedisSerializer(objectMapper);
 
