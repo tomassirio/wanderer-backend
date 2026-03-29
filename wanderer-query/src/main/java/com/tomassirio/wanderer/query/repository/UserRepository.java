@@ -19,26 +19,26 @@ public interface UserRepository extends JpaRepository<User, UUID> {
     /**
      * Find user summary by ID (projection for lightweight access)
      */
-    @Query("SELECT u.id as id, u.username as username, u.displayName as displayName, u.profilePictureUrl as profilePictureUrl FROM User u WHERE u.id = :id")
+    @Query("SELECT u.id as id, u.username as username, u.userDetails.displayName as displayName, CONCAT('/thumbnails/profiles/', CAST(u.id AS string), '.png') as profilePictureUrl FROM User u WHERE u.id = :id")
     Optional<UserSummary> findUserSummaryById(@Param("id") UUID id);
     
     /**
      * Find multiple user summaries by IDs (batch fetch)
      */
-    @Query("SELECT u.id as id, u.username as username, u.displayName as displayName, u.profilePictureUrl as profilePictureUrl FROM User u WHERE u.id IN :ids")
+    @Query("SELECT u.id as id, u.username as username, u.userDetails.displayName as displayName, CONCAT('/thumbnails/profiles/', CAST(u.id AS string), '.png') as profilePictureUrl FROM User u WHERE u.id IN :ids")
     List<UserSummary> findUserSummariesByIdIn(@Param("ids") List<UUID> ids);
     
     /**
      * Find user summaries with pagination
      */
-    @Query("SELECT u.id as id, u.username as username, u.displayName as displayName, u.profilePictureUrl as profilePictureUrl FROM User u")
+    @Query("SELECT u.id as id, u.username as username, u.userDetails.displayName as displayName, CONCAT('/thumbnails/profiles/', CAST(u.id AS string), '.png') as profilePictureUrl FROM User u")
     Page<UserSummary> findAllUserSummaries(Pageable pageable);
     
     /**
      * Search users by username or display name (projection)
      */
-    @Query("SELECT u.id as id, u.username as username, u.displayName as displayName, u.profilePictureUrl as profilePictureUrl " +
+    @Query("SELECT u.id as id, u.username as username, u.userDetails.displayName as displayName, CONCAT('/thumbnails/profiles/', CAST(u.id AS string), '.png') as profilePictureUrl " +
            "FROM User u WHERE LOWER(u.username) LIKE LOWER(CONCAT('%', :searchTerm, '%')) " +
-           "OR LOWER(u.displayName) LIKE LOWER(CONCAT('%', :searchTerm, '%'))")
+           "OR LOWER(u.userDetails.displayName) LIKE LOWER(CONCAT('%', :searchTerm, '%'))")
     Page<UserSummary> searchUserSummaries(@Param("searchTerm") String searchTerm, Pageable pageable);
 }
