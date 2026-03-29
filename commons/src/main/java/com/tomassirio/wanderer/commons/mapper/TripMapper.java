@@ -31,6 +31,8 @@ public interface TripMapper {
     @Mapping(target = "comments", ignore = true)
     @Mapping(target = "tripUpdates", ignore = true)
     @Mapping(target = "tripDays", ignore = true)
+    @Mapping(target = "isPromoted", ignore = true)
+    @Mapping(target = "promotedAt", ignore = true)
     TripDTO toDTO(Trip trip);
 
     @Mapping(

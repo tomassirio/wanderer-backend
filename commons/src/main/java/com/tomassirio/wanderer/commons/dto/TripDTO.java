@@ -22,7 +22,9 @@ public record TripDTO(
         Instant polylineUpdatedAt,
         Double accruedDistanceKm,
         Instant creationTimestamp,
-        Boolean enabled) {
+        Boolean enabled,
+        Boolean isPromoted,
+        Instant promotedAt) {
 
     @JsonProperty("thumbnailUrl")
     public String thumbnailUrl() {

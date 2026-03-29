@@ -2,6 +2,7 @@ package com.tomassirio.wanderer.query.service.impl;
 
 import com.tomassirio.wanderer.commons.config.RedisCacheConfig;
 import com.tomassirio.wanderer.commons.domain.Friendship;
+import com.tomassirio.wanderer.commons.domain.PromotedTrip;
 import com.tomassirio.wanderer.commons.domain.Trip;
 import com.tomassirio.wanderer.commons.domain.TripStatus;
 import com.tomassirio.wanderer.commons.domain.TripVisibility;
@@ -9,8 +10,11 @@ import com.tomassirio.wanderer.commons.domain.User;
 import com.tomassirio.wanderer.commons.domain.UserFollow;
 import com.tomassirio.wanderer.commons.dto.TripDTO;
 import com.tomassirio.wanderer.commons.dto.TripMaintenanceStatsDTO;
+import com.tomassirio.wanderer.commons.mapper.TripDetailsMapper;
 import com.tomassirio.wanderer.commons.mapper.TripMapper;
+import com.tomassirio.wanderer.commons.mapper.TripSettingsMapper;
 import com.tomassirio.wanderer.query.repository.FriendshipRepository;
+import com.tomassirio.wanderer.query.repository.PromotedTripRepository;
 import com.tomassirio.wanderer.query.repository.TripRepository;
 import com.tomassirio.wanderer.query.repository.UserFollowRepository;
 import com.tomassirio.wanderer.query.repository.UserRepository;
@@ -18,6 +22,7 @@ import com.tomassirio.wanderer.query.service.TripService;
 import jakarta.persistence.EntityNotFoundException;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -38,6 +43,7 @@ public class TripServiceImpl implements TripService {
     private final FriendshipRepository friendshipRepository;
     private final UserFollowRepository userFollowRepository;
     private final UserRepository userRepository;
+    private final PromotedTripRepository promotedTripRepository;
 
     private final TripMapper tripMapper = TripMapper.INSTANCE;
 
@@ -92,36 +98,36 @@ public class TripServiceImpl implements TripService {
 
     @Override
     public Page<TripDTO> getOngoingPublicTrips(UUID requestingUserId, Pageable pageable) {
+        Page<Trip> tripPage;
+        
         if (requestingUserId == null) {
-            Page<Trip> tripPage =
-                    tripRepository.findByVisibilityAndStatusIn(
-                            TripVisibility.PUBLIC, TripStatus.getActiveStatuses(), pageable);
-            return enrichPageWithUsernames(tripPage, pageable);
+            // Use optimized query that sorts promoted trips first
+            tripPage = tripRepository.findByVisibilityAndStatusInWithPromotedFirst(
+                    TripVisibility.PUBLIC, TripStatus.getActiveStatuses(), pageable);
+        } else {
+            // Get followed user IDs
+            Set<UUID> followedUserIds =
+                    userFollowRepository.findByFollowerId(requestingUserId).stream()
+                            .map(UserFollow::getFollowedId)
+                            .collect(Collectors.toSet());
+
+            if (followedUserIds.isEmpty()) {
+                tripPage = tripRepository.findByVisibilityAndStatusInWithPromotedFirst(
+                        TripVisibility.PUBLIC, TripStatus.getActiveStatuses(), pageable);
+            } else {
+                // Use unsorted pageable for the custom query (has its own ORDER BY)
+                Pageable unsortedPageable =
+                        PageRequest.of(pageable.getPageNumber(), pageable.getPageSize());
+                tripPage =
+                        tripRepository.findPublicActiveTripsWithFollowedPriority(
+                                TripVisibility.PUBLIC,
+                                TripStatus.getActiveStatuses(),
+                                followedUserIds,
+                                unsortedPageable);
+            }
         }
-
-        // Get followed user IDs
-        Set<UUID> followedUserIds =
-                userFollowRepository.findByFollowerId(requestingUserId).stream()
-                        .map(UserFollow::getFollowedId)
-                        .collect(Collectors.toSet());
-
-        if (followedUserIds.isEmpty()) {
-            Page<Trip> tripPage =
-                    tripRepository.findByVisibilityAndStatusIn(
-                            TripVisibility.PUBLIC, TripStatus.getActiveStatuses(), pageable);
-            return enrichPageWithUsernames(tripPage, pageable);
-        }
-
-        // Use unsorted pageable for the custom query (has its own ORDER BY)
-        Pageable unsortedPageable =
-                PageRequest.of(pageable.getPageNumber(), pageable.getPageSize());
-        Page<Trip> tripPage =
-                tripRepository.findPublicActiveTripsWithFollowedPriority(
-                        TripVisibility.PUBLIC,
-                        TripStatus.getActiveStatuses(),
-                        followedUserIds,
-                        unsortedPageable);
-        return enrichPageWithUsernames(tripPage, pageable);
+        
+        return enrichPageWithUsernamesAndPromotedStatus(tripPage, pageable);
     }
 
     @Override
@@ -165,7 +171,7 @@ public class TripServiceImpl implements TripService {
         Set<UUID> userIds =
                 trips.stream()
                         .map(TripDTO::userId)
-                        .filter(userId -> userId != null)
+                        .filter(Objects::nonNull)
                         .map(UUID::fromString)
                         .collect(Collectors.toSet());
 
@@ -197,7 +203,9 @@ public class TripServiceImpl implements TripService {
                                         trip.polylineUpdatedAt(),
                                         trip.accruedDistanceKm(),
                                         trip.creationTimestamp(),
-                                        trip.enabled()))
+                                        trip.enabled(),
+                                        null,
+                                        null))
                 .toList();
     }
 
@@ -234,7 +242,78 @@ public class TripServiceImpl implements TripService {
                 trip.polylineUpdatedAt(),
                 trip.accruedDistanceKm(),
                 trip.creationTimestamp(),
-                trip.enabled());
+                trip.enabled(),
+                trip.isPromoted(),
+                trip.promotedAt());
+    }
+
+    /**
+     * Enriches a page of trips with usernames and promoted status.
+     *
+     * @param tripPage page of Trip entities
+     * @param originalPageable the original pageable request
+     * @return page of enriched TripDTOs
+     */
+    private Page<TripDTO> enrichPageWithUsernamesAndPromotedStatus(Page<Trip> tripPage, Pageable originalPageable) {
+        if (tripPage.isEmpty()) {
+            return Page.empty(originalPageable);
+        }
+
+        // Get promoted trip IDs in a single query
+        Set<UUID> promotedTripIds = promotedTripRepository.findAllPromotedTripIds();
+        
+        // Get promoted trip details (for promotedAt timestamp)
+        Map<UUID, PromotedTrip> promotedTripsMap = 
+                promotedTripIds.isEmpty() 
+                    ? Map.of() 
+                    : promotedTripRepository.findAllById(promotedTripIds).stream()
+                            .collect(Collectors.toMap(PromotedTrip::getTripId, pt -> pt));
+
+        // Collect all unique user IDs
+        Set<UUID> userIds =
+                tripPage.stream()
+                        .map(Trip::getUserId)
+                        .filter(Objects::nonNull)
+                        .collect(Collectors.toSet());
+
+        // Fetch all users in a single query
+        Map<UUID, String> userIdToUsername =
+                userRepository.findAllById(userIds).stream()
+                        .collect(Collectors.toMap(User::getId, User::getUsername));
+
+        // Enrich each trip DTO with username and promoted status
+        List<TripDTO> enrichedTrips =
+                tripPage.stream()
+                        .map(
+                                trip -> {
+                                    boolean isPromoted = promotedTripIds.contains(trip.getId());
+                                    PromotedTrip promotedInfo = promotedTripsMap.get(trip.getId());
+                                    
+                                    return new TripDTO(
+                                            trip.getId() != null ? trip.getId().toString() : null,
+                                            trip.getName(),
+                                            trip.getUserId() != null ? trip.getUserId().toString() : null,
+                                            trip.getUserId() != null
+                                                    ? userIdToUsername.get(trip.getUserId())
+                                                    : null,
+                                            TripSettingsMapper.INSTANCE.toDTO(trip.getTripSettings()),
+                                            TripDetailsMapper.INSTANCE.toDTO(trip.getTripDetails()),
+                                            trip.getTripPlanId() != null ? trip.getTripPlanId().toString() : null,
+                                            null, // comments
+                                            null, // tripUpdates
+                                            null, // tripDays
+                                            trip.getEncodedPolyline(),
+                                            trip.getPlannedPolyline(),
+                                            trip.getPolylineUpdatedAt(),
+                                            trip.getCachedDistanceKm(),
+                                            trip.getCreationTimestamp(),
+                                            trip.getEnabled(),
+                                            isPromoted,
+                                            promotedInfo != null ? promotedInfo.getPromotedAt() : null);
+                                })
+                        .toList();
+
+        return new PageImpl<>(enrichedTrips, originalPageable, tripPage.getTotalElements());
     }
 
     @Override

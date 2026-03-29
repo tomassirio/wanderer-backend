@@ -84,6 +84,27 @@ public interface TripRepository extends JpaRepository<Trip, UUID> {
             Pageable pageable);
 
     /**
+     * Find all public trips with promoted status. Promoted trips are sorted first.
+     * This replaces the need for separate promoted trips endpoint.
+     */
+    @Query(
+            value =
+                    "SELECT t FROM Trip t "
+                            + "LEFT JOIN PromotedTrip pt ON t.id = pt.tripId "
+                            + "WHERE t.tripSettings.visibility = :visibility "
+                            + "AND t.tripSettings.tripStatus IN :statuses "
+                            + "ORDER BY CASE WHEN pt.id IS NOT NULL THEN 0 ELSE 1 END, "
+                            + "t.creationTimestamp DESC",
+            countQuery =
+                    "SELECT COUNT(t) FROM Trip t "
+                            + "WHERE t.tripSettings.visibility = :visibility "
+                            + "AND t.tripSettings.tripStatus IN :statuses")
+    Page<Trip> findByVisibilityAndStatusInWithPromotedFirst(
+            @Param("visibility") TripVisibility visibility,
+            @Param("statuses") List<TripStatus> statuses,
+            Pageable pageable);
+
+    /**
      * Find all public trips in any of the specified statuses, prioritizing trips from followed
      * users. Followed users' trips are sorted first, then the rest, both ordered by creation
      * timestamp descending.
