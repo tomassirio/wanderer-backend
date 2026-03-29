@@ -488,10 +488,10 @@ class TripControllerTest {
                 null, // polylineUpdatedAt
                 null, // accruedDistanceKm
                 Instant.now(),
-                Boolean.TRUE,
-                Boolean.FALSE, // isPromoted
+                true,
+                false, // isPromoted
                 null, // promotedAt
-                Boolean.FALSE, // isPreAnnounced
+                false, // isPreAnnounced
                 null); // countdownStartDate
     }
 
