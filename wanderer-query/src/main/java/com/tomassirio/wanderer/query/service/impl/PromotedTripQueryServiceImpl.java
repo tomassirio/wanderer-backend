@@ -35,7 +35,6 @@ public class PromotedTripQueryServiceImpl implements PromotedTripQueryService {
     private final UserRepository userRepository;
 
     @Override
-    @Cacheable(value = RedisCacheConfig.PROMOTED_TRIPS_CACHE, key = "'all'")
     public List<PromotedTripResponse> getAllPromotedTrips() {
         return promotedTripRepository.findAll().stream()
                 .map(this::mapToResponse)
@@ -43,7 +42,6 @@ public class PromotedTripQueryServiceImpl implements PromotedTripQueryService {
     }
 
     @Override
-    @Cacheable(value = RedisCacheConfig.PROMOTED_TRIPS_CACHE, key = "#tripId", unless = "#result == null")
     public PromotedTripResponse getPromotionByTripId(UUID tripId) {
         PromotedTrip promotedTrip =
                 promotedTripRepository
@@ -66,18 +64,19 @@ public class PromotedTripQueryServiceImpl implements PromotedTripQueryService {
                                         new EntityNotFoundException(
                                                 "Trip not found: " + promotedTrip.getTripId()));
 
-        User promoter =
+        // Use lightweight UserSummaryDto projection instead of full User entity
+        var promoter =
                 userRepository
-                        .findById(promotedTrip.getPromotedBy())
+                        .findUserSummaryById(promotedTrip.getPromotedBy())
                         .orElseThrow(
                                 () ->
                                         new EntityNotFoundException(
                                                 "Promoter not found: "
                                                         + promotedTrip.getPromotedBy()));
 
-        User tripOwner =
+        var tripOwner =
                 userRepository
-                        .findById(trip.getUserId())
+                        .findUserSummaryById(trip.getUserId())
                         .orElseThrow(
                                 () ->
                                         new EntityNotFoundException(

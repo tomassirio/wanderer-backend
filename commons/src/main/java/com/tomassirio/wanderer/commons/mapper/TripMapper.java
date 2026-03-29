@@ -8,8 +8,6 @@ import org.mapstruct.factory.Mappers;
 
 @Mapper(
         uses = {
-            CommentMapper.class,
-            TripUpdateMapper.class,
             TripSettingsMapper.class,
             TripDetailsMapper.class,
             TripDayMapper.class
@@ -30,6 +28,9 @@ public interface TripMapper {
             expression =
                     "java(trip.getTripPlanId() != null ? trip.getTripPlanId().toString() : null)")
     @Mapping(source = "cachedDistanceKm", target = "accruedDistanceKm")
+    @Mapping(target = "comments", ignore = true)
+    @Mapping(target = "tripUpdates", ignore = true)
+    @Mapping(target = "tripDays", ignore = true)
     TripDTO toDTO(Trip trip);
 
     @Mapping(

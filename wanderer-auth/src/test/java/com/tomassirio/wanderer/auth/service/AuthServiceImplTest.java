@@ -22,6 +22,7 @@ import com.tomassirio.wanderer.auth.strategy.EmailLookupStrategy;
 import com.tomassirio.wanderer.auth.strategy.UserLookupStrategy;
 import com.tomassirio.wanderer.auth.strategy.UsernameLookupStrategy;
 import com.tomassirio.wanderer.commons.domain.User;
+import com.tomassirio.wanderer.commons.dto.UserBasicInfo;
 import com.tomassirio.wanderer.commons.security.Role;
 import com.tomassirio.wanderer.commons.security.revocation.RevokedTokenCache;
 import feign.FeignException;
@@ -65,7 +66,7 @@ class AuthServiceImplTest {
 
     private AuthServiceImpl authService;
 
-    private User testUser;
+    private UserBasicInfo testUserInfo;
 
     private Credential testCredential;
 
@@ -73,10 +74,10 @@ class AuthServiceImplTest {
 
     @BeforeEach
     void setUp() {
-        testUser = User.builder().id(UUID.randomUUID()).username("testuser").build();
+        testUserInfo = new UserBasicInfo(UUID.randomUUID(), "testuser");
         testCredential =
                 Credential.builder()
-                        .userId(testUser.getId())
+                        .userId(testUserInfo.id())
                         .passwordHash("hashedPassword")
                         .enabled(true)
                         .email("user@email.com")
@@ -103,6 +104,13 @@ class AuthServiceImplTest {
                         loginAttemptService);
     }
 
+    private User toUser(UserBasicInfo info) {
+        User user = new User();
+        user.setId(info.id());
+        user.setUsername(info.username());
+        return user;
+    }
+
     @Test
     void login_whenValidCredentials_shouldReturnLoginResponse() {
         String password = "SecurePass1!";
@@ -111,26 +119,26 @@ class AuthServiceImplTest {
         long expiresIn = 3600000L;
         String ipAddress = "192.168.1.1";
 
-        when(loginAttemptService.isAccountLocked(testUser.getUsername())).thenReturn(false);
-        when(wandererQueryClient.getUserByUsername(testUser.getUsername())).thenReturn(testUser);
-        when(credentialRepository.findById(testUser.getId()))
+        when(loginAttemptService.isAccountLocked(testUserInfo.username())).thenReturn(false);
+        when(wandererQueryClient.getUserByUsername(testUserInfo.username(), "basic")).thenReturn(testUserInfo);
+        when(credentialRepository.findById(testUserInfo.id()))
                 .thenReturn(Optional.of(testCredential));
         when(passwordEncoder.matches(password, testCredential.getPasswordHash())).thenReturn(true);
         when(jwtService.generateTokenWithJti(any(), any(), any())).thenReturn(accessToken);
-        when(tokenService.createRefreshToken(testUser.getId())).thenReturn(refreshToken);
+        when(tokenService.createRefreshToken(testUserInfo.id())).thenReturn(refreshToken);
         when(jwtService.getExpirationMs()).thenReturn(expiresIn);
 
-        LoginResponse result = authService.login(testUser.getUsername(), password, ipAddress);
+        LoginResponse result = authService.login(testUserInfo.username(), password, ipAddress);
 
         assertEquals(accessToken, result.accessToken());
         assertEquals(refreshToken, result.refreshToken());
         assertEquals("Bearer", result.tokenType());
         assertEquals(expiresIn, result.expiresIn());
-        assertEquals(testUser.getUsername(), result.username());
+        assertEquals(testUserInfo.username(), result.username());
         verify(jwtService).generateTokenWithJti(any(), any(), any());
-        verify(tokenService).createRefreshToken(testUser.getId());
+        verify(tokenService).createRefreshToken(testUserInfo.id());
         verify(loginAttemptService)
-                .recordSuccessfulLogin(testUser.getUsername(), testUser.getId(), ipAddress);
+                .recordSuccessfulLogin(testUserInfo.username(), testUserInfo.id(), ipAddress);
     }
 
     @Test
@@ -143,7 +151,7 @@ class AuthServiceImplTest {
                         null,
                         StandardCharsets.UTF_8,
                         null);
-        when(wandererQueryClient.getUserByUsername("nonexistent"))
+        when(wandererQueryClient.getUserByUsername("nonexistent", "basic"))
                 .thenThrow(new NotFound("User not found", dummyRequest, null, null));
 
         assertThrows(
@@ -153,38 +161,38 @@ class AuthServiceImplTest {
 
     @Test
     void login_whenCredentialsNotFound_shouldThrowIllegalArgumentException() {
-        when(wandererQueryClient.getUserByUsername(testUser.getUsername())).thenReturn(testUser);
-        when(credentialRepository.findById(testUser.getId())).thenReturn(Optional.empty());
+        when(wandererQueryClient.getUserByUsername(testUserInfo.username(), "basic")).thenReturn(testUserInfo);
+        when(credentialRepository.findById(testUserInfo.id())).thenReturn(Optional.empty());
 
         assertThrows(
                 IllegalArgumentException.class,
-                () -> authService.login(testUser.getUsername(), "password", "127.0.0.1"));
+                () -> authService.login(testUserInfo.username(), "password", "127.0.0.1"));
     }
 
     @Test
     void login_whenAccountDisabled_shouldThrowIllegalArgumentException() {
         testCredential.setEnabled(false);
 
-        when(wandererQueryClient.getUserByUsername(testUser.getUsername())).thenReturn(testUser);
-        when(credentialRepository.findById(testUser.getId()))
+        when(wandererQueryClient.getUserByUsername(testUserInfo.username(), "basic")).thenReturn(testUserInfo);
+        when(credentialRepository.findById(testUserInfo.id()))
                 .thenReturn(Optional.of(testCredential));
 
         assertThrows(
                 IllegalArgumentException.class,
-                () -> authService.login(testUser.getUsername(), "password", "127.0.0.1"));
+                () -> authService.login(testUserInfo.username(), "password", "127.0.0.1"));
     }
 
     @Test
     void login_whenPasswordIncorrect_shouldThrowIllegalArgumentException() {
-        when(wandererQueryClient.getUserByUsername(testUser.getUsername())).thenReturn(testUser);
-        when(credentialRepository.findById(testUser.getId()))
+        when(wandererQueryClient.getUserByUsername(testUserInfo.username(), "basic")).thenReturn(testUserInfo);
+        when(credentialRepository.findById(testUserInfo.id()))
                 .thenReturn(Optional.of(testCredential));
         when(passwordEncoder.matches("wrongpassword", testCredential.getPasswordHash()))
                 .thenReturn(false);
 
         assertThrows(
                 IllegalArgumentException.class,
-                () -> authService.login(testUser.getUsername(), "wrongpassword", "127.0.0.1"));
+                () -> authService.login(testUserInfo.username(), "wrongpassword", "127.0.0.1"));
     }
 
     @Test
@@ -196,21 +204,21 @@ class AuthServiceImplTest {
         long expiresIn = 3600000L;
 
         when(credentialRepository.findByEmail(email)).thenReturn(Optional.of(testCredential));
-        when(wandererQueryClient.getUserById(testUser.getId())).thenReturn(testUser);
-        when(credentialRepository.findById(testUser.getId()))
+        when(wandererQueryClient.getUserById(testUserInfo.id(), "basic")).thenReturn(testUserInfo);
+        when(credentialRepository.findById(testUserInfo.id()))
                 .thenReturn(Optional.of(testCredential));
         when(passwordEncoder.matches(password, testCredential.getPasswordHash())).thenReturn(true);
         when(jwtService.generateTokenWithJti(any(), any(), any())).thenReturn(accessToken);
-        when(tokenService.createRefreshToken(testUser.getId())).thenReturn(refreshToken);
+        when(tokenService.createRefreshToken(testUserInfo.id())).thenReturn(refreshToken);
         when(jwtService.getExpirationMs()).thenReturn(expiresIn);
 
         LoginResponse result = authService.login(email, password, "127.0.0.1");
 
         assertEquals(accessToken, result.accessToken());
         assertEquals(refreshToken, result.refreshToken());
-        assertEquals(testUser.getUsername(), result.username());
+        assertEquals(testUserInfo.username(), result.username());
         verify(credentialRepository).findByEmail(email);
-        verify(wandererQueryClient).getUserById(testUser.getId());
+        verify(wandererQueryClient).getUserById(testUserInfo.id(), "basic");
     }
 
     @Test
@@ -237,25 +245,25 @@ class AuthServiceImplTest {
 
         assertTrue(exception.getMessage().contains("Account temporarily locked"));
         verify(loginAttemptService).recordFailedLogin(identifier, ipAddress);
-        verify(wandererQueryClient, never()).getUserByUsername(any());
+        verify(wandererQueryClient, never()).getUserByUsername(any(), any());
     }
 
     @Test
     void login_whenPasswordIncorrect_shouldRecordFailedAttempt() {
         String ipAddress = "192.168.1.1";
 
-        when(loginAttemptService.isAccountLocked(testUser.getUsername())).thenReturn(false);
-        when(wandererQueryClient.getUserByUsername(testUser.getUsername())).thenReturn(testUser);
-        when(credentialRepository.findById(testUser.getId()))
+        when(loginAttemptService.isAccountLocked(testUserInfo.username())).thenReturn(false);
+        when(wandererQueryClient.getUserByUsername(testUserInfo.username(), "basic")).thenReturn(testUserInfo);
+        when(credentialRepository.findById(testUserInfo.id()))
                 .thenReturn(Optional.of(testCredential));
         when(passwordEncoder.matches("wrongpassword", testCredential.getPasswordHash()))
                 .thenReturn(false);
 
         assertThrows(
                 IllegalArgumentException.class,
-                () -> authService.login(testUser.getUsername(), "wrongpassword", ipAddress));
+                () -> authService.login(testUserInfo.username(), "wrongpassword", ipAddress));
 
-        verify(loginAttemptService).recordFailedLogin(testUser.getUsername(), ipAddress);
+        verify(loginAttemptService).recordFailedLogin(testUserInfo.username(), ipAddress);
     }
 
     @Test
@@ -273,7 +281,7 @@ class AuthServiceImplTest {
                         null);
 
         when(credentialRepository.findByEmail(request.email())).thenReturn(Optional.empty());
-        when(wandererQueryClient.getUserByUsername("testuser"))
+        when(wandererQueryClient.getUserByUsername("testuser", "basic"))
                 .thenThrow(
                         new NotFound("User not found", dummyRequest, null, null)); // 404 expected
         when(passwordEncoder.encode(request.password())).thenReturn("hashedPassword");
@@ -305,7 +313,7 @@ class AuthServiceImplTest {
                         null);
 
         when(credentialRepository.findByEmail(request.email())).thenReturn(Optional.empty());
-        when(wandererQueryClient.getUserByUsername("testuser"))
+        when(wandererQueryClient.getUserByUsername("testuser", "basic"))
                 .thenThrow(new NotFound("User not found", dummyRequest, null, null));
         when(passwordEncoder.encode(request.password())).thenReturn("hashedPassword");
         when(tokenService.createEmailVerificationToken(
@@ -318,7 +326,7 @@ class AuthServiceImplTest {
                 "Registration pending. Please check your email to verify your account.",
                 result.message());
         // Uniqueness check should use lowercase
-        verify(wandererQueryClient).getUserByUsername("testuser");
+        verify(wandererQueryClient).getUserByUsername("testuser", "basic");
         // Token and email should preserve original casing for displayName
         verify(tokenService)
                 .createEmailVerificationToken(request.email(), "TestUser", "hashedPassword");
@@ -344,7 +352,7 @@ class AuthServiceImplTest {
                 new RegisterRequest("existinguser", "test@example.com", "SecurePass1!");
 
         when(credentialRepository.findByEmail(request.email())).thenReturn(Optional.empty());
-        when(wandererQueryClient.getUserByUsername("existinguser")).thenReturn(testUser);
+        when(wandererQueryClient.getUserByUsername("existinguser", "basic")).thenReturn(testUserInfo);
 
         assertThrows(IllegalArgumentException.class, () -> authService.register(request));
         verify(tokenService, never()).createEmailVerificationToken(any(), any(), any());
@@ -362,11 +370,11 @@ class AuthServiceImplTest {
         when(tokenService.validateEmailVerificationToken(verificationToken))
                 .thenReturn(verificationData);
         when(credentialRepository.findByEmail(verificationData[0])).thenReturn(Optional.empty());
-        when(wandererCommandClient.createUser(any())).thenReturn(testUser.getId());
-        when(wandererQueryClient.getUserById(testUser.getId())).thenReturn(testUser);
-        when(credentialRepository.findById(testUser.getId())).thenReturn(Optional.empty());
+        when(wandererCommandClient.createUser(any())).thenReturn(testUserInfo.id());
+        when(wandererQueryClient.getUserById(testUserInfo.id(), "basic")).thenReturn(testUserInfo);
+        when(credentialRepository.findById(testUserInfo.id())).thenReturn(Optional.empty());
         when(jwtService.generateTokenWithJti(any(), any(), any())).thenReturn(accessToken);
-        when(tokenService.createRefreshToken(testUser.getId())).thenReturn(refreshToken);
+        when(tokenService.createRefreshToken(testUserInfo.id())).thenReturn(refreshToken);
         when(jwtService.getExpirationMs()).thenReturn(expiresIn);
 
         LoginResponse result = authService.verifyEmail(verificationToken);
@@ -375,7 +383,7 @@ class AuthServiceImplTest {
         assertEquals(refreshToken, result.refreshToken());
         assertEquals("Bearer", result.tokenType());
         assertEquals(expiresIn, result.expiresIn());
-        assertEquals(testUser.getUsername(), result.username());
+        assertEquals(testUserInfo.username(), result.username());
         verify(credentialRepository).save(any(Credential.class));
         verify(tokenService).markEmailVerificationTokenAsVerified(verificationToken);
         verify(wandererCommandClient, never()).deleteUser(any());
@@ -396,11 +404,11 @@ class AuthServiceImplTest {
         @SuppressWarnings("unchecked")
         ArgumentCaptor<Map<String, String>> payloadCaptor = ArgumentCaptor.forClass(Map.class);
         when(wandererCommandClient.createUser(payloadCaptor.capture()))
-                .thenReturn(testUser.getId());
-        when(wandererQueryClient.getUserById(testUser.getId())).thenReturn(testUser);
-        when(credentialRepository.findById(testUser.getId())).thenReturn(Optional.empty());
+                .thenReturn(testUserInfo.id());
+        when(wandererQueryClient.getUserById(testUserInfo.id(), "basic")).thenReturn(testUserInfo);
+        when(credentialRepository.findById(testUserInfo.id())).thenReturn(Optional.empty());
         when(jwtService.generateTokenWithJti(any(), any(), any())).thenReturn(accessToken);
-        when(tokenService.createRefreshToken(testUser.getId())).thenReturn(refreshToken);
+        when(tokenService.createRefreshToken(testUserInfo.id())).thenReturn(refreshToken);
         when(jwtService.getExpirationMs()).thenReturn(expiresIn);
 
         authService.verifyEmail(verificationToken);
@@ -448,8 +456,8 @@ class AuthServiceImplTest {
         when(tokenService.validateEmailVerificationToken(verificationToken))
                 .thenReturn(verificationData);
         when(credentialRepository.findByEmail(verificationData[0])).thenReturn(Optional.empty());
-        when(wandererCommandClient.createUser(any())).thenReturn(testUser.getId());
-        when(wandererQueryClient.getUserById(testUser.getId())).thenThrow(FeignException.class);
+        when(wandererCommandClient.createUser(any())).thenReturn(testUserInfo.id());
+        when(wandererQueryClient.getUserById(testUserInfo.id(), "basic")).thenThrow(FeignException.class);
 
         IllegalStateException exception =
                 assertThrows(
@@ -457,7 +465,7 @@ class AuthServiceImplTest {
                         () -> authService.verifyEmail(verificationToken));
 
         assertEquals("Failed to fetch created user from query service", exception.getMessage());
-        verify(wandererCommandClient).deleteUser(testUser.getId());
+        verify(wandererCommandClient).deleteUser(testUserInfo.id());
         verify(credentialRepository, never()).save(any());
     }
 
@@ -466,9 +474,9 @@ class AuthServiceImplTest {
         String jti = "test-jti-123";
         Instant expiresAt = Instant.now().plusSeconds(3600);
 
-        authService.logout(testUser.getId(), jti, expiresAt);
+        authService.logout(testUserInfo.id(), jti, expiresAt);
 
-        verify(tokenService).revokeAllRefreshTokensForUser(testUser.getId());
+        verify(tokenService).revokeAllRefreshTokensForUser(testUserInfo.id());
         // Verify JTI is revoked with approximately 3600 seconds (allow for timing variance)
         verify(revokedTokenCache).revokeToken(eq(jti), anyLong());
     }
@@ -481,13 +489,13 @@ class AuthServiceImplTest {
         when(credentialRepository.findByEmail(email)).thenReturn(Optional.of(testCredential));
         when(tokenService.createPasswordResetToken(testCredential.getUserId()))
                 .thenReturn(resetToken);
-        when(wandererQueryClient.getUserById(testCredential.getUserId())).thenReturn(testUser);
+        when(wandererQueryClient.getUserById(testCredential.getUserId(), "basic")).thenReturn(testUserInfo);
 
         String result = authService.initiatePasswordReset(email);
 
         assertEquals(resetToken, result);
         verify(tokenService).createPasswordResetToken(testCredential.getUserId());
-        verify(emailService).sendPasswordResetEmail(email, testUser.getUsername(), resetToken);
+        verify(emailService).sendPasswordResetEmail(email, testUserInfo.username(), resetToken);
     }
 
     @Test
@@ -506,7 +514,7 @@ class AuthServiceImplTest {
                         null,
                         StandardCharsets.UTF_8,
                         null);
-        when(wandererQueryClient.getUserById(testCredential.getUserId()))
+        when(wandererQueryClient.getUserById(testCredential.getUserId(), "basic"))
                 .thenThrow(new NotFound("Not Found", dummyRequest, null, Map.of()));
 
         String result = authService.initiatePasswordReset(email);
@@ -529,16 +537,16 @@ class AuthServiceImplTest {
     void resetPassword_whenValidToken_shouldUpdatePassword() {
         String token = "reset.token";
         String newPassword = "NewPass123!";
-        UUID userId = testUser.getId();
+        UUID userId = testUserInfo.id();
 
         when(tokenService.validatePasswordResetToken(token)).thenReturn(userId);
         when(credentialRepository.findById(userId)).thenReturn(Optional.of(testCredential));
         when(passwordEncoder.encode(newPassword)).thenReturn("hashedNewPassword");
-        when(wandererQueryClient.getUserById(userId)).thenReturn(testUser);
+        when(wandererQueryClient.getUserById(userId, "basic")).thenReturn(testUserInfo);
 
         String username = authService.resetPassword(token, newPassword);
 
-        assertEquals(testUser.getUsername(), username);
+        assertEquals(testUserInfo.username(), username);
         verify(credentialRepository).save(testCredential);
         verify(tokenService).markPasswordResetTokenAsUsed(token);
         verify(tokenService).revokeAllRefreshTokensForUser(userId);
@@ -561,7 +569,7 @@ class AuthServiceImplTest {
     void changePassword_whenValidCurrentPassword_shouldUpdatePassword() {
         String currentPassword = "currentPassword";
         String newPassword = "NewPass123!";
-        UUID userId = testUser.getId();
+        UUID userId = testUserInfo.id();
 
         when(credentialRepository.findById(userId)).thenReturn(Optional.of(testCredential));
         when(passwordEncoder.matches(currentPassword, testCredential.getPasswordHash()))
@@ -578,7 +586,7 @@ class AuthServiceImplTest {
     void changePassword_whenInvalidCurrentPassword_shouldThrowException() {
         String currentPassword = "wrongPassword";
         String newPassword = "NewPass123!";
-        UUID userId = testUser.getId();
+        UUID userId = testUserInfo.id();
 
         when(credentialRepository.findById(userId)).thenReturn(Optional.of(testCredential));
         when(passwordEncoder.matches(currentPassword, testCredential.getPasswordHash()))
@@ -606,7 +614,7 @@ class AuthServiceImplTest {
     @Test
     void login_whenUserReturnsNull_shouldThrowIllegalArgumentException() {
         // Test the null check after successful FeignClient call
-        when(wandererQueryClient.getUserByUsername("testuser")).thenReturn(null);
+        when(wandererQueryClient.getUserByUsername("testuser", "basic")).thenReturn(null);
 
         IllegalArgumentException exception =
                 assertThrows(
@@ -632,7 +640,7 @@ class AuthServiceImplTest {
                 new FeignException.InternalServerError(
                         "Internal Server Error", dummyRequest, null, null);
 
-        when(wandererQueryClient.getUserByUsername("testuser")).thenThrow(serverError);
+        when(wandererQueryClient.getUserByUsername("testuser", "basic")).thenThrow(serverError);
 
         IllegalStateException exception =
                 assertThrows(
@@ -651,18 +659,18 @@ class AuthServiceImplTest {
         String refreshToken = "refresh.token";
         long expiresIn = 3600000L;
 
-        when(wandererQueryClient.getUserByUsername("testuser")).thenReturn(testUser);
-        when(credentialRepository.findById(testUser.getId()))
+        when(wandererQueryClient.getUserByUsername("testuser", "basic")).thenReturn(testUserInfo);
+        when(credentialRepository.findById(testUserInfo.id()))
                 .thenReturn(Optional.of(testCredential));
         when(passwordEncoder.matches(password, testCredential.getPasswordHash())).thenReturn(true);
         when(jwtService.generateTokenWithJti(any(), any(), any())).thenReturn(accessToken);
-        when(tokenService.createRefreshToken(testUser.getId())).thenReturn(refreshToken);
+        when(tokenService.createRefreshToken(testUserInfo.id())).thenReturn(refreshToken);
         when(jwtService.getExpirationMs()).thenReturn(expiresIn);
 
         // Login with mixed case "TestUser" — should be normalized to "testuser"
         LoginResponse result = authService.login("TestUser", password, "127.0.0.1");
 
         assertEquals(accessToken, result.accessToken());
-        verify(wandererQueryClient).getUserByUsername("testuser");
+        verify(wandererQueryClient).getUserByUsername("testuser", "basic");
     }
 }

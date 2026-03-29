@@ -7,6 +7,7 @@ import com.tomassirio.wanderer.auth.client.WandererQueryClient;
 import com.tomassirio.wanderer.auth.domain.Credential;
 import com.tomassirio.wanderer.auth.repository.CredentialRepository;
 import com.tomassirio.wanderer.commons.domain.User;
+import com.tomassirio.wanderer.commons.dto.UserBasicInfo;
 import feign.FeignException;
 import java.util.Optional;
 import java.util.UUID;
@@ -27,13 +28,13 @@ class EmailLookupStrategyTest {
     @InjectMocks private EmailLookupStrategy strategy;
 
     private UUID userId;
-    private User testUser;
+    private UserBasicInfo testUserInfo;
     private Credential testCredential;
 
     @BeforeEach
     void setUp() {
         userId = UUID.randomUUID();
-        testUser = User.builder().id(userId).username("testuser").build();
+        testUserInfo = new UserBasicInfo(userId, "testuser");
         testCredential =
                 Credential.builder()
                         .userId(userId)
@@ -64,14 +65,15 @@ class EmailLookupStrategyTest {
     void lookupUser_whenEmailExists_shouldReturnUser() {
         String email = "test@example.com";
         when(credentialRepository.findByEmail(email)).thenReturn(Optional.of(testCredential));
-        when(wandererQueryClient.getUserById(userId)).thenReturn(testUser);
+        when(wandererQueryClient.getUserById(userId, "basic")).thenReturn(testUserInfo);
 
         Optional<User> result = strategy.lookupUser(email);
 
         assertTrue(result.isPresent());
-        assertEquals(testUser, result.get());
+        assertEquals(userId, result.get().getId());
+        assertEquals("testuser", result.get().getUsername());
         verify(credentialRepository).findByEmail(email);
-        verify(wandererQueryClient).getUserById(userId);
+        verify(wandererQueryClient).getUserById(userId, "basic");
     }
 
     @Test
@@ -83,19 +85,19 @@ class EmailLookupStrategyTest {
 
         assertFalse(result.isPresent());
         verify(credentialRepository).findByEmail(email);
-        verify(wandererQueryClient, never()).getUserById(any());
+        verify(wandererQueryClient, never()).getUserById(any(), any());
     }
 
     @Test
     void lookupUser_whenUserServiceFails_shouldReturnEmpty() {
         String email = "test@example.com";
         when(credentialRepository.findByEmail(email)).thenReturn(Optional.of(testCredential));
-        when(wandererQueryClient.getUserById(userId)).thenThrow(FeignException.NotFound.class);
+        when(wandererQueryClient.getUserById(userId, "basic")).thenThrow(FeignException.NotFound.class);
 
         Optional<User> result = strategy.lookupUser(email);
 
         assertFalse(result.isPresent());
         verify(credentialRepository).findByEmail(email);
-        verify(wandererQueryClient).getUserById(userId);
+        verify(wandererQueryClient).getUserById(userId, "basic");
     }
 }

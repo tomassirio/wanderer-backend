@@ -23,7 +23,7 @@ import com.tomassirio.wanderer.auth.repository.CredentialRepository;
 import com.tomassirio.wanderer.auth.repository.PasswordResetTokenRepository;
 import com.tomassirio.wanderer.auth.repository.RefreshTokenRepository;
 import com.tomassirio.wanderer.auth.service.impl.TokenServiceImpl;
-import com.tomassirio.wanderer.commons.domain.User;
+import com.tomassirio.wanderer.commons.dto.UserBasicInfo;
 import com.tomassirio.wanderer.commons.security.Role;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -56,12 +56,12 @@ class TokenServiceImplTest {
     @InjectMocks private TokenServiceImpl tokenService;
 
     private UUID testUserId;
-    private User testUser;
+    private UserBasicInfo testUserInfo;
 
     @BeforeEach
     void setUp() {
         testUserId = UUID.randomUUID();
-        testUser = User.builder().id(testUserId).username("testuser").build();
+        testUserInfo = new UserBasicInfo(testUserId, "testuser");
     }
 
     @Test
@@ -91,13 +91,13 @@ class TokenServiceImplTest {
 
         when(refreshTokenRepository.findByTokenHash(anyString()))
                 .thenReturn(Optional.of(storedToken));
-        when(wandererQueryClient.getUserById(testUserId)).thenReturn(testUser);
+        when(wandererQueryClient.getUserById(testUserId, "basic")).thenReturn(testUserInfo);
 
         Credential testCredential =
                 Credential.builder().userId(testUserId).roles(Set.of(Role.USER)).build();
         when(credentialRepository.findById(testUserId)).thenReturn(Optional.of(testCredential));
 
-        when(jwtService.generateTokenWithJti(any(User.class), anyString(), any()))
+        when(jwtService.generateTokenWithJti(any(), anyString(), any()))
                 .thenReturn("newAccessToken");
         when(jwtService.getRefreshExpirationMs()).thenReturn(604800000L);
         when(jwtService.getExpirationMs()).thenReturn(3600000L);
@@ -300,7 +300,7 @@ class TokenServiceImplTest {
 
         when(refreshTokenRepository.findByTokenHash(anyString()))
                 .thenReturn(Optional.of(storedToken));
-        when(wandererQueryClient.getUserById(testUserId))
+        when(wandererQueryClient.getUserById(testUserId, "basic"))
                 .thenThrow(feign.FeignException.NotFound.class);
 
         // When/Then

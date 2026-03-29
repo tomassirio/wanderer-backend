@@ -3,9 +3,11 @@ databaseChangeLog:
       id: 008-add-performance-indexes
       author: tomassirio
       comment: Add indexes to improve query performance on auth tables
-      failOnError: false
       preConditions:
         - onFail: MARK_RAN
+        - not:
+            - indexExists:
+                indexName: idx_refresh_tokens_expires_at
       changes:
         # Refresh Tokens table indexes - idx_refresh_tokens_user_id and idx_refresh_tokens_token_hash already exist from 003-create-refresh-tokens
         - createIndex:

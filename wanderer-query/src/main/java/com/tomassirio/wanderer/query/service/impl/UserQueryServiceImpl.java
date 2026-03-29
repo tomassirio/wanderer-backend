@@ -48,7 +48,6 @@ public class UserQueryServiceImpl implements UserQueryService {
     private final TripRepository tripRepository;
 
     @Override
-    @Cacheable(value = RedisCacheConfig.USERS_CACHE, key = "#id", unless = "#result == null")
     public UserResponse getUserById(UUID id) {
         if (id == null) {
             throw new ResponseStatusException(
@@ -62,7 +61,6 @@ public class UserQueryServiceImpl implements UserQueryService {
     }
 
     @Override
-    @Cacheable(value = RedisCacheConfig.USER_BY_USERNAME_CACHE, key = "#username.toLowerCase()", unless = "#result == null")
     public UserResponse getUserByUsername(String username) {
         var user =
                 userRepository

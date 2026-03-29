@@ -3,6 +3,7 @@ package com.tomassirio.wanderer.commons.config;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.databind.jsontype.BasicPolymorphicTypeValidator;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import java.time.Duration;
 import org.springframework.beans.factory.annotation.Value;
@@ -14,7 +15,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.cache.RedisCacheConfiguration;
 import org.springframework.data.redis.cache.RedisCacheManager;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
-import org.springframework.data.redis.serializer.Jackson2JsonRedisSerializer;
+import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer;
 import org.springframework.data.redis.serializer.RedisSerializationContext;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
 
@@ -35,17 +36,19 @@ import org.springframework.data.redis.serializer.StringRedisSerializer;
 @ConditionalOnProperty(name = "spring.cache.type", havingValue = "redis", matchIfMissing = true)
 public class RedisCacheConfig {
 
-    public static final String USERS_CACHE = "users";
-    public static final String USER_BY_USERNAME_CACHE = "usersByUsername";
-    public static final String TRIPS_CACHE = "trips";
-    public static final String TRIP_UPDATES_CACHE = "tripUpdates";
-    public static final String TRIP_UPDATE_LOCATIONS_CACHE = "tripUpdateLocations";
-    public static final String PROMOTED_TRIPS_CACHE = "promotedTrips";
-    public static final String ACHIEVEMENTS_CACHE = "achievements";
-    public static final String USER_ACHIEVEMENTS_CACHE = "userAchievements";
-    public static final String FRIENDSHIPS_CACHE = "friendships";
-    public static final String FOLLOWERS_CACHE = "followers";
-    public static final String NOTIFICATIONS_COUNT_CACHE = "notificationsCount";
+    private static final String CACHE_VERSION = "v3"; // Increment to invalidate all caches
+
+    public static final String USERS_CACHE = CACHE_VERSION + ":users";
+    public static final String USER_BY_USERNAME_CACHE = CACHE_VERSION + ":usersByUsername";
+    public static final String TRIPS_CACHE = CACHE_VERSION + ":trips";
+    public static final String TRIP_UPDATES_CACHE = CACHE_VERSION + ":tripUpdates";
+    public static final String TRIP_UPDATE_LOCATIONS_CACHE = CACHE_VERSION + ":tripUpdateLocations";
+    public static final String PROMOTED_TRIPS_CACHE = CACHE_VERSION + ":promotedTrips";
+    public static final String ACHIEVEMENTS_CACHE = CACHE_VERSION + ":achievements";
+    public static final String USER_ACHIEVEMENTS_CACHE = CACHE_VERSION + ":userAchievements";
+    public static final String FRIENDSHIPS_CACHE = CACHE_VERSION + ":friendships";
+    public static final String FOLLOWERS_CACHE = CACHE_VERSION + ":followers";
+    public static final String NOTIFICATIONS_COUNT_CACHE = CACHE_VERSION + ":notificationsCount";
 
     @Value("${cache.default.ttl-seconds:300}")
     private long defaultTtlSeconds;
@@ -79,10 +82,10 @@ public class RedisCacheConfig {
         objectMapper.findAndRegisterModules();
         objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
         objectMapper.configure(DeserializationFeature.FAIL_ON_INVALID_SUBTYPE, false);
-
-        // Use Jackson2JsonRedisSerializer for cleaner serialization without type info
-        Jackson2JsonRedisSerializer<Object> serializer = 
-                new Jackson2JsonRedisSerializer<>(objectMapper, Object.class);
+        
+        // Don't use polymorphic type handling - cache specific DTOs/entities only
+        GenericJackson2JsonRedisSerializer serializer = 
+                new GenericJackson2JsonRedisSerializer(objectMapper);
 
         RedisCacheConfiguration defaultConfig = RedisCacheConfiguration.defaultCacheConfig()
                 .entryTtl(Duration.ofSeconds(defaultTtlSeconds))
