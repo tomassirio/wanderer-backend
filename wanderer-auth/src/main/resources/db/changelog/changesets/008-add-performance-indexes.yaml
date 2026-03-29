@@ -3,6 +3,8 @@ databaseChangeLog:
       id: 008-add-performance-indexes
       author: tomassirio
       comment: Add indexes to improve query performance on auth tables
+      preConditions:
+        - onFail: MARK_RAN
       changes:
         # Refresh Tokens table indexes
         - createIndex:

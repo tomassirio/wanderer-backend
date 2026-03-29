@@ -3,11 +3,14 @@ package com.tomassirio.wanderer.query.repository;
 import com.tomassirio.wanderer.commons.domain.Trip;
 import com.tomassirio.wanderer.commons.domain.TripStatus;
 import com.tomassirio.wanderer.commons.domain.TripVisibility;
+import com.tomassirio.wanderer.query.projection.TripSummary;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -15,9 +18,17 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface TripRepository extends JpaRepository<Trip, UUID> {
+    
+    /**
+     * Find trip by ID with related entities eagerly loaded to prevent N+1 queries
+     */
+    @EntityGraph(attributePaths = {"tripDays", "tripUpdates"})
+    Optional<Trip> findWithDetailsById(UUID id);
 
+    @EntityGraph(attributePaths = {"tripDays"})
     List<Trip> findByTripSettingsVisibility(TripVisibility visibility);
 
+    @EntityGraph(attributePaths = {"tripDays", "tripUpdates"})
     List<Trip> findByUserId(UUID userId);
 
     /**
@@ -44,6 +55,20 @@ public interface TripRepository extends JpaRepository<Trip, UUID> {
     List<Trip> findByVisibilityAndStatusIn(
             @Param("visibility") TripVisibility visibility,
             @Param("statuses") List<TripStatus> statuses);
+
+    /** Find all public trips that are in any of the specified statuses (pageable with projection). */
+    @Query(
+            "SELECT t.id as id, t.name as name, t.userId as userId, " +
+            "t.tripSettings.visibility as tripSettingsVisibility, " +
+            "t.tripSettings.tripStatus as tripSettingsStatus, " +
+            "t.tripSettings.tripModality as tripSettingsModality, " +
+            "t.creationTimestamp as creationTimestamp, " +
+            "t.cachedDistanceKm as cachedDistanceKm " +
+            "FROM Trip t WHERE t.tripSettings.visibility = :visibility AND t.tripSettings.tripStatus IN :statuses")
+    Page<TripSummary> findTripSummariesByVisibilityAndStatusIn(
+            @Param("visibility") TripVisibility visibility,
+            @Param("statuses") List<TripStatus> statuses,
+            Pageable pageable);
 
     /** Find all public trips that are in any of the specified statuses (pageable). */
     @Query(

@@ -1,12 +1,44 @@
 package com.tomassirio.wanderer.query.repository;
 
 import com.tomassirio.wanderer.commons.domain.User;
+import com.tomassirio.wanderer.query.projection.UserSummary;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 @Repository
 public interface UserRepository extends JpaRepository<User, UUID> {
     Optional<User> findByUsername(String username);
+    
+    /**
+     * Find user summary by ID (projection for lightweight access)
+     */
+    @Query("SELECT u.id as id, u.username as username, u.displayName as displayName, u.profilePictureUrl as profilePictureUrl FROM User u WHERE u.id = :id")
+    Optional<UserSummary> findUserSummaryById(@Param("id") UUID id);
+    
+    /**
+     * Find multiple user summaries by IDs (batch fetch)
+     */
+    @Query("SELECT u.id as id, u.username as username, u.displayName as displayName, u.profilePictureUrl as profilePictureUrl FROM User u WHERE u.id IN :ids")
+    List<UserSummary> findUserSummariesByIdIn(@Param("ids") List<UUID> ids);
+    
+    /**
+     * Find user summaries with pagination
+     */
+    @Query("SELECT u.id as id, u.username as username, u.displayName as displayName, u.profilePictureUrl as profilePictureUrl FROM User u")
+    Page<UserSummary> findAllUserSummaries(Pageable pageable);
+    
+    /**
+     * Search users by username or display name (projection)
+     */
+    @Query("SELECT u.id as id, u.username as username, u.displayName as displayName, u.profilePictureUrl as profilePictureUrl " +
+           "FROM User u WHERE LOWER(u.username) LIKE LOWER(CONCAT('%', :searchTerm, '%')) " +
+           "OR LOWER(u.displayName) LIKE LOWER(CONCAT('%', :searchTerm, '%'))")
+    Page<UserSummary> searchUserSummaries(@Param("searchTerm") String searchTerm, Pageable pageable);
 }

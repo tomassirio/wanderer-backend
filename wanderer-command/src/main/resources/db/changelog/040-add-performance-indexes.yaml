@@ -13,11 +13,11 @@ databaseChangeLog:
                   name: user_id
         
         - createIndex:
-            indexName: idx_trips_status
+            indexName: idx_trips_trip_status
             tableName: trips
             columns:
               - column:
-                  name: status
+                  name: trip_status
         
         - createIndex:
             indexName: idx_trips_visibility
@@ -33,7 +33,7 @@ databaseChangeLog:
               - column:
                   name: user_id
               - column:
-                  name: status
+                  name: trip_status
               - column:
                   name: visibility
         
