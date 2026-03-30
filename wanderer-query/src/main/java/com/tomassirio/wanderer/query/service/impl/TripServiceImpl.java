@@ -276,7 +276,7 @@ public class TripServiceImpl implements TripService {
         }
 
         // Get promoted status
-        PromotedTrip promotedInfo = promotedTripRepository.findById(tripId).orElse(null);
+        PromotedTrip promotedInfo = promotedTripRepository.findByTripId(tripId).orElse(null);
         boolean isPromoted = promotedInfo != null;
 
         // Determine if the trip should be marked as pre-announced
