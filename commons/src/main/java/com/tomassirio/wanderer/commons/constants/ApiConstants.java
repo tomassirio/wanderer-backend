@@ -187,6 +187,12 @@ public final class ApiConstants {
     public static final String TRIP_ACHIEVEMENTS_BY_ID_ENDPOINT = "/{tripId}/achievements";
 
     // ============================================================
+    // Search endpoints
+    // ============================================================
+
+    public static final String SEARCH_PATH = API_V1 + "/search";
+
+    // ============================================================
     // Public endpoint patterns (for SecurityConfig)
     // ============================================================
 
@@ -231,6 +237,9 @@ public final class ApiConstants {
         public static final String TRIP_ACHIEVEMENTS =
                 TRIPS_PATH + "/{tripId:" + UUID_REGEX + "}/achievements";
 
+        // Search endpoint (public so anyone can search)
+        public static final String SEARCH = SEARCH_PATH;
+
         // API documentation endpoints
         public static final String SWAGGER_UI = "/swagger-ui/**";
         public static final String API_DOCS = "/v3/api-docs/**";
@@ -256,6 +265,7 @@ public final class ApiConstants {
                 ALL_ACHIEVEMENTS,
                 USER_ACHIEVEMENTS,
                 TRIP_ACHIEVEMENTS,
+                SEARCH,
                 SWAGGER_UI,
                 API_DOCS,
                 ACTUATOR
