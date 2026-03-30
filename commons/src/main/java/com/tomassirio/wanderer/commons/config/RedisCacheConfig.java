@@ -33,6 +33,12 @@ import org.springframework.data.web.config.SpringDataWebSettings;
  *   <li>Better cache hit rates with shared cache
  * </ul>
  *
+ * <p><b>IMPORTANT:</b> After deploying changes to this configuration, you MUST clear the Redis
+ * cache to prevent deserialization errors from incompatible cached data:
+ * <pre>
+ * kubectl exec -n wanderer-dev &lt;redis-pod-name&gt; -- redis-cli FLUSHDB
+ * </pre>
+ *
  * @since 1.1.0
  */
 @Configuration
@@ -81,16 +87,25 @@ public class RedisCacheConfig {
     @Bean
     public CacheManager cacheManager(RedisConnectionFactory connectionFactory) {
         ObjectMapper objectMapper = new ObjectMapper();
+        
+        // Register Java time module for LocalDateTime, etc.
         objectMapper.registerModule(new JavaTimeModule());
         objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+        
+        // Configure deserialization to be lenient
         objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
         objectMapper.configure(DeserializationFeature.FAIL_ON_INVALID_SUBTYPE, false);
-        objectMapper.findAndRegisterModules();
+        objectMapper.configure(DeserializationFeature.ACCEPT_EMPTY_STRING_AS_NULL_OBJECT, true);
         
+        // Register Spring Data module for Page serialization BEFORE findAndRegisterModules
         SpringDataWebSettings settings = new SpringDataWebSettings(
                 EnableSpringDataWebSupport.PageSerializationMode.VIA_DTO);
         objectMapper.registerModule(new SpringDataJacksonConfiguration.PageModule(settings));
+        
+        // Find and register other modules (after Spring Data module to avoid conflicts)
+        objectMapper.findAndRegisterModules();
 
+        // Use GenericJackson2JsonRedisSerializer which handles type information automatically
         GenericJackson2JsonRedisSerializer serializer =
                 new GenericJackson2JsonRedisSerializer(objectMapper);
 
