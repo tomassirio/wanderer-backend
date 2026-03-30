@@ -1,5 +1,7 @@
 package com.tomassirio.wanderer.query.controller;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -7,8 +9,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.tomassirio.wanderer.commons.dto.FriendshipResponse;
 import com.tomassirio.wanderer.commons.exception.GlobalExceptionHandler;
-import com.tomassirio.wanderer.commons.security.CurrentUserIdArgumentResolver;
 import com.tomassirio.wanderer.commons.security.JwtUtils;
+import com.tomassirio.wanderer.commons.utils.MockMvcTestUtils;
 import com.tomassirio.wanderer.query.service.FriendshipQueryService;
 import java.util.List;
 import java.util.UUID;
@@ -22,7 +24,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 @ExtendWith(MockitoExtension.class)
 class FriendshipQueryControllerTest {
@@ -48,23 +49,20 @@ class FriendshipQueryControllerTest {
         token = "Bearer test-token";
 
         mockMvc =
-                MockMvcBuilders.standaloneSetup(friendshipQueryController)
-                        .setControllerAdvice(new GlobalExceptionHandler())
-                        .setCustomArgumentResolvers(new CurrentUserIdArgumentResolver(jwtUtils))
-                        .build();
+                MockMvcTestUtils.buildMockMvcWithCurrentUserResolver(
+                        friendshipQueryController, userId, new GlobalExceptionHandler());
     }
 
     // ============ GET MY FRIENDS TESTS ============
 
     @Test
     void getMyFriends_Success() throws Exception {
-        when(jwtUtils.getUserIdFromAuthorizationHeader(token)).thenReturn(userId);
         FriendshipResponse response = new FriendshipResponse(userId, friendId);
 
         Page<FriendshipResponse> page = new PageImpl<>(List.of(response));
         when(friendshipQueryService.getFriends(eq(userId), any(Pageable.class))).thenReturn(page);
 
-        mockMvc.perform(get(MY_FRIENDS_URL).header("Authorization", token))
+        mockMvc.perform(get(MY_FRIENDS_URL))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content").isArray())
                 .andExpect(jsonPath("$.content[0].userId").value(userId.toString()))
@@ -75,11 +73,10 @@ class FriendshipQueryControllerTest {
 
     @Test
     void getMyFriends_EmptyList() throws Exception {
-        when(jwtUtils.getUserIdFromAuthorizationHeader(token)).thenReturn(userId);
         Page<FriendshipResponse> page = new PageImpl<>(List.of());
         when(friendshipQueryService.getFriends(eq(userId), any(Pageable.class))).thenReturn(page);
 
-        mockMvc.perform(get(MY_FRIENDS_URL).header("Authorization", token))
+        mockMvc.perform(get(MY_FRIENDS_URL))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content").isArray())
                 .andExpect(jsonPath("$.content").isEmpty());
@@ -148,7 +145,6 @@ class FriendshipQueryControllerTest {
 
     @Test
     void getMyFriends_paginated_Success() throws Exception {
-        when(jwtUtils.getUserIdFromAuthorizationHeader(token)).thenReturn(userId);
         FriendshipResponse response1 = new FriendshipResponse(userId, friendId);
         UUID friendId2 = UUID.randomUUID();
         FriendshipResponse response2 = new FriendshipResponse(userId, friendId2);
@@ -156,7 +152,7 @@ class FriendshipQueryControllerTest {
         Page<FriendshipResponse> page = new PageImpl<>(List.of(response1, response2));
         when(friendshipQueryService.getFriends(eq(userId), any(Pageable.class))).thenReturn(page);
 
-        mockMvc.perform(get(MY_FRIENDS_URL).header("Authorization", token))
+        mockMvc.perform(get(MY_FRIENDS_URL))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content").isArray())
                 .andExpect(jsonPath("$.content.length()").value(2))
@@ -171,11 +167,10 @@ class FriendshipQueryControllerTest {
 
     @Test
     void getMyFriends_paginated_EmptyPage() throws Exception {
-        when(jwtUtils.getUserIdFromAuthorizationHeader(token)).thenReturn(userId);
         Page<FriendshipResponse> page = new PageImpl<>(List.of());
         when(friendshipQueryService.getFriends(eq(userId), any(Pageable.class))).thenReturn(page);
 
-        mockMvc.perform(get(MY_FRIENDS_URL).header("Authorization", token))
+        mockMvc.perform(get(MY_FRIENDS_URL))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content").isArray())
                 .andExpect(jsonPath("$.content.length()").value(0))
@@ -186,12 +181,10 @@ class FriendshipQueryControllerTest {
 
     @Test
     void getMyFriends_paginated_withPaginationParams_shouldPassPageableToService() throws Exception {
-        when(jwtUtils.getUserIdFromAuthorizationHeader(token)).thenReturn(userId);
         Page<FriendshipResponse> page = new PageImpl<>(List.of());
         when(friendshipQueryService.getFriends(eq(userId), any(Pageable.class))).thenReturn(page);
 
         mockMvc.perform(get(MY_FRIENDS_URL)
-                        .header("Authorization", token)
                         .param("page", "1")
                         .param("size", "10")
                         .param("sort", "createdAt,desc"))

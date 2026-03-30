@@ -247,7 +247,7 @@ class TripControllerTest {
                 .thenReturn(page);
 
         // When & Then
-        mockMvc.perform(get(TRIPS_BASE_URL + "/user/{userId}", targetUserId))
+        mockMvc.perform(get(TRIPS_BASE_URL + "/users/{userId}", targetUserId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content").isArray())
                 .andExpect(jsonPath("$.content.length()").value(2))
@@ -267,7 +267,7 @@ class TripControllerTest {
                 .thenReturn(page);
 
         // When & Then
-        mockMvc.perform(get(TRIPS_BASE_URL + "/user/{userId}", targetUserId))
+        mockMvc.perform(get(TRIPS_BASE_URL + "/users/{userId}", targetUserId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content").isArray())
                 .andExpect(jsonPath("$.content.length()").value(0))
@@ -283,7 +283,7 @@ class TripControllerTest {
                 .thenReturn(page);
 
         // When & Then
-        mockMvc.perform(get(TRIPS_BASE_URL + "/user/{userId}", targetUserId)
+        mockMvc.perform(get(TRIPS_BASE_URL + "/users/{userId}", targetUserId)
                         .param("page", "2")
                         .param("size", "15")
                         .param("sort", "name,asc"))
@@ -327,7 +327,7 @@ class TripControllerTest {
                 .thenReturn(page);
 
         // When & Then
-        mockMvc.perform(get(TRIPS_BASE_URL + "/user/{userId}", otherUserId))
+        mockMvc.perform(get(TRIPS_BASE_URL + "/users/{userId}", otherUserId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content").isArray())
                 .andExpect(jsonPath("$.content.length()").value(2))
@@ -346,7 +346,7 @@ class TripControllerTest {
                 .thenReturn(page);
 
         // When & Then
-        mockMvc.perform(get(TRIPS_BASE_URL + "/user/{userId}", otherUserId))
+        mockMvc.perform(get(TRIPS_BASE_URL + "/users/{userId}", otherUserId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content").isArray())
                 .andExpect(jsonPath("$.content.length()").value(0));
@@ -363,7 +363,7 @@ class TripControllerTest {
                 .thenReturn(page);
 
         // When & Then
-        mockMvc.perform(get(TRIPS_BASE_URL + "/user/{userId}", otherUserId))
+        mockMvc.perform(get(TRIPS_BASE_URL + "/users/{userId}", otherUserId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content").isArray())
                 .andExpect(jsonPath("$.content.length()").value(1))
