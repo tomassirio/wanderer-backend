@@ -1,6 +1,8 @@
 package com.tomassirio.wanderer.query.repository;
 
 import com.tomassirio.wanderer.commons.domain.PromotedTrip;
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -35,4 +37,12 @@ public interface PromotedTripRepository extends JpaRepository<PromotedTrip, UUID
      */
     @Query("SELECT pt.tripId FROM PromotedTrip pt")
     Set<UUID> findAllPromotedTripIds();
+
+    /**
+     * Finds all promoted trips by their trip IDs.
+     *
+     * @param tripIds the collection of trip IDs to find
+     * @return List of PromotedTrip entities
+     */
+    List<PromotedTrip> findByTripIdIn(Collection<UUID> tripIds);
 }

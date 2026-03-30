@@ -322,11 +322,11 @@ public class TripServiceImpl implements TripService {
         // Get promoted trip IDs in a single query
         Set<UUID> promotedTripIds = promotedTripRepository.findAllPromotedTripIds();
 
-        // Get promoted trip details (for promotedAt timestamp)
+        // Get promoted trip details (for promotedAt timestamp and pre-announced status)
         Map<UUID, PromotedTrip> promotedTripsMap =
                 promotedTripIds.isEmpty()
                         ? Map.of()
-                        : promotedTripRepository.findAllById(promotedTripIds).stream()
+                        : promotedTripRepository.findByTripIdIn(promotedTripIds).stream()
                                 .collect(Collectors.toMap(PromotedTrip::getTripId, pt -> pt));
 
         // Collect all unique user IDs
