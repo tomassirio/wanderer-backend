@@ -15,6 +15,7 @@ import com.tomassirio.wanderer.commons.domain.TripVisibility;
 import com.tomassirio.wanderer.commons.dto.TripDTO;
 import com.tomassirio.wanderer.commons.dto.TripDetailsDTO;
 import com.tomassirio.wanderer.commons.dto.TripSettingsDTO;
+import com.tomassirio.wanderer.commons.dto.TripSummaryDTO;
 import com.tomassirio.wanderer.commons.exception.GlobalExceptionHandler;
 import com.tomassirio.wanderer.commons.utils.MockMvcTestUtils;
 import com.tomassirio.wanderer.query.service.TripService;
@@ -279,19 +280,19 @@ class TripControllerTest {
     @Test
     void getOngoingPublicTrips_whenOngoingTripsExist_shouldReturnOngoingTrips() throws Exception {
         // Given
-        List<TripDTO> ongoingTrips =
+        List<TripSummaryDTO> ongoingTrips =
                 List.of(
-                        createTripDTOWithStatus(
+                        createTripSummaryDTOWithStatus(
                                 UUID.randomUUID(),
                                 "Ongoing Trip 1",
                                 TripVisibility.PUBLIC,
                                 TripStatus.IN_PROGRESS),
-                        createTripDTOWithStatus(
+                        createTripSummaryDTOWithStatus(
                                 UUID.randomUUID(),
                                 "Ongoing Trip 2",
                                 TripVisibility.PUBLIC,
                                 TripStatus.IN_PROGRESS));
-        when(tripService.getOngoingPublicTrips(any(), any(Pageable.class)))
+        when(tripService.getOngoingPublicTripSummaries(any(), any(Pageable.class)))
                 .thenReturn(new PageImpl<>(ongoingTrips));
 
         // When & Then
@@ -309,7 +310,7 @@ class TripControllerTest {
     @Test
     void getOngoingPublicTrips_whenNoOngoingTripsExist_shouldReturnEmptyPage() throws Exception {
         // Given
-        when(tripService.getOngoingPublicTrips(any(), any(Pageable.class)))
+        when(tripService.getOngoingPublicTripSummaries(any(), any(Pageable.class)))
                 .thenReturn(new PageImpl<>(List.of()));
 
         // When & Then
@@ -322,14 +323,14 @@ class TripControllerTest {
     @Test
     void getOngoingPublicTrips_shouldOnlyReturnPublicTrips() throws Exception {
         // Given
-        List<TripDTO> ongoingTrips =
+        List<TripSummaryDTO> ongoingTrips =
                 List.of(
-                        createTripDTOWithStatus(
+                        createTripSummaryDTOWithStatus(
                                 UUID.randomUUID(),
                                 "Public Ongoing",
                                 TripVisibility.PUBLIC,
                                 TripStatus.IN_PROGRESS));
-        when(tripService.getOngoingPublicTrips(any(), any(Pageable.class)))
+        when(tripService.getOngoingPublicTripSummaries(any(), any(Pageable.class)))
                 .thenReturn(new PageImpl<>(ongoingTrips));
 
         // When & Then
@@ -517,6 +518,26 @@ class TripControllerTest {
                 null, // accruedDistanceKm
                 Instant.now(),
                 Boolean.TRUE,
+                Boolean.FALSE, // isPromoted
+                null, // promotedAt
+                Boolean.FALSE, // isPreAnnounced
+                null); // countdownStartDate
+    }
+
+    private TripSummaryDTO createTripSummaryDTOWithStatus(
+            UUID tripId, String name, TripVisibility visibility, TripStatus status) {
+        TripSettingsDTO tripSettings = new TripSettingsDTO(status, visibility, null, null, null);
+
+        return new TripSummaryDTO(
+                tripId.toString(),
+                name,
+                USER_ID.toString(),
+                USERNAME,
+                tripSettings,
+                Instant.now(),
+                0, // commentsCount
+                null, // currentDay
+                null, // tripPlanId
                 Boolean.FALSE, // isPromoted
                 null, // promotedAt
                 Boolean.FALSE, // isPreAnnounced
