@@ -54,7 +54,7 @@ public class TripServiceImpl implements TripService {
                 tripRepository
                         .findById(id)
                         .orElseThrow(() -> new EntityNotFoundException("Trip not found"));
-        return enrichWithUsername(tripMapper.toDTO(trip));
+        return enrichWithUsernameAndPromotedStatus(tripMapper.toDTO(trip));
     }
 
     @Override
@@ -252,6 +252,56 @@ public class TripServiceImpl implements TripService {
                 trip.isPreAnnounced(),
                 trip.countdownStartDate());
     }
+
+    /**
+     * Enriches a single TripDTO with username and promoted status.
+     *
+     * @param trip the TripDTO to enrich
+     * @return enriched TripDTO with username and promoted fields populated
+     */
+    private TripDTO enrichWithUsernameAndPromotedStatus(TripDTO trip) {
+        if (trip.id() == null) {
+            return trip;
+        }
+
+        UUID tripId = UUID.fromString(trip.id());
+        
+        // Get username
+        String username = null;
+        if (trip.userId() != null) {
+            username = userRepository
+                    .findById(UUID.fromString(trip.userId()))
+                    .map(User::getUsername)
+                    .orElse(null);
+        }
+
+        // Get promoted status
+        PromotedTrip promotedInfo = promotedTripRepository.findById(tripId).orElse(null);
+        boolean isPromoted = promotedInfo != null;
+
+        return new TripDTO(
+                trip.id(),
+                trip.name(),
+                trip.userId(),
+                username,
+                trip.tripSettings(),
+                trip.tripDetails(),
+                trip.tripPlanId(),
+                trip.comments(),
+                trip.tripUpdates(),
+                trip.tripDays(),
+                trip.encodedPolyline(),
+                trip.plannedPolyline(),
+                trip.polylineUpdatedAt(),
+                trip.accruedDistanceKm(),
+                trip.creationTimestamp(),
+                trip.enabled(),
+                isPromoted,
+                promotedInfo != null ? promotedInfo.getPromotedAt() : null,
+                promotedInfo != null ? promotedInfo.isPreAnnounced() : false,
+                promotedInfo != null ? promotedInfo.getCountdownStartDate() : null);
+    }
+
 
     /**
      * Enriches a page of trips with usernames and promoted status.
