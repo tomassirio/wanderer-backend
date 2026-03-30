@@ -69,7 +69,7 @@ databaseChangeLog:
               - column:
                   name: verified
         
-        # Login Attempts table indexes - idx_login_attempts_user_id, idx_login_attempts_identifier, and idx_login_attempts_attempted_at already exist from 007-create-login-attempts
+        # Login Attempts table indexes - idx_login_attempts_identifier and idx_login_attempts_attempted_at already exist from 007-create-login-attempts
         - createIndex:
             indexName: idx_login_attempts_user_success_attempted
             tableName: login_attempts

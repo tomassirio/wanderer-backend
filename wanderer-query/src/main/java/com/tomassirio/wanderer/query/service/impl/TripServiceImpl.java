@@ -279,6 +279,9 @@ public class TripServiceImpl implements TripService {
         PromotedTrip promotedInfo = promotedTripRepository.findById(tripId).orElse(null);
         boolean isPromoted = promotedInfo != null;
 
+        // Determine if the trip should be marked as pre-announced
+        boolean isPreAnnounced = promotedInfo != null && promotedInfo.isPreAnnounced();
+        
         return new TripDTO(
                 trip.id(),
                 trip.name(),
@@ -298,7 +301,7 @@ public class TripServiceImpl implements TripService {
                 trip.enabled(),
                 isPromoted,
                 promotedInfo != null ? promotedInfo.getPromotedAt() : null,
-                promotedInfo != null ? promotedInfo.isPreAnnounced() : false,
+                isPreAnnounced,
                 promotedInfo != null ? promotedInfo.getCountdownStartDate() : null);
     }
 
