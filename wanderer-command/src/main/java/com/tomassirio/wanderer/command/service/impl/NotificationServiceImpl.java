@@ -2,11 +2,13 @@ package com.tomassirio.wanderer.command.service.impl;
 
 import com.tomassirio.wanderer.command.repository.NotificationRepository;
 import com.tomassirio.wanderer.command.service.NotificationService;
+import com.tomassirio.wanderer.commons.config.RedisCacheConfig;
 import com.tomassirio.wanderer.commons.domain.Notification;
 import jakarta.persistence.EntityNotFoundException;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,6 +22,7 @@ public class NotificationServiceImpl implements NotificationService {
     private final NotificationRepository notificationRepository;
 
     @Override
+    @CacheEvict(value = RedisCacheConfig.NOTIFICATIONS_COUNT_CACHE, key = "#userId")
     public void markAsRead(UUID userId, UUID notificationId) {
         log.info("Marking notification {} as read for user {}", notificationId, userId);
 
@@ -42,6 +45,7 @@ public class NotificationServiceImpl implements NotificationService {
     }
 
     @Override
+    @CacheEvict(value = RedisCacheConfig.NOTIFICATIONS_COUNT_CACHE, key = "#userId")
     public int markAllAsRead(UUID userId) {
         log.info("Marking all notifications as read for user {}", userId);
         int count = notificationRepository.markAllAsReadByRecipientId(userId);

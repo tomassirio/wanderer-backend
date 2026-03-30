@@ -34,17 +34,20 @@ import java.util.Set;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.event.EventListener;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.event.TransactionPhase;
+import org.springframework.transaction.event.TransactionalEventListener;
 
 /**
  * Centralized event listener that creates persisted {@link Notification} records for relevant
- * domain events.
+ * domain events asynchronously.
  *
  * <p>Notifications are stored in the database so they survive WebSocket disconnections and can be
  * queried later via the notification query endpoints.
+ *
+ * <p>Processing is asynchronous and occurs after transaction commit to avoid blocking the main
+ * request flow. This improves response times for actions that trigger notifications.
  *
  * <p>Self-notification suppression: no notification is created when the actor is the same as the
  * recipient.
@@ -66,8 +69,8 @@ public class NotificationEventListener {
 
     // ==================== FRIEND REQUEST EVENTS ====================
 
-    @EventListener
-    @Transactional(propagation = Propagation.MANDATORY)
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    @Async
     public void onFriendRequestSent(FriendRequestSentEvent event) {
         log.debug("Creating notification for FriendRequestSentEvent: {}", event.getRequestId());
 
@@ -85,8 +88,8 @@ public class NotificationEventListener {
                         .build());
     }
 
-    @EventListener
-    @Transactional(propagation = Propagation.MANDATORY)
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    @Async
     public void onFriendRequestAccepted(FriendRequestAcceptedEvent event) {
         log.debug("Creating notification for FriendRequestAcceptedEvent: {}", event.getRequestId());
 
@@ -104,8 +107,8 @@ public class NotificationEventListener {
                         .build());
     }
 
-    @EventListener
-    @Transactional(propagation = Propagation.MANDATORY)
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    @Async
     public void onFriendRequestDeclined(FriendRequestDeclinedEvent event) {
         log.debug("Creating notification for FriendRequestDeclinedEvent: {}", event.getRequestId());
 
@@ -123,8 +126,8 @@ public class NotificationEventListener {
 
     // ==================== COMMENT EVENTS ====================
 
-    @EventListener
-    @Transactional(propagation = Propagation.MANDATORY)
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    @Async
     public void onCommentAdded(CommentAddedEvent event) {
         log.debug("Creating notification for CommentAddedEvent: {}", event.getCommentId());
 
@@ -181,8 +184,8 @@ public class NotificationEventListener {
         }
     }
 
-    @EventListener
-    @Transactional(propagation = Propagation.MANDATORY)
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    @Async
     public void onCommentReaction(CommentReactionEvent event) {
         if (!event.isAdded()) {
             return; // Only notify on reaction addition, not removal
@@ -217,8 +220,8 @@ public class NotificationEventListener {
 
     // ==================== USER FOLLOW EVENTS ====================
 
-    @EventListener
-    @Transactional(propagation = Propagation.MANDATORY)
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    @Async
     public void onUserFollowed(UserFollowedEvent event) {
         log.debug("Creating notification for UserFollowedEvent: {}", event.getFollowId());
 
@@ -238,8 +241,8 @@ public class NotificationEventListener {
 
     // ==================== ACHIEVEMENT EVENTS ====================
 
-    @EventListener
-    @Transactional(propagation = Propagation.MANDATORY)
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    @Async
     public void onAchievementUnlocked(AchievementUnlockedEvent event) {
         log.debug(
                 "Creating notification for AchievementUnlockedEvent: {}",
@@ -262,8 +265,8 @@ public class NotificationEventListener {
 
     // ==================== TRIP LIFECYCLE EVENTS ====================
 
-    @EventListener
-    @Transactional(propagation = Propagation.MANDATORY)
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    @Async
     public void onTripStatusChanged(TripStatusChangedEvent event) {
         String newStatus = event.getNewStatus();
         if (!TripStatus.IN_PROGRESS.name().equals(newStatus)
@@ -309,8 +312,8 @@ public class NotificationEventListener {
                 });
     }
 
-    @EventListener
-    @Transactional(propagation = Propagation.MANDATORY)
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    @Async
     public void onTripUpdated(TripUpdatedEvent event) {
         // Only notify for regular updates that include a message
         if (event.getMessage() == null || event.getMessage().isBlank()) {

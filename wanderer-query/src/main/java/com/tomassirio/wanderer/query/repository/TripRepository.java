@@ -3,11 +3,14 @@ package com.tomassirio.wanderer.query.repository;
 import com.tomassirio.wanderer.commons.domain.Trip;
 import com.tomassirio.wanderer.commons.domain.TripStatus;
 import com.tomassirio.wanderer.commons.domain.TripVisibility;
+import com.tomassirio.wanderer.query.projection.TripSummary;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -16,8 +19,21 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface TripRepository extends JpaRepository<Trip, UUID> {
 
+    /**
+     * Find trip by ID with trip days eagerly loaded to prevent N+1 queries Note: tripUpdates are
+     * fetched separately to avoid MultipleBagFetchException
+     */
+    @EntityGraph(attributePaths = {"tripDays"})
+    Optional<Trip> findWithDetailsById(UUID id);
+
+    @EntityGraph(attributePaths = {"tripDays"})
     List<Trip> findByTripSettingsVisibility(TripVisibility visibility);
 
+    /**
+     * Find trips by user ID with trip days eagerly loaded Note: tripUpdates are fetched separately
+     * to avoid MultipleBagFetchException
+     */
+    @EntityGraph(attributePaths = {"tripDays"})
     List<Trip> findByUserId(UUID userId);
 
     /**
@@ -45,10 +61,51 @@ public interface TripRepository extends JpaRepository<Trip, UUID> {
             @Param("visibility") TripVisibility visibility,
             @Param("statuses") List<TripStatus> statuses);
 
+    /**
+     * Find all public trips that are in any of the specified statuses (pageable with projection).
+     */
+    @Query(
+            "SELECT t.id as id, t.name as name, t.userId as userId, "
+                    + "t.tripSettings.visibility as tripSettingsVisibility, "
+                    + "t.tripSettings.tripStatus as tripSettingsStatus, "
+                    + "t.tripSettings.tripModality as tripSettingsModality, "
+                    + "t.creationTimestamp as creationTimestamp, "
+                    + "t.cachedDistanceKm as cachedDistanceKm "
+                    + "FROM Trip t WHERE t.tripSettings.visibility = :visibility AND t.tripSettings.tripStatus IN :statuses")
+    Page<TripSummary> findTripSummariesByVisibilityAndStatusIn(
+            @Param("visibility") TripVisibility visibility,
+            @Param("statuses") List<TripStatus> statuses,
+            Pageable pageable);
+
     /** Find all public trips that are in any of the specified statuses (pageable). */
     @Query(
             "SELECT t FROM Trip t WHERE t.tripSettings.visibility = :visibility AND t.tripSettings.tripStatus IN :statuses")
     Page<Trip> findByVisibilityAndStatusIn(
+            @Param("visibility") TripVisibility visibility,
+            @Param("statuses") List<TripStatus> statuses,
+            Pageable pageable);
+
+    /**
+     * Find all public trips with promoted status. Promoted trips are sorted first. Includes: - All
+     * trips in active statuses (IN_PROGRESS, RESTING, PAUSED) - Promoted trips in CREATED status
+     * (for pre-announced trips) This replaces the need for separate promoted trips endpoint.
+     */
+    @Query(
+            value =
+                    "SELECT t FROM Trip t "
+                            + "LEFT JOIN PromotedTrip pt ON t.id = pt.tripId "
+                            + "WHERE t.tripSettings.visibility = :visibility "
+                            + "AND (t.tripSettings.tripStatus IN :statuses "
+                            + "     OR (pt.id IS NOT NULL AND t.tripSettings.tripStatus = 'CREATED')) "
+                            + "ORDER BY CASE WHEN pt.id IS NOT NULL THEN 0 ELSE 1 END, "
+                            + "t.creationTimestamp DESC",
+            countQuery =
+                    "SELECT COUNT(t) FROM Trip t "
+                            + "LEFT JOIN PromotedTrip pt ON t.id = pt.tripId "
+                            + "WHERE t.tripSettings.visibility = :visibility "
+                            + "AND (t.tripSettings.tripStatus IN :statuses "
+                            + "     OR (pt.id IS NOT NULL AND t.tripSettings.tripStatus = 'CREATED'))")
+    Page<Trip> findByVisibilityAndStatusInWithPromotedFirst(
             @Param("visibility") TripVisibility visibility,
             @Param("statuses") List<TripStatus> statuses,
             Pageable pageable);

@@ -17,6 +17,7 @@ import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,6 +27,8 @@ import org.springframework.transaction.annotation.Transactional;
  *
  * <p>Adding a new achievement category requires only a new {@code @Component} implementing {@link
  * TripAchievementChecker} or {@link SocialAchievementChecker} — no changes to this class.
+ *
+ * <p>Achievement checking runs asynchronously to avoid blocking main request flows.
  */
 @Slf4j
 @Service
@@ -40,11 +43,13 @@ public class AchievementServiceImpl implements AchievementService {
     private final List<SocialAchievementChecker> socialCheckers;
 
     /**
-     * Checks and unlocks trip-scoped achievements after a new update is added.
+     * Checks and unlocks trip-scoped achievements after a new update is added. Runs asynchronously
+     * to avoid blocking the main request.
      *
      * @param tripId the trip ID to check achievements for
      */
     @Override
+    @Async
     @Transactional
     public void checkAndUnlockAchievements(UUID tripId) {
         Trip trip =
@@ -56,11 +61,13 @@ public class AchievementServiceImpl implements AchievementService {
     }
 
     /**
-     * Checks and unlocks social achievements for a user (followers and friends).
+     * Checks and unlocks social achievements for a user (followers and friends). Runs
+     * asynchronously to avoid blocking the main request.
      *
      * @param userId the user ID to check achievements for
      */
     @Override
+    @Async
     @Transactional
     public void checkAndUnlockSocialAchievements(UUID userId) {
         evaluate(socialCheckers, userId, userId, null);

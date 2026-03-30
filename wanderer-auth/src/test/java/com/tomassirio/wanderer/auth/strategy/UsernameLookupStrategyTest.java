@@ -5,6 +5,7 @@ import static org.mockito.Mockito.*;
 
 import com.tomassirio.wanderer.auth.client.WandererQueryClient;
 import com.tomassirio.wanderer.commons.domain.User;
+import com.tomassirio.wanderer.commons.dto.UserBasicInfo;
 import feign.FeignException;
 import feign.Request;
 import java.nio.charset.StandardCharsets;
@@ -26,12 +27,12 @@ class UsernameLookupStrategyTest {
     @InjectMocks private UsernameLookupStrategy strategy;
 
     private UUID userId;
-    private User testUser;
+    private UserBasicInfo testUserInfo;
 
     @BeforeEach
     void setUp() {
         userId = UUID.randomUUID();
-        testUser = User.builder().id(userId).username("testuser").build();
+        testUserInfo = new UserBasicInfo(userId, "testuser");
     }
 
     @Test
@@ -56,13 +57,15 @@ class UsernameLookupStrategyTest {
     void lookupUser_whenUsernameExists_shouldReturnUser() {
         String username = "TestUser";
         String normalizedUsername = "testuser";
-        when(wandererQueryClient.getUserByUsername(normalizedUsername)).thenReturn(testUser);
+        when(wandererQueryClient.getUserByUsername(normalizedUsername, "basic"))
+                .thenReturn(testUserInfo);
 
         Optional<User> result = strategy.lookupUser(username);
 
         assertTrue(result.isPresent());
-        assertEquals(testUser, result.get());
-        verify(wandererQueryClient).getUserByUsername(normalizedUsername);
+        assertEquals(userId, result.get().getId());
+        assertEquals("testuser", result.get().getUsername());
+        verify(wandererQueryClient).getUserByUsername(normalizedUsername, "basic");
     }
 
     @Test
@@ -76,13 +79,13 @@ class UsernameLookupStrategyTest {
                         null,
                         StandardCharsets.UTF_8,
                         null);
-        when(wandererQueryClient.getUserByUsername(username))
+        when(wandererQueryClient.getUserByUsername(username, "basic"))
                 .thenThrow(new FeignException.NotFound("Not found", mockRequest, null, null));
 
         Optional<User> result = strategy.lookupUser(username);
 
         assertFalse(result.isPresent());
-        verify(wandererQueryClient).getUserByUsername(username);
+        verify(wandererQueryClient).getUserByUsername(username, "basic");
     }
 
     @Test
@@ -96,23 +99,24 @@ class UsernameLookupStrategyTest {
                         null,
                         StandardCharsets.UTF_8,
                         null);
-        when(wandererQueryClient.getUserByUsername(username))
+        when(wandererQueryClient.getUserByUsername(username, "basic"))
                 .thenThrow(
                         new FeignException.InternalServerError(
                                 "Server error", mockRequest, null, null));
 
         assertThrows(IllegalStateException.class, () -> strategy.lookupUser(username));
-        verify(wandererQueryClient).getUserByUsername(username);
+        verify(wandererQueryClient).getUserByUsername(username, "basic");
     }
 
     @Test
     void lookupUser_shouldNormalizeUsernameToLowercase() {
         String username = "TestUser";
         String expectedNormalized = "testuser";
-        when(wandererQueryClient.getUserByUsername(expectedNormalized)).thenReturn(testUser);
+        when(wandererQueryClient.getUserByUsername(expectedNormalized, "basic"))
+                .thenReturn(testUserInfo);
 
         strategy.lookupUser(username);
 
-        verify(wandererQueryClient).getUserByUsername(expectedNormalized);
+        verify(wandererQueryClient).getUserByUsername(expectedNormalized, "basic");
     }
 }

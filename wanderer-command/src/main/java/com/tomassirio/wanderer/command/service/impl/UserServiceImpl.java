@@ -10,6 +10,7 @@ import com.tomassirio.wanderer.command.event.UserDeletedEvent;
 import com.tomassirio.wanderer.command.event.UserDetailsUpdatedEvent;
 import com.tomassirio.wanderer.command.repository.UserRepository;
 import com.tomassirio.wanderer.command.service.UserService;
+import com.tomassirio.wanderer.commons.config.RedisCacheConfig;
 import com.tomassirio.wanderer.commons.domain.User;
 import feign.FeignException;
 import jakarta.persistence.EntityNotFoundException;
@@ -18,6 +19,8 @@ import java.util.Optional;
 import java.util.UUID;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -105,6 +108,11 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Caching(
+            evict = {
+                @CacheEvict(value = RedisCacheConfig.USERS_CACHE, key = "#userId"),
+                @CacheEvict(value = RedisCacheConfig.USER_BY_USERNAME_CACHE, allEntries = true)
+            })
     public UUID updateUserDetails(UUID userId, UserDetailsRequest request) {
         log.info("Updating user details for userId={}", userId);
 
@@ -126,6 +134,11 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Caching(
+            evict = {
+                @CacheEvict(value = RedisCacheConfig.USERS_CACHE, key = "#userId"),
+                @CacheEvict(value = RedisCacheConfig.USER_BY_USERNAME_CACHE, allEntries = true)
+            })
     public UUID updateAvatar(UUID userId, MultipartFile file) {
         log.info("Updating avatar for userId={}", userId);
 

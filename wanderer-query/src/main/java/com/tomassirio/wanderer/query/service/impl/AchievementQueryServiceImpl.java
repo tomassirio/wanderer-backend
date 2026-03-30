@@ -1,5 +1,6 @@
 package com.tomassirio.wanderer.query.service.impl;
 
+import com.tomassirio.wanderer.commons.config.RedisCacheConfig;
 import com.tomassirio.wanderer.commons.dto.AchievementDTO;
 import com.tomassirio.wanderer.commons.dto.UserAchievementDTO;
 import com.tomassirio.wanderer.commons.mapper.AchievementMapper;
@@ -10,6 +11,7 @@ import com.tomassirio.wanderer.query.service.AchievementQueryService;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 /**
@@ -24,6 +26,7 @@ public class AchievementQueryServiceImpl implements AchievementQueryService {
     private final UserAchievementRepository userAchievementRepository;
 
     @Override
+    @Cacheable(value = RedisCacheConfig.ACHIEVEMENTS_CACHE, key = "'available'")
     public List<AchievementDTO> getAvailableAchievements() {
         return achievementRepository.findByEnabledTrue().stream()
                 .map(AchievementMapper.INSTANCE::toDTO)
@@ -31,6 +34,7 @@ public class AchievementQueryServiceImpl implements AchievementQueryService {
     }
 
     @Override
+    @Cacheable(value = RedisCacheConfig.USER_ACHIEVEMENTS_CACHE, key = "#userId")
     public List<UserAchievementDTO> getUserAchievements(UUID userId) {
         return userAchievementRepository.findByUserId(userId).stream()
                 .map(UserAchievementMapper.INSTANCE::toDTO)
@@ -38,6 +42,7 @@ public class AchievementQueryServiceImpl implements AchievementQueryService {
     }
 
     @Override
+    @Cacheable(value = RedisCacheConfig.USER_ACHIEVEMENTS_CACHE, key = "#userId + '-' + #tripId")
     public List<UserAchievementDTO> getUserAchievementsByTrip(UUID userId, UUID tripId) {
         return userAchievementRepository.findByUserIdAndTripId(userId, tripId).stream()
                 .map(UserAchievementMapper.INSTANCE::toDTO)

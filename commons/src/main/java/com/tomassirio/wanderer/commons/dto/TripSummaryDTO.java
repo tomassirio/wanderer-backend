@@ -3,26 +3,24 @@ package com.tomassirio.wanderer.commons.dto;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.tomassirio.wanderer.commons.service.ThumbnailUrlService;
 import java.time.Instant;
-import java.util.List;
 import java.util.UUID;
 
-public record TripDTO(
+/**
+ * Lightweight DTO for trip summaries in list views (e.g., home feed). Contains only the essential
+ * fields needed for displaying trip cards, significantly reducing payload size.
+ *
+ * @since 1.1.1
+ */
+public record TripSummaryDTO(
         String id,
         String name,
         String userId,
         String username,
-        TripSettingsDTO tripSettings,
-        TripDetailsDTO tripDetails,
-        String tripPlanId,
-        List<CommentDTO> comments,
-        List<TripUpdateDTO> tripUpdates,
-        List<TripDayDTO> tripDays,
-        String encodedPolyline,
-        String plannedPolyline,
-        Instant polylineUpdatedAt,
-        Double accruedDistanceKm,
+        TripSettingsDTO tripSettings, // Contains status, visibility, tripModality
         Instant creationTimestamp,
-        Boolean enabled,
+        Integer commentsCount,
+        Integer currentDay,
+        String tripPlanId,
         Boolean isPromoted,
         Instant promotedAt,
         Boolean isPreAnnounced,

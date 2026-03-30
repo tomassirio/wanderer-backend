@@ -13,6 +13,7 @@ import com.tomassirio.wanderer.auth.repository.RefreshTokenRepository;
 import com.tomassirio.wanderer.auth.service.JwtService;
 import com.tomassirio.wanderer.auth.service.TokenService;
 import com.tomassirio.wanderer.commons.domain.User;
+import com.tomassirio.wanderer.commons.dto.UserBasicInfo;
 import com.tomassirio.wanderer.commons.security.Role;
 import feign.FeignException;
 import java.nio.charset.StandardCharsets;
@@ -102,7 +103,11 @@ public class TokenServiceImpl implements TokenService {
         // Get user information
         User user;
         try {
-            user = wandererQueryClient.getUserById(storedToken.getUserId());
+            UserBasicInfo userInfo =
+                    wandererQueryClient.getUserById(storedToken.getUserId(), "basic");
+            user = new User();
+            user.setId(userInfo.id());
+            user.setUsername(userInfo.username());
         } catch (FeignException e) {
             throw new IllegalStateException("Failed to fetch user information", e);
         }

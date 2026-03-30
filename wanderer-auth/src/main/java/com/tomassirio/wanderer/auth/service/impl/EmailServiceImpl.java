@@ -2,9 +2,11 @@ package com.tomassirio.wanderer.auth.service.impl;
 
 import com.tomassirio.wanderer.auth.service.EmailService;
 import jakarta.annotation.PostConstruct;
+import java.util.concurrent.CompletableFuture;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 /**
@@ -30,7 +32,9 @@ public class EmailServiceImpl implements EmailService {
     }
 
     @Override
-    public void sendVerificationEmail(String email, String username, String verificationToken) {
+    @Async
+    public CompletableFuture<Void> sendVerificationEmail(
+            String email, String username, String verificationToken) {
         // For now, just log the email content
         // In production, this would send an actual email via SMTP
         log.info("========================================");
@@ -55,10 +59,13 @@ public class EmailServiceImpl implements EmailService {
         log.info("");
         log.info("If you did not create an account, please ignore this email.");
         log.info("========================================");
+        return CompletableFuture.completedFuture(null);
     }
 
     @Override
-    public void sendPasswordResetEmail(String email, String username, String resetToken) {
+    @Async
+    public CompletableFuture<Void> sendPasswordResetEmail(
+            String email, String username, String resetToken) {
         log.info("========================================");
         log.info("PASSWORD RESET");
         log.info("========================================");
@@ -82,5 +89,6 @@ public class EmailServiceImpl implements EmailService {
         log.info("");
         log.info("If you did not request a password reset, please ignore this email.");
         log.info("========================================");
+        return CompletableFuture.completedFuture(null);
     }
 }

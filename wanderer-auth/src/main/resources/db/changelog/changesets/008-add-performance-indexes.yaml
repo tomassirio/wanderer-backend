@@ -1,0 +1,83 @@
+databaseChangeLog:
+  - changeSet:
+      id: 008-add-performance-indexes
+      author: tomassirio
+      comment: Add indexes to improve query performance on auth tables
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - indexExists:
+                indexName: idx_refresh_tokens_expires_at
+      changes:
+        # Refresh Tokens table indexes - idx_refresh_tokens_user_id and idx_refresh_tokens_token_hash already exist from 003-create-refresh-tokens
+        - createIndex:
+            indexName: idx_refresh_tokens_expires_at
+            tableName: refresh_tokens
+            columns:
+              - column:
+                  name: expires_at
+        
+        - createIndex:
+            indexName: idx_refresh_tokens_revoked
+            tableName: refresh_tokens
+            columns:
+              - column:
+                  name: revoked
+        
+        # User Credentials table indexes
+        - createIndex:
+            indexName: idx_user_credentials_email
+            tableName: user_credentials
+            columns:
+              - column:
+                  name: email
+        
+        - createIndex:
+            indexName: idx_user_credentials_enabled
+            tableName: user_credentials
+            columns:
+              - column:
+                  name: enabled
+        
+        # Password Reset Tokens table indexes - idx_password_reset_tokens_user_id already exists from 004-create-password-reset-tokens
+        - createIndex:
+            indexName: idx_password_reset_tokens_expires_at
+            tableName: password_reset_tokens
+            columns:
+              - column:
+                  name: expires_at
+        
+        - createIndex:
+            indexName: idx_password_reset_tokens_used
+            tableName: password_reset_tokens
+            columns:
+              - column:
+                  name: used
+        
+        # Email Verification Tokens table indexes - idx_email_verification_tokens_email and idx_email_verification_tokens_token_hash already exist from 005-create-email-verification-tokens
+        - createIndex:
+            indexName: idx_email_verification_tokens_expires_at
+            tableName: email_verification_tokens
+            columns:
+              - column:
+                  name: expires_at
+        
+        - createIndex:
+            indexName: idx_email_verification_tokens_verified
+            tableName: email_verification_tokens
+            columns:
+              - column:
+                  name: verified
+        
+        # Login Attempts table indexes - idx_login_attempts_identifier and idx_login_attempts_attempted_at already exist from 007-create-login-attempts
+        - createIndex:
+            indexName: idx_login_attempts_user_success_attempted
+            tableName: login_attempts
+            columns:
+              - column:
+                  name: user_id
+              - column:
+                  name: success
+              - column:
+                  name: attempted_at
+                  descending: true

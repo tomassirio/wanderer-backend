@@ -3,6 +3,7 @@ package com.tomassirio.wanderer.auth.config;
 import com.tomassirio.wanderer.auth.client.WandererQueryClient;
 import com.tomassirio.wanderer.auth.service.UserRoleService;
 import com.tomassirio.wanderer.commons.domain.User;
+import com.tomassirio.wanderer.commons.dto.UserBasicInfo;
 import feign.FeignException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -70,7 +71,11 @@ public class BootstrapAdminConfig {
 
             User user;
             try {
-                user = wandererQueryClient.getUserByUsername(bootstrapAdminUsername);
+                UserBasicInfo userInfo =
+                        wandererQueryClient.getUserByUsername(bootstrapAdminUsername, "basic");
+                user = new User();
+                user.setId(userInfo.id());
+                user.setUsername(userInfo.username());
             } catch (FeignException e) {
                 if (e.status() == 404) {
                     log.error(

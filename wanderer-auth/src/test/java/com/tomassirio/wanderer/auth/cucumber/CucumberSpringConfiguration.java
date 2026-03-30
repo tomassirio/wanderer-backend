@@ -4,7 +4,7 @@ import com.tomassirio.wanderer.auth.AuthApplication;
 import com.tomassirio.wanderer.auth.client.WandererCommandClient;
 import com.tomassirio.wanderer.auth.client.WandererQueryClient;
 import com.tomassirio.wanderer.commons.cucumber.BaseCucumberSpringConfiguration;
-import com.tomassirio.wanderer.commons.domain.User;
+import com.tomassirio.wanderer.commons.dto.UserBasicInfo;
 import io.cucumber.spring.CucumberContextConfiguration;
 import jakarta.annotation.PostConstruct;
 import java.util.Map;
@@ -27,11 +27,13 @@ public class CucumberSpringConfiguration extends BaseCucumberSpringConfiguration
     @PostConstruct
     public void setupMocks() {
         UUID userId = UUID.randomUUID();
-        User dummyUser = User.builder().id(userId).username("testuser").build();
+        UserBasicInfo dummyUserInfo = new UserBasicInfo(userId, "testuser");
 
         Mockito.when(wandererCommandClient.createUser(Mockito.any(Map.class))).thenReturn(userId);
-        Mockito.when(wandererQueryClient.getUserById(userId)).thenReturn(dummyUser);
-        Mockito.when(wandererQueryClient.getUserByUsername("testuser")).thenReturn(dummyUser);
-        Mockito.when(wandererQueryClient.getUserByUsername("nonexistent")).thenReturn(null);
+        Mockito.when(wandererQueryClient.getUserById(userId, "basic")).thenReturn(dummyUserInfo);
+        Mockito.when(wandererQueryClient.getUserByUsername("testuser", "basic"))
+                .thenReturn(dummyUserInfo);
+        Mockito.when(wandererQueryClient.getUserByUsername("nonexistent", "basic"))
+                .thenReturn(null);
     }
 }

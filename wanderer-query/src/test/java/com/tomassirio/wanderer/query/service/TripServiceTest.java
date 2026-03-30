@@ -17,6 +17,7 @@ import com.tomassirio.wanderer.commons.domain.UserFollow;
 import com.tomassirio.wanderer.commons.dto.TripDTO;
 import com.tomassirio.wanderer.commons.dto.TripMaintenanceStatsDTO;
 import com.tomassirio.wanderer.query.repository.FriendshipRepository;
+import com.tomassirio.wanderer.query.repository.PromotedTripRepository;
 import com.tomassirio.wanderer.query.repository.TripRepository;
 import com.tomassirio.wanderer.query.repository.UserFollowRepository;
 import com.tomassirio.wanderer.query.repository.UserRepository;
@@ -26,6 +27,7 @@ import jakarta.persistence.EntityNotFoundException;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -48,6 +50,8 @@ class TripServiceTest {
     @Mock private UserFollowRepository userFollowRepository;
 
     @Mock private UserRepository userRepository;
+
+    @Mock private PromotedTripRepository promotedTripRepository;
 
     @InjectMocks private TripServiceImpl tripService;
 
@@ -447,9 +451,10 @@ class TripServiceTest {
         ongoingTrip2.getTripSettings().setTripStatus(TripStatus.IN_PROGRESS);
 
         List<Trip> trips = List.of(ongoingTrip1, ongoingTrip2);
-        when(tripRepository.findByVisibilityAndStatusIn(
+        when(tripRepository.findByVisibilityAndStatusInWithPromotedFirst(
                         TripVisibility.PUBLIC, TripStatus.getActiveStatuses(), pageable))
                 .thenReturn(new PageImpl<>(trips, pageable, trips.size()));
+        when(promotedTripRepository.findAllPromotedTripIds()).thenReturn(Set.of());
         when(userRepository.findAllById(anyCollection()))
                 .thenReturn(List.of(TestEntityFactory.createUser()));
 
@@ -469,7 +474,7 @@ class TripServiceTest {
                 .isEqualTo(TripStatus.IN_PROGRESS);
 
         verify(tripRepository)
-                .findByVisibilityAndStatusIn(
+                .findByVisibilityAndStatusInWithPromotedFirst(
                         TripVisibility.PUBLIC, TripStatus.getActiveStatuses(), pageable);
     }
 
@@ -478,7 +483,7 @@ class TripServiceTest {
         // Given
         Pageable pageable =
                 PageRequest.of(0, 20, Sort.by(Sort.Direction.DESC, "creationTimestamp"));
-        when(tripRepository.findByVisibilityAndStatusIn(
+        when(tripRepository.findByVisibilityAndStatusInWithPromotedFirst(
                         TripVisibility.PUBLIC, TripStatus.getActiveStatuses(), pageable))
                 .thenReturn(new PageImpl<>(Collections.emptyList(), pageable, 0));
 
@@ -491,7 +496,7 @@ class TripServiceTest {
         assertThat(result.getTotalElements()).isZero();
 
         verify(tripRepository)
-                .findByVisibilityAndStatusIn(
+                .findByVisibilityAndStatusInWithPromotedFirst(
                         TripVisibility.PUBLIC, TripStatus.getActiveStatuses(), pageable);
     }
 
@@ -505,9 +510,10 @@ class TripServiceTest {
                         UUID.randomUUID(), "Ongoing Public", TripVisibility.PUBLIC);
         ongoingPublicTrip.getTripSettings().setTripStatus(TripStatus.IN_PROGRESS);
 
-        when(tripRepository.findByVisibilityAndStatusIn(
+        when(tripRepository.findByVisibilityAndStatusInWithPromotedFirst(
                         TripVisibility.PUBLIC, TripStatus.getActiveStatuses(), pageable))
                 .thenReturn(new PageImpl<>(List.of(ongoingPublicTrip), pageable, 1));
+        when(promotedTripRepository.findAllPromotedTripIds()).thenReturn(Set.of());
         when(userRepository.findAllById(anyCollection()))
                 .thenReturn(List.of(TestEntityFactory.createUser()));
 
@@ -517,13 +523,71 @@ class TripServiceTest {
         // Then
         assertThat(result).isNotNull();
         assertThat(result.getContent()).hasSize(1);
-        assertThat(result.getContent().get(0).tripSettings().visibility())
+        assertThat(result.getContent().getFirst().tripSettings().visibility())
                 .isEqualTo(TripVisibility.PUBLIC);
-        assertThat(result.getContent().get(0).tripSettings().tripStatus())
+        assertThat(result.getContent().getFirst().tripSettings().tripStatus())
                 .isEqualTo(TripStatus.IN_PROGRESS);
 
         verify(tripRepository)
-                .findByVisibilityAndStatusIn(
+                .findByVisibilityAndStatusInWithPromotedFirst(
+                        TripVisibility.PUBLIC, TripStatus.getActiveStatuses(), pageable);
+    }
+
+    @Test
+    void getOngoingPublicTrips_whenPromotedCreatedTripExists_shouldReturnIt() {
+        // Given
+        Pageable pageable =
+                PageRequest.of(0, 20, Sort.by(Sort.Direction.DESC, "creationTimestamp"));
+
+        UUID promotedCreatedTripId = UUID.randomUUID();
+        Trip promotedCreatedTrip =
+                TestEntityFactory.createTrip(
+                        promotedCreatedTripId, "Promoted Coming Soon", TripVisibility.PUBLIC);
+        promotedCreatedTrip.getTripSettings().setTripStatus(TripStatus.CREATED);
+
+        Trip activeTrip =
+                TestEntityFactory.createTrip(
+                        UUID.randomUUID(), "Active Trip", TripVisibility.PUBLIC);
+        activeTrip.getTripSettings().setTripStatus(TripStatus.IN_PROGRESS);
+
+        // Promoted CREATED trip should be included in results
+        List<Trip> trips = List.of(promotedCreatedTrip, activeTrip);
+        when(tripRepository.findByVisibilityAndStatusInWithPromotedFirst(
+                        TripVisibility.PUBLIC, TripStatus.getActiveStatuses(), pageable))
+                .thenReturn(new PageImpl<>(trips, pageable, trips.size()));
+        when(promotedTripRepository.findAllPromotedTripIds())
+                .thenReturn(Set.of(promotedCreatedTripId));
+        when(userRepository.findAllById(anyCollection()))
+                .thenReturn(List.of(TestEntityFactory.createUser()));
+
+        // When
+        Page<TripDTO> result = tripService.getOngoingPublicTrips(null, pageable);
+
+        // Then
+        assertThat(result).isNotNull();
+        assertThat(result.getContent()).hasSize(2);
+        // Promoted CREATED trip should be included
+        assertThat(
+                        result.getContent().stream()
+                                .anyMatch(
+                                        t ->
+                                                t.id().equals(promotedCreatedTripId.toString())
+                                                        && t.tripSettings().tripStatus()
+                                                                == TripStatus.CREATED
+                                                        && t.isPromoted()))
+                .isTrue();
+        // Regular active trip should also be there
+        assertThat(
+                        result.getContent().stream()
+                                .anyMatch(
+                                        t ->
+                                                t.name().equals("Active Trip")
+                                                        && t.tripSettings().tripStatus()
+                                                                == TripStatus.IN_PROGRESS))
+                .isTrue();
+
+        verify(tripRepository)
+                .findByVisibilityAndStatusInWithPromotedFirst(
                         TripVisibility.PUBLIC, TripStatus.getActiveStatuses(), pageable);
     }
 
@@ -592,7 +656,6 @@ class TripServiceTest {
         assertThat(result.getContent().get(0).name()).isEqualTo("Followed Trip 1");
         assertThat(result.getContent().get(1).name()).isEqualTo("Followed Trip 2");
         assertThat(result.getContent().get(2).name()).isEqualTo("Not Followed Trip");
-
         verify(userFollowRepository).findByFollowerId(requestingUserId);
         verify(tripRepository)
                 .findPublicActiveTripsWithFollowedPriority(
@@ -618,9 +681,10 @@ class TripServiceTest {
         trip2.getTripSettings().setTripStatus(TripStatus.IN_PROGRESS);
 
         List<Trip> trips = List.of(trip1, trip2);
-        when(tripRepository.findByVisibilityAndStatusIn(
+        when(tripRepository.findByVisibilityAndStatusInWithPromotedFirst(
                         TripVisibility.PUBLIC, TripStatus.getActiveStatuses(), pageable))
                 .thenReturn(new PageImpl<>(trips, pageable, trips.size()));
+        when(promotedTripRepository.findAllPromotedTripIds()).thenReturn(Set.of());
         when(userFollowRepository.findByFollowerId(requestingUserId))
                 .thenReturn(Collections.emptyList());
         when(userRepository.findAllById(anyCollection()))
@@ -636,7 +700,7 @@ class TripServiceTest {
         assertThat(result.getContent().get(1).name()).isEqualTo("Trip 2");
 
         verify(tripRepository)
-                .findByVisibilityAndStatusIn(
+                .findByVisibilityAndStatusInWithPromotedFirst(
                         TripVisibility.PUBLIC, TripStatus.getActiveStatuses(), pageable);
         verify(userFollowRepository).findByFollowerId(requestingUserId);
     }

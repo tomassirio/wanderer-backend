@@ -13,3 +13,5 @@ databaseChangeLog:
       file: db/changelog/changesets/006-create-revoked-access-tokens.yaml
   - include:
       file: db/changelog/changesets/007-create-login-attempts.yaml
+  - include:
+      file: db/changelog/changesets/008-add-performance-indexes.yaml

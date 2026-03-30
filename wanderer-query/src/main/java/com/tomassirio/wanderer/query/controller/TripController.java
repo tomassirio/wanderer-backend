@@ -2,6 +2,7 @@ package com.tomassirio.wanderer.query.controller;
 
 import com.tomassirio.wanderer.commons.constants.ApiConstants;
 import com.tomassirio.wanderer.commons.dto.TripDTO;
+import com.tomassirio.wanderer.commons.dto.TripSummaryDTO;
 import com.tomassirio.wanderer.commons.security.CurrentUserId;
 import com.tomassirio.wanderer.query.service.TripService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -149,12 +150,12 @@ public class TripController {
 
     @GetMapping(ApiConstants.TRIPS_PUBLIC_ENDPOINT)
     @Operation(
-            summary = "Get ongoing public trips",
+            summary = "Get ongoing public trips (lightweight)",
             description =
                     "Retrieves public trips that are currently in progress with pagination, "
-                            + "prioritizing followed users if authenticated. "
-                            + "Use query parameters: page, size, sort (e.g., sort=creationTimestamp,desc)")
-    public ResponseEntity<Page<TripDTO>> getOngoingPublicTrips(
+                            + "prioritizing followed users if authenticated. Returns lightweight trip summaries "
+                            + "optimized for list views. Use query parameters: page, size, sort (e.g., sort=creationTimestamp,desc)")
+    public ResponseEntity<Page<TripSummaryDTO>> getOngoingPublicTripSummaries(
             @Parameter(hidden = true) @CurrentUserId(required = false) UUID requestingUserId,
             @Parameter(description = "Pagination and sorting parameters")
                     @PageableDefault(
@@ -163,15 +164,15 @@ public class TripController {
                             direction = Sort.Direction.DESC)
                     Pageable pageable) {
         log.info(
-                "Received request to retrieve ongoing public trips from user {}, page: {}, size: {}",
+                "Received request to retrieve ongoing public trip summaries from user {}, page: {}, size: {}",
                 requestingUserId,
                 pageable.getPageNumber(),
                 pageable.getPageSize());
 
-        Page<TripDTO> trips = tripService.getOngoingPublicTrips(requestingUserId, pageable);
+        Page<TripSummaryDTO> trips = tripService.getOngoingPublicTripSummaries(requestingUserId, pageable);
 
         log.info(
-                "Successfully retrieved {} ongoing public trips (page {} of {})",
+                "Successfully retrieved {} ongoing public trip summaries (page {} of {})",
                 trips.getNumberOfElements(),
                 trips.getNumber() + 1,
                 trips.getTotalPages());

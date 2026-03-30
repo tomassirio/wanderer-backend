@@ -10,7 +10,6 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -69,19 +68,39 @@ public class UserQueryController {
 
     @GetMapping(ApiConstants.USER_BY_ID_ENDPOINT)
     @Operation(summary = "Get user by ID", description = "Retrieves a specific user by their ID")
-    public ResponseEntity<UserResponse> getUser(@PathVariable UUID id) {
+    public ResponseEntity<?> getUser(
+            @PathVariable UUID id,
+            @RequestParam(value = "format", required = false, defaultValue = "full")
+                    String format) {
         log.info("Retrieving user by ID: {}", id);
         UserResponse user = userQueryService.getUserById(id);
         log.info("Successfully retrieved user with ID: {}", id);
+
+        // Return basic info for internal service-to-service calls
+        if ("basic".equals(format)) {
+            return ResponseEntity.ok(
+                    new com.tomassirio.wanderer.commons.dto.UserBasicInfo(
+                            user.id(), user.username()));
+        }
         return ResponseEntity.ok(user);
     }
 
     @GetMapping(ApiConstants.USERNAME_ENDPOINT)
     @Operation(summary = "Get user by username", description = "Retrieves a user by their username")
-    public ResponseEntity<UserResponse> getUserByUsername(@PathVariable String username) {
+    public ResponseEntity<?> getUserByUsername(
+            @PathVariable String username,
+            @RequestParam(value = "format", required = false, defaultValue = "full")
+                    String format) {
         log.info("Retrieving user by username");
         UserResponse user = userQueryService.getUserByUsername(username);
         log.info("Successfully retrieved user by username");
+
+        // Return basic info for internal service-to-service calls
+        if ("basic".equals(format)) {
+            return ResponseEntity.ok(
+                    new com.tomassirio.wanderer.commons.dto.UserBasicInfo(
+                            user.id(), user.username()));
+        }
         return ResponseEntity.ok(user);
     }
 
@@ -97,31 +116,40 @@ public class UserQueryController {
         log.info("Successfully retrieved current user profile");
         return ResponseEntity.ok(user);
     }
-    
+
     @GetMapping(ApiConstants.ME_SUFFIX + "/discover")
     @PreAuthorize("hasAnyRole('ADMIN','USER')")
     @Operation(
             summary = "Get discoverable users",
-            description = "Retrieves friends of friends and people followed by friends for user discovery")
+            description =
+                    "Retrieves friends of friends and people followed by friends for user discovery")
     @ApiResponse(responseCode = "200", description = "Discoverable users retrieved successfully")
     @ApiResponse(responseCode = "401", description = "Unauthorized - valid JWT required")
     public ResponseEntity<Page<UserResponse>> getDiscoverableUsers(
             @Parameter(hidden = true) @CurrentUserId UUID userId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
-        log.info("Retrieving discoverable users for userId: {}, page: {}, size: {}", userId, page, size);
+        log.info(
+                "Retrieving discoverable users for userId: {}, page: {}, size: {}",
+                userId,
+                page,
+                size);
         Page<UserResponse> users = userQueryService.getDiscoverableUsers(userId, page, size);
-        log.info("Successfully retrieved {} discoverable users (page {} of {})", 
-                users.getContent().size(), users.getNumber() + 1, users.getTotalPages());
+        log.info(
+                "Successfully retrieved {} discoverable users (page {} of {})",
+                users.getContent().size(),
+                users.getNumber() + 1,
+                users.getTotalPages());
         return ResponseEntity.ok(users);
     }
-    
+
     @GetMapping("/{targetUserId}/associated")
     @PreAuthorize("hasAnyRole('ADMIN','USER')")
     @Operation(
             summary = "Get users associated with target user",
-            description = "Retrieves users associated with the target user (friends, following, followers) "
-                    + "with relationship status from the current user's perspective")
+            description =
+                    "Retrieves users associated with the target user (friends, following, followers) "
+                            + "with relationship status from the current user's perspective")
     @ApiResponse(responseCode = "200", description = "Associated users retrieved successfully")
     @ApiResponse(responseCode = "401", description = "Unauthorized - valid JWT required")
     public ResponseEntity<Page<UserRelationshipResponse>> getAssociatedUsers(
@@ -129,11 +157,19 @@ public class UserQueryController {
             @PathVariable UUID targetUserId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
-        log.info("Retrieving associated users for target user {} from current user {}, page: {}, size: {}", 
-                targetUserId, currentUserId, page, size);
-        Page<UserRelationshipResponse> users = userQueryService.getAssociatedUsers(currentUserId, targetUserId, page, size);
-        log.info("Successfully retrieved {} associated users (page {} of {})", 
-                users.getContent().size(), users.getNumber() + 1, users.getTotalPages());
+        log.info(
+                "Retrieving associated users for target user {} from current user {}, page: {}, size: {}",
+                targetUserId,
+                currentUserId,
+                page,
+                size);
+        Page<UserRelationshipResponse> users =
+                userQueryService.getAssociatedUsers(currentUserId, targetUserId, page, size);
+        log.info(
+                "Successfully retrieved {} associated users (page {} of {})",
+                users.getContent().size(),
+                users.getNumber() + 1,
+                users.getTotalPages());
         return ResponseEntity.ok(users);
     }
 }

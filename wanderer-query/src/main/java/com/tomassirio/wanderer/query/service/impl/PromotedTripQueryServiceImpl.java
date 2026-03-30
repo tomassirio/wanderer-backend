@@ -2,7 +2,6 @@ package com.tomassirio.wanderer.query.service.impl;
 
 import com.tomassirio.wanderer.commons.domain.PromotedTrip;
 import com.tomassirio.wanderer.commons.domain.Trip;
-import com.tomassirio.wanderer.commons.domain.User;
 import com.tomassirio.wanderer.query.dto.PromotedTripResponse;
 import com.tomassirio.wanderer.query.repository.PromotedTripRepository;
 import com.tomassirio.wanderer.query.repository.TripRepository;
@@ -62,18 +61,19 @@ public class PromotedTripQueryServiceImpl implements PromotedTripQueryService {
                                         new EntityNotFoundException(
                                                 "Trip not found: " + promotedTrip.getTripId()));
 
-        User promoter =
+        // Use lightweight UserSummaryDto projection instead of full User entity
+        var promoter =
                 userRepository
-                        .findById(promotedTrip.getPromotedBy())
+                        .findUserSummaryById(promotedTrip.getPromotedBy())
                         .orElseThrow(
                                 () ->
                                         new EntityNotFoundException(
                                                 "Promoter not found: "
                                                         + promotedTrip.getPromotedBy()));
 
-        User tripOwner =
+        var tripOwner =
                 userRepository
-                        .findById(trip.getUserId())
+                        .findUserSummaryById(trip.getUserId())
                         .orElseThrow(
                                 () ->
                                         new EntityNotFoundException(
