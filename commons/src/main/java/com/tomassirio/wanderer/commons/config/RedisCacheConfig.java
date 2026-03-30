@@ -18,6 +18,9 @@ import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer;
 import org.springframework.data.redis.serializer.RedisSerializationContext;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
+import org.springframework.data.web.config.EnableSpringDataWebSupport;
+import org.springframework.data.web.config.SpringDataJacksonConfiguration;
+import org.springframework.data.web.config.SpringDataWebSettings;
 
 /**
  * Redis-based cache configuration for distributed caching across pods.
@@ -83,6 +86,11 @@ public class RedisCacheConfig {
         objectMapper.findAndRegisterModules();
         objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
         objectMapper.configure(DeserializationFeature.FAIL_ON_INVALID_SUBTYPE, false);
+        
+        // Register Spring Data Jackson module for Page serialization
+        SpringDataWebSettings settings = new SpringDataWebSettings(
+                EnableSpringDataWebSupport.PageSerializationMode.VIA_DTO);
+        objectMapper.registerModule(new SpringDataJacksonConfiguration.PageModule(settings));
 
         objectMapper.activateDefaultTyping(
                 objectMapper.getPolymorphicTypeValidator(),
