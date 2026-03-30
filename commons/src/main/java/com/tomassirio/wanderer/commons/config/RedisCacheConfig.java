@@ -87,15 +87,9 @@ public class RedisCacheConfig {
         objectMapper.configure(DeserializationFeature.FAIL_ON_INVALID_SUBTYPE, false);
         objectMapper.findAndRegisterModules();
         
-        // Register Spring Data Jackson module for Page serialization
         SpringDataWebSettings settings = new SpringDataWebSettings(
                 EnableSpringDataWebSupport.PageSerializationMode.VIA_DTO);
         objectMapper.registerModule(new SpringDataJacksonConfiguration.PageModule(settings));
-
-        objectMapper.activateDefaultTyping(
-                objectMapper.getPolymorphicTypeValidator(),
-                ObjectMapper.DefaultTyping.NON_FINAL,
-                JsonTypeInfo.As.PROPERTY);
 
         GenericJackson2JsonRedisSerializer serializer =
                 new GenericJackson2JsonRedisSerializer(objectMapper);
