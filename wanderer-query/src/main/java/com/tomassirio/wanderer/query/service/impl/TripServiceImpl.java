@@ -45,6 +45,7 @@ public class TripServiceImpl implements TripService {
     private final UserFollowRepository userFollowRepository;
     private final UserRepository userRepository;
     private final PromotedTripRepository promotedTripRepository;
+    private final com.tomassirio.wanderer.query.repository.CommentRepository commentRepository;
 
     private final TripMapper tripMapper = TripMapper.INSTANCE;
 
@@ -81,6 +82,12 @@ public class TripServiceImpl implements TripService {
     }
 
     @Override
+    public Page<TripDTO> getTripsForUser(UUID userId, Pageable pageable) {
+        Page<Trip> tripPage = tripRepository.findByUserId(userId, pageable);
+        return enrichPageWithUsernamesAndPromotedStatus(tripPage, pageable);
+    }
+
+    @Override
     public List<TripDTO> getTripsForUserWithVisibility(UUID userId, UUID requestingUserId) {
         // Check if users are friends
         boolean areFriends =
@@ -97,6 +104,23 @@ public class TripServiceImpl implements TripService {
                 tripRepository.findByUserIdAndVisibilityIn(userId, allowedVisibilities).stream()
                         .map(tripMapper::toDTO)
                         .toList());
+    }
+
+    @Override
+    public Page<TripDTO> getTripsForUserWithVisibility(UUID userId, UUID requestingUserId, Pageable pageable) {
+        // Check if users are friends
+        boolean areFriends =
+                requestingUserId != null
+                        && friendshipRepository.existsByUserIdAndFriendId(requestingUserId, userId);
+
+        // Determine allowed visibilities based on friendship status
+        List<TripVisibility> allowedVisibilities =
+                areFriends
+                        ? List.of(TripVisibility.PUBLIC, TripVisibility.PROTECTED)
+                        : List.of(TripVisibility.PUBLIC);
+
+        Page<Trip> tripPage = tripRepository.findByUserIdAndVisibilityIn(userId, allowedVisibilities, pageable);
+        return enrichPageWithUsernames(tripPage, pageable);
     }
 
     @Override
@@ -543,6 +567,18 @@ public class TripServiceImpl implements TripService {
                 userRepository.findAllById(userIds).stream()
                         .collect(Collectors.toMap(User::getId, User::getUsername));
 
+        // Fetch comment counts for all trips in a single query
+        List<UUID> tripIds = tripPage.stream()
+                .map(Trip::getId)
+                .filter(Objects::nonNull)
+                .toList();
+        
+        Map<UUID, Long> commentCounts = commentRepository.countByTripIdIn(tripIds).stream()
+                .collect(Collectors.toMap(
+                        arr -> (UUID) arr[0],
+                        arr -> (Long) arr[1]
+                ));
+
         // Enrich each trip with username and promoted status - using lightweight DTO
         List<TripSummaryDTO> enrichedTrips =
                 tripPage.stream()
@@ -563,7 +599,9 @@ public class TripServiceImpl implements TripService {
                                             TripSettingsMapper.INSTANCE.toDTO(
                                                     trip.getTripSettings()),
                                             trip.getCreationTimestamp(),
-                                            0, // commentsCount - would need separate query
+                                            trip.getId() != null
+                                                    ? commentCounts.getOrDefault(trip.getId(), 0L).intValue()
+                                                    : 0,
                                             trip.getTripDetails() != null
                                                     ? trip.getTripDetails().getCurrentDay()
                                                     : null,

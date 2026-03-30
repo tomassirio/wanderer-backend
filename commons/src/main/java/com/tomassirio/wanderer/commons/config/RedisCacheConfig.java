@@ -16,8 +16,12 @@ import org.springframework.data.redis.cache.RedisCacheConfiguration;
 import org.springframework.data.redis.cache.RedisCacheManager;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer;
+import org.springframework.data.redis.serializer.Jackson2JsonRedisSerializer;
 import org.springframework.data.redis.serializer.RedisSerializationContext;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
+import org.springframework.data.web.config.EnableSpringDataWebSupport;
+import org.springframework.data.web.config.SpringDataJacksonConfiguration;
+import org.springframework.data.web.config.SpringDataWebSettings;
 
 /**
  * Redis-based cache configuration for distributed caching across pods.
@@ -29,6 +33,12 @@ import org.springframework.data.redis.serializer.StringRedisSerializer;
  *   <li>Reduced database load
  *   <li>Better cache hit rates with shared cache
  * </ul>
+ *
+ * <p><b>IMPORTANT:</b> After deploying changes to this configuration, you MUST clear the Redis
+ * cache to prevent deserialization errors from incompatible cached data:
+ * <pre>
+ * kubectl exec -n wanderer-dev &lt;redis-pod-name&gt; -- redis-cli FLUSHDB
+ * </pre>
  *
  * @since 1.1.0
  */
@@ -78,19 +88,33 @@ public class RedisCacheConfig {
     @Bean
     public CacheManager cacheManager(RedisConnectionFactory connectionFactory) {
         ObjectMapper objectMapper = new ObjectMapper();
+        
+        // Register Java time module for LocalDateTime, etc.
         objectMapper.registerModule(new JavaTimeModule());
         objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-        objectMapper.findAndRegisterModules();
+        
+        // Configure deserialization to be lenient
         objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
         objectMapper.configure(DeserializationFeature.FAIL_ON_INVALID_SUBTYPE, false);
+        objectMapper.configure(DeserializationFeature.ACCEPT_EMPTY_STRING_AS_NULL_OBJECT, true);
+        
+        // Register Spring Data module for Page serialization BEFORE findAndRegisterModules
+        SpringDataWebSettings settings = new SpringDataWebSettings(
+                EnableSpringDataWebSupport.PageSerializationMode.VIA_DTO);
+        objectMapper.registerModule(new SpringDataJacksonConfiguration.PageModule(settings));
+        
+        // Find and register other modules (after Spring Data module to avoid conflicts)
+        objectMapper.findAndRegisterModules();
 
+        // Enable default typing for polymorphic type handling (Java records, interfaces, etc.)
         objectMapper.activateDefaultTyping(
                 objectMapper.getPolymorphicTypeValidator(),
                 ObjectMapper.DefaultTyping.NON_FINAL,
                 JsonTypeInfo.As.PROPERTY);
 
-        GenericJackson2JsonRedisSerializer serializer =
-                new GenericJackson2JsonRedisSerializer(objectMapper);
+        // Use Jackson2JsonRedisSerializer with Object.class to handle any type
+        Jackson2JsonRedisSerializer<Object> serializer =
+                new Jackson2JsonRedisSerializer<>(objectMapper, Object.class);
 
         RedisCacheConfiguration defaultConfig =
                 RedisCacheConfiguration.defaultCacheConfig()

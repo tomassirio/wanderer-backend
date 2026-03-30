@@ -1,5 +1,7 @@
 package com.tomassirio.wanderer.query.controller;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -7,8 +9,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.tomassirio.wanderer.commons.dto.FriendshipResponse;
 import com.tomassirio.wanderer.commons.exception.GlobalExceptionHandler;
-import com.tomassirio.wanderer.commons.security.CurrentUserIdArgumentResolver;
 import com.tomassirio.wanderer.commons.security.JwtUtils;
+import com.tomassirio.wanderer.commons.utils.MockMvcTestUtils;
 import com.tomassirio.wanderer.query.service.FriendshipQueryService;
 import java.util.List;
 import java.util.UUID;
@@ -18,8 +20,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 @ExtendWith(MockitoExtension.class)
 class FriendshipQueryControllerTest {
@@ -45,44 +49,40 @@ class FriendshipQueryControllerTest {
         token = "Bearer test-token";
 
         mockMvc =
-                MockMvcBuilders.standaloneSetup(friendshipQueryController)
-                        .setControllerAdvice(new GlobalExceptionHandler())
-                        .setCustomArgumentResolvers(new CurrentUserIdArgumentResolver(jwtUtils))
-                        .build();
+                MockMvcTestUtils.buildMockMvcWithCurrentUserResolver(
+                        friendshipQueryController, userId, new GlobalExceptionHandler());
     }
 
     // ============ GET MY FRIENDS TESTS ============
 
     @Test
     void getMyFriends_Success() throws Exception {
-        when(jwtUtils.getUserIdFromAuthorizationHeader(token)).thenReturn(userId);
         FriendshipResponse response = new FriendshipResponse(userId, friendId);
 
-        when(friendshipQueryService.getFriends(userId)).thenReturn(List.of(response));
+        Page<FriendshipResponse> page = new PageImpl<>(List.of(response));
+        when(friendshipQueryService.getFriends(eq(userId), any(Pageable.class))).thenReturn(page);
 
-        mockMvc.perform(get(MY_FRIENDS_URL).header("Authorization", token))
+        mockMvc.perform(get(MY_FRIENDS_URL))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$").isArray())
-                .andExpect(jsonPath("$[0].userId").value(userId.toString()))
-                .andExpect(jsonPath("$[0].friendId").value(friendId.toString()));
+                .andExpect(jsonPath("$.content").isArray())
+                .andExpect(jsonPath("$.content[0].userId").value(userId.toString()))
+                .andExpect(jsonPath("$.content[0].friendId").value(friendId.toString()));
 
-        verify(friendshipQueryService).getFriends(userId);
+        verify(friendshipQueryService).getFriends(eq(userId), any(Pageable.class));
     }
 
     @Test
     void getMyFriends_EmptyList() throws Exception {
-        when(jwtUtils.getUserIdFromAuthorizationHeader(token)).thenReturn(userId);
-        when(friendshipQueryService.getFriends(userId)).thenReturn(List.of());
+        Page<FriendshipResponse> page = new PageImpl<>(List.of());
+        when(friendshipQueryService.getFriends(eq(userId), any(Pageable.class))).thenReturn(page);
 
-        mockMvc.perform(get(MY_FRIENDS_URL).header("Authorization", token))
+        mockMvc.perform(get(MY_FRIENDS_URL))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$").isArray())
-                .andExpect(jsonPath("$").isEmpty());
+                .andExpect(jsonPath("$.content").isArray())
+                .andExpect(jsonPath("$.content").isEmpty());
 
-        verify(friendshipQueryService).getFriends(userId);
+        verify(friendshipQueryService).getFriends(eq(userId), any(Pageable.class));
     }
-
-    // ============ GET FRIENDS BY USER ID TESTS ============
 
     @Test
     void getFriendsByUserId_Success() throws Exception {
@@ -90,29 +90,31 @@ class FriendshipQueryControllerTest {
         UUID targetFriendId = UUID.randomUUID();
         FriendshipResponse response = new FriendshipResponse(targetUserId, targetFriendId);
 
-        when(friendshipQueryService.getFriends(targetUserId)).thenReturn(List.of(response));
+        Page<FriendshipResponse> page = new PageImpl<>(List.of(response));
+        when(friendshipQueryService.getFriends(eq(targetUserId), any(Pageable.class))).thenReturn(page);
 
         mockMvc.perform(get("/api/1/users/{userId}/friends", targetUserId))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$").isArray())
-                .andExpect(jsonPath("$[0].userId").value(targetUserId.toString()))
-                .andExpect(jsonPath("$[0].friendId").value(targetFriendId.toString()));
+                .andExpect(jsonPath("$.content").isArray())
+                .andExpect(jsonPath("$.content[0].userId").value(targetUserId.toString()))
+                .andExpect(jsonPath("$.content[0].friendId").value(targetFriendId.toString()));
 
-        verify(friendshipQueryService).getFriends(targetUserId);
+        verify(friendshipQueryService).getFriends(eq(targetUserId), any(Pageable.class));
     }
 
     @Test
     void getFriendsByUserId_EmptyList() throws Exception {
         UUID targetUserId = UUID.randomUUID();
 
-        when(friendshipQueryService.getFriends(targetUserId)).thenReturn(List.of());
+        Page<FriendshipResponse> page = new PageImpl<>(List.of());
+        when(friendshipQueryService.getFriends(eq(targetUserId), any(Pageable.class))).thenReturn(page);
 
         mockMvc.perform(get("/api/1/users/{userId}/friends", targetUserId))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$").isArray())
-                .andExpect(jsonPath("$").isEmpty());
+                .andExpect(jsonPath("$.content").isArray())
+                .andExpect(jsonPath("$.content").isEmpty());
 
-        verify(friendshipQueryService).getFriends(targetUserId);
+        verify(friendshipQueryService).getFriends(eq(targetUserId), any(Pageable.class));
     }
 
     @Test
@@ -123,18 +125,127 @@ class FriendshipQueryControllerTest {
         FriendshipResponse response1 = new FriendshipResponse(targetUserId, friendId1);
         FriendshipResponse response2 = new FriendshipResponse(targetUserId, friendId2);
 
-        when(friendshipQueryService.getFriends(targetUserId))
-                .thenReturn(List.of(response1, response2));
+        Page<FriendshipResponse> page = new PageImpl<>(List.of(response1, response2));
+        when(friendshipQueryService.getFriends(eq(targetUserId), any(Pageable.class)))
+                .thenReturn(page);
 
         mockMvc.perform(get("/api/1/users/{userId}/friends", targetUserId))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$").isArray())
-                .andExpect(jsonPath("$.length()").value(2))
-                .andExpect(jsonPath("$[0].userId").value(targetUserId.toString()))
-                .andExpect(jsonPath("$[0].friendId").value(friendId1.toString()))
-                .andExpect(jsonPath("$[1].userId").value(targetUserId.toString()))
-                .andExpect(jsonPath("$[1].friendId").value(friendId2.toString()));
+                .andExpect(jsonPath("$.content").isArray())
+                .andExpect(jsonPath("$.content.length()").value(2))
+                .andExpect(jsonPath("$.content[0].userId").value(targetUserId.toString()))
+                .andExpect(jsonPath("$.content[0].friendId").value(friendId1.toString()))
+                .andExpect(jsonPath("$.content[1].userId").value(targetUserId.toString()))
+                .andExpect(jsonPath("$.content[1].friendId").value(friendId2.toString()));
 
-        verify(friendshipQueryService).getFriends(targetUserId);
+        verify(friendshipQueryService).getFriends(eq(targetUserId), any(Pageable.class));
+    }
+
+    // ============ PAGINATED MY FRIENDS TESTS ============
+
+    @Test
+    void getMyFriends_paginated_Success() throws Exception {
+        FriendshipResponse response1 = new FriendshipResponse(userId, friendId);
+        UUID friendId2 = UUID.randomUUID();
+        FriendshipResponse response2 = new FriendshipResponse(userId, friendId2);
+
+        Page<FriendshipResponse> page = new PageImpl<>(List.of(response1, response2));
+        when(friendshipQueryService.getFriends(eq(userId), any(Pageable.class))).thenReturn(page);
+
+        mockMvc.perform(get(MY_FRIENDS_URL))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content").isArray())
+                .andExpect(jsonPath("$.content.length()").value(2))
+                .andExpect(jsonPath("$.content[0].userId").value(userId.toString()))
+                .andExpect(jsonPath("$.content[0].friendId").value(friendId.toString()))
+                .andExpect(jsonPath("$.content[1].userId").value(userId.toString()))
+                .andExpect(jsonPath("$.content[1].friendId").value(friendId2.toString()))
+                .andExpect(jsonPath("$.totalElements").value(2));
+
+        verify(friendshipQueryService).getFriends(eq(userId), any(Pageable.class));
+    }
+
+    @Test
+    void getMyFriends_paginated_EmptyPage() throws Exception {
+        Page<FriendshipResponse> page = new PageImpl<>(List.of());
+        when(friendshipQueryService.getFriends(eq(userId), any(Pageable.class))).thenReturn(page);
+
+        mockMvc.perform(get(MY_FRIENDS_URL))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content").isArray())
+                .andExpect(jsonPath("$.content.length()").value(0))
+                .andExpect(jsonPath("$.totalElements").value(0));
+
+        verify(friendshipQueryService).getFriends(eq(userId), any(Pageable.class));
+    }
+
+    @Test
+    void getMyFriends_paginated_withPaginationParams_shouldPassPageableToService() throws Exception {
+        Page<FriendshipResponse> page = new PageImpl<>(List.of());
+        when(friendshipQueryService.getFriends(eq(userId), any(Pageable.class))).thenReturn(page);
+
+        mockMvc.perform(get(MY_FRIENDS_URL)
+                        .param("page", "1")
+                        .param("size", "10")
+                        .param("sort", "createdAt,desc"))
+                .andExpect(status().isOk());
+
+        verify(friendshipQueryService).getFriends(eq(userId), any(Pageable.class));
+    }
+
+    // ============ PAGINATED FRIENDS BY USER ID TESTS ============
+
+    @Test
+    void getFriendsByUserId_paginated_Success() throws Exception {
+        UUID targetUserId = UUID.randomUUID();
+        UUID targetFriendId1 = UUID.randomUUID();
+        UUID targetFriendId2 = UUID.randomUUID();
+        FriendshipResponse response1 = new FriendshipResponse(targetUserId, targetFriendId1);
+        FriendshipResponse response2 = new FriendshipResponse(targetUserId, targetFriendId2);
+
+        Page<FriendshipResponse> page = new PageImpl<>(List.of(response1, response2));
+        when(friendshipQueryService.getFriends(eq(targetUserId), any(Pageable.class))).thenReturn(page);
+
+        mockMvc.perform(get("/api/1/users/{userId}/friends", targetUserId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content").isArray())
+                .andExpect(jsonPath("$.content.length()").value(2))
+                .andExpect(jsonPath("$.content[0].userId").value(targetUserId.toString()))
+                .andExpect(jsonPath("$.content[0].friendId").value(targetFriendId1.toString()))
+                .andExpect(jsonPath("$.content[1].userId").value(targetUserId.toString()))
+                .andExpect(jsonPath("$.content[1].friendId").value(targetFriendId2.toString()))
+                .andExpect(jsonPath("$.totalElements").value(2));
+
+        verify(friendshipQueryService).getFriends(eq(targetUserId), any(Pageable.class));
+    }
+
+    @Test
+    void getFriendsByUserId_paginated_EmptyPage() throws Exception {
+        UUID targetUserId = UUID.randomUUID();
+        Page<FriendshipResponse> page = new PageImpl<>(List.of());
+        when(friendshipQueryService.getFriends(eq(targetUserId), any(Pageable.class))).thenReturn(page);
+
+        mockMvc.perform(get("/api/1/users/{userId}/friends", targetUserId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content").isArray())
+                .andExpect(jsonPath("$.content.length()").value(0))
+                .andExpect(jsonPath("$.totalElements").value(0));
+
+        verify(friendshipQueryService).getFriends(eq(targetUserId), any(Pageable.class));
+    }
+
+    @Test
+    void getFriendsByUserId_paginated_withPaginationParams_shouldPassPageableToService() throws Exception {
+        UUID targetUserId = UUID.randomUUID();
+        Page<FriendshipResponse> page = new PageImpl<>(List.of());
+        when(friendshipQueryService.getFriends(eq(targetUserId), any(Pageable.class))).thenReturn(page);
+
+        mockMvc.perform(get("/api/1/users/{userId}/friends", targetUserId)
+                        .param("page", "0")
+                        .param("size", "25")
+                        .param("sort", "createdAt,asc"))
+                .andExpect(status().isOk());
+
+        verify(friendshipQueryService).getFriends(eq(targetUserId), any(Pageable.class));
     }
 }

@@ -37,6 +37,12 @@ public interface TripRepository extends JpaRepository<Trip, UUID> {
     List<Trip> findByUserId(UUID userId);
 
     /**
+     * Find trips by user ID with trip days eagerly loaded (pageable).
+     */
+    @EntityGraph(attributePaths = {"tripDays"})
+    Page<Trip> findByUserId(UUID userId, Pageable pageable);
+
+    /**
      * Find trips by user ID that are visible to the requester based on visibility rules. Returns
      * PUBLIC and PROTECTED trips for any requester. Excludes CREATED (draft) trips unless they are
      * pre-announced.
@@ -47,6 +53,16 @@ public interface TripRepository extends JpaRepository<Trip, UUID> {
                     + "EXISTS (SELECT 1 FROM PromotedTrip p WHERE p.tripId = t.id AND p.preAnnounced = true))")
     List<Trip> findByUserIdAndVisibilityIn(
             @Param("userId") UUID userId, @Param("visibilities") List<TripVisibility> visibilities);
+
+    /**
+     * Find trips by user ID that are visible to the requester (pageable).
+     */
+    @Query(
+            "SELECT t FROM Trip t WHERE t.userId = :userId AND t.tripSettings.visibility IN :visibilities "
+                    + "AND (t.tripSettings.tripStatus != com.tomassirio.wanderer.commons.domain.TripStatus.CREATED OR "
+                    + "EXISTS (SELECT 1 FROM PromotedTrip p WHERE p.tripId = t.id AND p.preAnnounced = true))")
+    Page<Trip> findByUserIdAndVisibilityIn(
+            @Param("userId") UUID userId, @Param("visibilities") List<TripVisibility> visibilities, Pageable pageable);
 
     /** Find all public trips that are currently in progress. */
     @Query(

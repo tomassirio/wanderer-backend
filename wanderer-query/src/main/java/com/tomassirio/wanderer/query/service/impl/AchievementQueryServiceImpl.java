@@ -26,7 +26,8 @@ public class AchievementQueryServiceImpl implements AchievementQueryService {
     private final UserAchievementRepository userAchievementRepository;
 
     @Override
-    @Cacheable(value = RedisCacheConfig.ACHIEVEMENTS_CACHE, key = "'available'")
+    // TODO: Re-enable caching after fixing serialization issue with nested DTOs
+    // @Cacheable(value = RedisCacheConfig.ACHIEVEMENTS_CACHE, key = "'available'")
     public List<AchievementDTO> getAvailableAchievements() {
         return achievementRepository.findByEnabledTrue().stream()
                 .map(AchievementMapper.INSTANCE::toDTO)
@@ -34,7 +35,8 @@ public class AchievementQueryServiceImpl implements AchievementQueryService {
     }
 
     @Override
-    @Cacheable(value = RedisCacheConfig.USER_ACHIEVEMENTS_CACHE, key = "#userId")
+    // TODO: Re-enable caching after fixing serialization issue with nested DTOs
+    // @Cacheable(value = RedisCacheConfig.USER_ACHIEVEMENTS_CACHE, key = "#userId")
     public List<UserAchievementDTO> getUserAchievements(UUID userId) {
         return userAchievementRepository.findByUserId(userId).stream()
                 .map(UserAchievementMapper.INSTANCE::toDTO)
@@ -42,7 +44,8 @@ public class AchievementQueryServiceImpl implements AchievementQueryService {
     }
 
     @Override
-    @Cacheable(value = RedisCacheConfig.USER_ACHIEVEMENTS_CACHE, key = "#userId + '-' + #tripId")
+    // TODO: Re-enable caching after fixing serialization issue with nested DTOs
+    // @Cacheable(value = RedisCacheConfig.USER_ACHIEVEMENTS_CACHE, key = "#userId + '-' + #tripId")
     public List<UserAchievementDTO> getUserAchievementsByTrip(UUID userId, UUID tripId) {
         return userAchievementRepository.findByUserIdAndTripId(userId, tripId).stream()
                 .map(UserAchievementMapper.INSTANCE::toDTO)
