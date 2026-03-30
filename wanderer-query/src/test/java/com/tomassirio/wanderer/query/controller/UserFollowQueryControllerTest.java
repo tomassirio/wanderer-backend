@@ -65,35 +65,37 @@ class UserFollowQueryControllerTest {
         UserFollowResponse follow2 =
                 new UserFollowResponse(followId2, USER_ID, followedUserId2, now);
 
-        when(userFollowService.getFollowing(USER_ID)).thenReturn(List.of(follow1, follow2));
+        Page<UserFollowResponse> page = new PageImpl<>(List.of(follow1, follow2));
+        when(userFollowService.getFollowing(eq(USER_ID), any(Pageable.class))).thenReturn(page);
 
         // When & Then
         mockMvc.perform(get(MY_FOLLOWING_URL))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$").isArray())
-                .andExpect(jsonPath("$.length()").value(2))
-                .andExpect(jsonPath("$[0].id").value(followId1.toString()))
-                .andExpect(jsonPath("$[0].followerId").value(USER_ID.toString()))
-                .andExpect(jsonPath("$[0].followedId").value(followedUserId1.toString()))
-                .andExpect(jsonPath("$[1].id").value(followId2.toString()))
-                .andExpect(jsonPath("$[1].followerId").value(USER_ID.toString()))
-                .andExpect(jsonPath("$[1].followedId").value(followedUserId2.toString()));
+                .andExpect(jsonPath("$.content").isArray())
+                .andExpect(jsonPath("$.content.length()").value(2))
+                .andExpect(jsonPath("$.content[0].id").value(followId1.toString()))
+                .andExpect(jsonPath("$.content[0].followerId").value(USER_ID.toString()))
+                .andExpect(jsonPath("$.content[0].followedId").value(followedUserId1.toString()))
+                .andExpect(jsonPath("$.content[1].id").value(followId2.toString()))
+                .andExpect(jsonPath("$.content[1].followerId").value(USER_ID.toString()))
+                .andExpect(jsonPath("$.content[1].followedId").value(followedUserId2.toString()));
 
-        verify(userFollowService).getFollowing(USER_ID);
+        verify(userFollowService).getFollowing(eq(USER_ID), any(Pageable.class));
     }
 
     @Test
     void getMyFollowing_whenUserHasNoFollowing_shouldReturnEmptyList() throws Exception {
         // Given
-        when(userFollowService.getFollowing(USER_ID)).thenReturn(Collections.emptyList());
+        Page<UserFollowResponse> page = new PageImpl<>(Collections.emptyList());
+        when(userFollowService.getFollowing(eq(USER_ID), any(Pageable.class))).thenReturn(page);
 
         // When & Then
         mockMvc.perform(get(MY_FOLLOWING_URL))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$").isArray())
-                .andExpect(jsonPath("$.length()").value(0));
+                .andExpect(jsonPath("$.content").isArray())
+                .andExpect(jsonPath("$.content.length()").value(0));
 
-        verify(userFollowService).getFollowing(USER_ID);
+        verify(userFollowService).getFollowing(eq(USER_ID), any(Pageable.class));
     }
 
     @Test
@@ -105,19 +107,20 @@ class UserFollowQueryControllerTest {
 
         UserFollowResponse follow = new UserFollowResponse(followId, USER_ID, followedUserId, now);
 
-        when(userFollowService.getFollowing(USER_ID)).thenReturn(List.of(follow));
+        Page<UserFollowResponse> page = new PageImpl<>(List.of(follow));
+        when(userFollowService.getFollowing(eq(USER_ID), any(Pageable.class))).thenReturn(page);
 
         // When & Then
         mockMvc.perform(get(MY_FOLLOWING_URL))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$").isArray())
-                .andExpect(jsonPath("$.length()").value(1))
-                .andExpect(jsonPath("$[0].id").value(followId.toString()))
-                .andExpect(jsonPath("$[0].followerId").value(USER_ID.toString()))
-                .andExpect(jsonPath("$[0].followedId").value(followedUserId.toString()))
-                .andExpect(jsonPath("$[0].createdAt").exists());
+                .andExpect(jsonPath("$.content").isArray())
+                .andExpect(jsonPath("$.content.length()").value(1))
+                .andExpect(jsonPath("$.content[0].id").value(followId.toString()))
+                .andExpect(jsonPath("$.content[0].followerId").value(USER_ID.toString()))
+                .andExpect(jsonPath("$.content[0].followedId").value(followedUserId.toString()))
+                .andExpect(jsonPath("$.content[0].createdAt").exists());
 
-        verify(userFollowService).getFollowing(USER_ID);
+        verify(userFollowService).getFollowing(eq(USER_ID), any(Pageable.class));
     }
 
     // ============ GET MY FOLLOWERS TESTS ============
@@ -136,35 +139,37 @@ class UserFollowQueryControllerTest {
         UserFollowResponse follow2 =
                 new UserFollowResponse(followId2, followerUserId2, USER_ID, now);
 
-        when(userFollowService.getFollowers(USER_ID)).thenReturn(List.of(follow1, follow2));
+        Page<UserFollowResponse> page = new PageImpl<>(List.of(follow1, follow2));
+        when(userFollowService.getFollowers(eq(USER_ID), any(Pageable.class))).thenReturn(page);
 
         // When & Then
         mockMvc.perform(get(MY_FOLLOWERS_URL))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$").isArray())
-                .andExpect(jsonPath("$.length()").value(2))
-                .andExpect(jsonPath("$[0].id").value(followId1.toString()))
-                .andExpect(jsonPath("$[0].followerId").value(followerUserId1.toString()))
-                .andExpect(jsonPath("$[0].followedId").value(USER_ID.toString()))
-                .andExpect(jsonPath("$[1].id").value(followId2.toString()))
-                .andExpect(jsonPath("$[1].followerId").value(followerUserId2.toString()))
-                .andExpect(jsonPath("$[1].followedId").value(USER_ID.toString()));
+                .andExpect(jsonPath("$.content").isArray())
+                .andExpect(jsonPath("$.content.length()").value(2))
+                .andExpect(jsonPath("$.content[0].id").value(followId1.toString()))
+                .andExpect(jsonPath("$.content[0].followerId").value(followerUserId1.toString()))
+                .andExpect(jsonPath("$.content[0].followedId").value(USER_ID.toString()))
+                .andExpect(jsonPath("$.content[1].id").value(followId2.toString()))
+                .andExpect(jsonPath("$.content[1].followerId").value(followerUserId2.toString()))
+                .andExpect(jsonPath("$.content[1].followedId").value(USER_ID.toString()));
 
-        verify(userFollowService).getFollowers(USER_ID);
+        verify(userFollowService).getFollowers(eq(USER_ID), any(Pageable.class));
     }
 
     @Test
     void getMyFollowers_whenUserHasNoFollowers_shouldReturnEmptyList() throws Exception {
         // Given
-        when(userFollowService.getFollowers(USER_ID)).thenReturn(Collections.emptyList());
+        Page<UserFollowResponse> page = new PageImpl<>(Collections.emptyList());
+        when(userFollowService.getFollowers(eq(USER_ID), any(Pageable.class))).thenReturn(page);
 
         // When & Then
         mockMvc.perform(get(MY_FOLLOWERS_URL))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$").isArray())
-                .andExpect(jsonPath("$.length()").value(0));
+                .andExpect(jsonPath("$.content").isArray())
+                .andExpect(jsonPath("$.content.length()").value(0));
 
-        verify(userFollowService).getFollowers(USER_ID);
+        verify(userFollowService).getFollowers(eq(USER_ID), any(Pageable.class));
     }
 
     @Test
@@ -176,19 +181,20 @@ class UserFollowQueryControllerTest {
 
         UserFollowResponse follow = new UserFollowResponse(followId, followerUserId, USER_ID, now);
 
-        when(userFollowService.getFollowers(USER_ID)).thenReturn(List.of(follow));
+        Page<UserFollowResponse> page = new PageImpl<>(List.of(follow));
+        when(userFollowService.getFollowers(eq(USER_ID), any(Pageable.class))).thenReturn(page);
 
         // When & Then
         mockMvc.perform(get(MY_FOLLOWERS_URL))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$").isArray())
-                .andExpect(jsonPath("$.length()").value(1))
-                .andExpect(jsonPath("$[0].id").value(followId.toString()))
-                .andExpect(jsonPath("$[0].followerId").value(followerUserId.toString()))
-                .andExpect(jsonPath("$[0].followedId").value(USER_ID.toString()))
-                .andExpect(jsonPath("$[0].createdAt").exists());
+                .andExpect(jsonPath("$.content").isArray())
+                .andExpect(jsonPath("$.content.length()").value(1))
+                .andExpect(jsonPath("$.content[0].id").value(followId.toString()))
+                .andExpect(jsonPath("$.content[0].followerId").value(followerUserId.toString()))
+                .andExpect(jsonPath("$.content[0].followedId").value(USER_ID.toString()))
+                .andExpect(jsonPath("$.content[0].createdAt").exists());
 
-        verify(userFollowService).getFollowers(USER_ID);
+        verify(userFollowService).getFollowers(eq(USER_ID), any(Pageable.class));
     }
 
     // ============ GET FOLLOWING BY USER ID TESTS ============
@@ -208,21 +214,22 @@ class UserFollowQueryControllerTest {
         UserFollowResponse follow2 =
                 new UserFollowResponse(followId2, targetUserId, followedUserId2, now);
 
-        when(userFollowService.getFollowing(targetUserId)).thenReturn(List.of(follow1, follow2));
+        Page<UserFollowResponse> page = new PageImpl<>(List.of(follow1, follow2));
+        when(userFollowService.getFollowing(eq(targetUserId), any(Pageable.class))).thenReturn(page);
 
         // When & Then
         mockMvc.perform(get(USER_FOLLOWING_URL, targetUserId))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$").isArray())
-                .andExpect(jsonPath("$.length()").value(2))
-                .andExpect(jsonPath("$[0].id").value(followId1.toString()))
-                .andExpect(jsonPath("$[0].followerId").value(targetUserId.toString()))
-                .andExpect(jsonPath("$[0].followedId").value(followedUserId1.toString()))
-                .andExpect(jsonPath("$[1].id").value(followId2.toString()))
-                .andExpect(jsonPath("$[1].followerId").value(targetUserId.toString()))
-                .andExpect(jsonPath("$[1].followedId").value(followedUserId2.toString()));
+                .andExpect(jsonPath("$.content").isArray())
+                .andExpect(jsonPath("$.content.length()").value(2))
+                .andExpect(jsonPath("$.content[0].id").value(followId1.toString()))
+                .andExpect(jsonPath("$.content[0].followerId").value(targetUserId.toString()))
+                .andExpect(jsonPath("$.content[0].followedId").value(followedUserId1.toString()))
+                .andExpect(jsonPath("$.content[1].id").value(followId2.toString()))
+                .andExpect(jsonPath("$.content[1].followerId").value(targetUserId.toString()))
+                .andExpect(jsonPath("$.content[1].followedId").value(followedUserId2.toString()));
 
-        verify(userFollowService).getFollowing(targetUserId);
+        verify(userFollowService).getFollowing(eq(targetUserId), any(Pageable.class));
     }
 
     @Test
@@ -230,15 +237,16 @@ class UserFollowQueryControllerTest {
         // Given
         UUID targetUserId = UUID.randomUUID();
 
-        when(userFollowService.getFollowing(targetUserId)).thenReturn(Collections.emptyList());
+        Page<UserFollowResponse> page = new PageImpl<>(Collections.emptyList());
+        when(userFollowService.getFollowing(eq(targetUserId), any(Pageable.class))).thenReturn(page);
 
         // When & Then
         mockMvc.perform(get(USER_FOLLOWING_URL, targetUserId))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$").isArray())
-                .andExpect(jsonPath("$.length()").value(0));
+                .andExpect(jsonPath("$.content").isArray())
+                .andExpect(jsonPath("$.content.length()").value(0));
 
-        verify(userFollowService).getFollowing(targetUserId);
+        verify(userFollowService).getFollowing(eq(targetUserId), any(Pageable.class));
     }
 
     // ============ GET FOLLOWERS BY USER ID TESTS ============
@@ -258,21 +266,22 @@ class UserFollowQueryControllerTest {
         UserFollowResponse follow2 =
                 new UserFollowResponse(followId2, followerUserId2, targetUserId, now);
 
-        when(userFollowService.getFollowers(targetUserId)).thenReturn(List.of(follow1, follow2));
+        Page<UserFollowResponse> page = new PageImpl<>(List.of(follow1, follow2));
+        when(userFollowService.getFollowers(eq(targetUserId), any(Pageable.class))).thenReturn(page);
 
         // When & Then
         mockMvc.perform(get(USER_FOLLOWERS_URL, targetUserId))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$").isArray())
-                .andExpect(jsonPath("$.length()").value(2))
-                .andExpect(jsonPath("$[0].id").value(followId1.toString()))
-                .andExpect(jsonPath("$[0].followerId").value(followerUserId1.toString()))
-                .andExpect(jsonPath("$[0].followedId").value(targetUserId.toString()))
-                .andExpect(jsonPath("$[1].id").value(followId2.toString()))
-                .andExpect(jsonPath("$[1].followerId").value(followerUserId2.toString()))
-                .andExpect(jsonPath("$[1].followedId").value(targetUserId.toString()));
+                .andExpect(jsonPath("$.content").isArray())
+                .andExpect(jsonPath("$.content.length()").value(2))
+                .andExpect(jsonPath("$.content[0].id").value(followId1.toString()))
+                .andExpect(jsonPath("$.content[0].followerId").value(followerUserId1.toString()))
+                .andExpect(jsonPath("$.content[0].followedId").value(targetUserId.toString()))
+                .andExpect(jsonPath("$.content[1].id").value(followId2.toString()))
+                .andExpect(jsonPath("$.content[1].followerId").value(followerUserId2.toString()))
+                .andExpect(jsonPath("$.content[1].followedId").value(targetUserId.toString()));
 
-        verify(userFollowService).getFollowers(targetUserId);
+        verify(userFollowService).getFollowers(eq(targetUserId), any(Pageable.class));
     }
 
     @Test
@@ -280,15 +289,16 @@ class UserFollowQueryControllerTest {
         // Given
         UUID targetUserId = UUID.randomUUID();
 
-        when(userFollowService.getFollowers(targetUserId)).thenReturn(Collections.emptyList());
+        Page<UserFollowResponse> page = new PageImpl<>(Collections.emptyList());
+        when(userFollowService.getFollowers(eq(targetUserId), any(Pageable.class))).thenReturn(page);
 
         // When & Then
         mockMvc.perform(get(USER_FOLLOWERS_URL, targetUserId))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$").isArray())
-                .andExpect(jsonPath("$.length()").value(0));
+                .andExpect(jsonPath("$.content").isArray())
+                .andExpect(jsonPath("$.content.length()").value(0));
 
-        verify(userFollowService).getFollowers(targetUserId);
+        verify(userFollowService).getFollowers(eq(targetUserId), any(Pageable.class));
     }
 
     // ============ ADDITIONAL TESTS ============
@@ -303,15 +313,16 @@ class UserFollowQueryControllerTest {
         UserFollowResponse follow =
                 new UserFollowResponse(followId, USER_ID, followedUserId, createdAt);
 
-        when(userFollowService.getFollowing(USER_ID)).thenReturn(List.of(follow));
+        Page<UserFollowResponse> page = new PageImpl<>(List.of(follow));
+        when(userFollowService.getFollowing(eq(USER_ID), any(Pageable.class))).thenReturn(page);
 
         // When & Then
         mockMvc.perform(get(MY_FOLLOWING_URL))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].createdAt").exists())
-                .andExpect(jsonPath("$[0].createdAt").isNotEmpty());
+                .andExpect(jsonPath("$.content[0].createdAt").exists())
+                .andExpect(jsonPath("$.content[0].createdAt").isNotEmpty());
 
-        verify(userFollowService).getFollowing(USER_ID);
+        verify(userFollowService).getFollowing(eq(USER_ID), any(Pageable.class));
     }
 
     @Test
@@ -324,15 +335,16 @@ class UserFollowQueryControllerTest {
         UserFollowResponse follow =
                 new UserFollowResponse(followId, followerUserId, USER_ID, createdAt);
 
-        when(userFollowService.getFollowers(USER_ID)).thenReturn(List.of(follow));
+        Page<UserFollowResponse> page = new PageImpl<>(List.of(follow));
+        when(userFollowService.getFollowers(eq(USER_ID), any(Pageable.class))).thenReturn(page);
 
         // When & Then
         mockMvc.perform(get(MY_FOLLOWERS_URL))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].createdAt").exists())
-                .andExpect(jsonPath("$[0].createdAt").isNotEmpty());
+                .andExpect(jsonPath("$.content[0].createdAt").exists())
+                .andExpect(jsonPath("$.content[0].createdAt").isNotEmpty());
 
-        verify(userFollowService).getFollowers(USER_ID);
+        verify(userFollowService).getFollowers(eq(USER_ID), any(Pageable.class));
     }
 
     // ============ PAGINATED FOLLOWING TESTS ============

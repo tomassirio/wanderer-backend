@@ -61,28 +61,30 @@ class FriendshipQueryControllerTest {
         when(jwtUtils.getUserIdFromAuthorizationHeader(token)).thenReturn(userId);
         FriendshipResponse response = new FriendshipResponse(userId, friendId);
 
-        when(friendshipQueryService.getFriends(userId)).thenReturn(List.of(response));
+        Page<FriendshipResponse> page = new PageImpl<>(List.of(response));
+        when(friendshipQueryService.getFriends(eq(userId), any(Pageable.class))).thenReturn(page);
 
         mockMvc.perform(get(MY_FRIENDS_URL).header("Authorization", token))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$").isArray())
-                .andExpect(jsonPath("$[0].userId").value(userId.toString()))
-                .andExpect(jsonPath("$[0].friendId").value(friendId.toString()));
+                .andExpect(jsonPath("$.content").isArray())
+                .andExpect(jsonPath("$.content[0].userId").value(userId.toString()))
+                .andExpect(jsonPath("$.content[0].friendId").value(friendId.toString()));
 
-        verify(friendshipQueryService).getFriends(userId);
+        verify(friendshipQueryService).getFriends(eq(userId), any(Pageable.class));
     }
 
     @Test
     void getMyFriends_EmptyList() throws Exception {
         when(jwtUtils.getUserIdFromAuthorizationHeader(token)).thenReturn(userId);
-        when(friendshipQueryService.getFriends(userId)).thenReturn(List.of());
+        Page<FriendshipResponse> page = new PageImpl<>(List.of());
+        when(friendshipQueryService.getFriends(eq(userId), any(Pageable.class))).thenReturn(page);
 
         mockMvc.perform(get(MY_FRIENDS_URL).header("Authorization", token))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$").isArray())
-                .andExpect(jsonPath("$").isEmpty());
+                .andExpect(jsonPath("$.content").isArray())
+                .andExpect(jsonPath("$.content").isEmpty());
 
-        verify(friendshipQueryService).getFriends(userId);
+        verify(friendshipQueryService).getFriends(eq(userId), any(Pageable.class));
     }
 
     @Test
@@ -91,29 +93,31 @@ class FriendshipQueryControllerTest {
         UUID targetFriendId = UUID.randomUUID();
         FriendshipResponse response = new FriendshipResponse(targetUserId, targetFriendId);
 
-        when(friendshipQueryService.getFriends(targetUserId)).thenReturn(List.of(response));
+        Page<FriendshipResponse> page = new PageImpl<>(List.of(response));
+        when(friendshipQueryService.getFriends(eq(targetUserId), any(Pageable.class))).thenReturn(page);
 
         mockMvc.perform(get("/api/1/users/{userId}/friends", targetUserId))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$").isArray())
-                .andExpect(jsonPath("$[0].userId").value(targetUserId.toString()))
-                .andExpect(jsonPath("$[0].friendId").value(targetFriendId.toString()));
+                .andExpect(jsonPath("$.content").isArray())
+                .andExpect(jsonPath("$.content[0].userId").value(targetUserId.toString()))
+                .andExpect(jsonPath("$.content[0].friendId").value(targetFriendId.toString()));
 
-        verify(friendshipQueryService).getFriends(targetUserId);
+        verify(friendshipQueryService).getFriends(eq(targetUserId), any(Pageable.class));
     }
 
     @Test
     void getFriendsByUserId_EmptyList() throws Exception {
         UUID targetUserId = UUID.randomUUID();
 
-        when(friendshipQueryService.getFriends(targetUserId)).thenReturn(List.of());
+        Page<FriendshipResponse> page = new PageImpl<>(List.of());
+        when(friendshipQueryService.getFriends(eq(targetUserId), any(Pageable.class))).thenReturn(page);
 
         mockMvc.perform(get("/api/1/users/{userId}/friends", targetUserId))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$").isArray())
-                .andExpect(jsonPath("$").isEmpty());
+                .andExpect(jsonPath("$.content").isArray())
+                .andExpect(jsonPath("$.content").isEmpty());
 
-        verify(friendshipQueryService).getFriends(targetUserId);
+        verify(friendshipQueryService).getFriends(eq(targetUserId), any(Pageable.class));
     }
 
     @Test
@@ -124,19 +128,20 @@ class FriendshipQueryControllerTest {
         FriendshipResponse response1 = new FriendshipResponse(targetUserId, friendId1);
         FriendshipResponse response2 = new FriendshipResponse(targetUserId, friendId2);
 
-        when(friendshipQueryService.getFriends(targetUserId))
-                .thenReturn(List.of(response1, response2));
+        Page<FriendshipResponse> page = new PageImpl<>(List.of(response1, response2));
+        when(friendshipQueryService.getFriends(eq(targetUserId), any(Pageable.class)))
+                .thenReturn(page);
 
         mockMvc.perform(get("/api/1/users/{userId}/friends", targetUserId))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$").isArray())
-                .andExpect(jsonPath("$.length()").value(2))
-                .andExpect(jsonPath("$[0].userId").value(targetUserId.toString()))
-                .andExpect(jsonPath("$[0].friendId").value(friendId1.toString()))
-                .andExpect(jsonPath("$[1].userId").value(targetUserId.toString()))
-                .andExpect(jsonPath("$[1].friendId").value(friendId2.toString()));
+                .andExpect(jsonPath("$.content").isArray())
+                .andExpect(jsonPath("$.content.length()").value(2))
+                .andExpect(jsonPath("$.content[0].userId").value(targetUserId.toString()))
+                .andExpect(jsonPath("$.content[0].friendId").value(friendId1.toString()))
+                .andExpect(jsonPath("$.content[1].userId").value(targetUserId.toString()))
+                .andExpect(jsonPath("$.content[1].friendId").value(friendId2.toString()));
 
-        verify(friendshipQueryService).getFriends(targetUserId);
+        verify(friendshipQueryService).getFriends(eq(targetUserId), any(Pageable.class));
     }
 
     // ============ PAGINATED MY FRIENDS TESTS ============
