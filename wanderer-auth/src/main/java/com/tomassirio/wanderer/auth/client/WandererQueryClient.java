@@ -13,11 +13,9 @@ public interface WandererQueryClient {
 
     @GetMapping(ApiConstants.USERS_PATH + ApiConstants.USERNAME_ENDPOINT)
     UserBasicInfo getUserByUsername(
-            @PathVariable String username,
-            @RequestParam(value = "format") String format);
+            @PathVariable String username, @RequestParam(value = "format") String format);
 
     @GetMapping(ApiConstants.USERS_PATH + ApiConstants.USER_BY_ID_ENDPOINT)
     UserBasicInfo getUserById(
-            @PathVariable("id") UUID id,
-            @RequestParam(value = "format") String format);
+            @PathVariable("id") UUID id, @RequestParam(value = "format") String format);
 }

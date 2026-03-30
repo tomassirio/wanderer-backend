@@ -31,7 +31,8 @@ public class UsernameLookupStrategy implements UserLookupStrategy {
     public Optional<User> lookupUser(String identifier) {
         String normalizedUsername = identifier.toLowerCase(Locale.ROOT);
         try {
-            UserBasicInfo userInfo = wandererQueryClient.getUserByUsername(normalizedUsername, "basic");
+            UserBasicInfo userInfo =
+                    wandererQueryClient.getUserByUsername(normalizedUsername, "basic");
             if (userInfo == null) {
                 return Optional.empty();
             }

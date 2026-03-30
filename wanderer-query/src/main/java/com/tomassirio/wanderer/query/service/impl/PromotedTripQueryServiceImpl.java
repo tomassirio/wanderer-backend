@@ -1,9 +1,7 @@
 package com.tomassirio.wanderer.query.service.impl;
 
-import com.tomassirio.wanderer.commons.config.RedisCacheConfig;
 import com.tomassirio.wanderer.commons.domain.PromotedTrip;
 import com.tomassirio.wanderer.commons.domain.Trip;
-import com.tomassirio.wanderer.commons.domain.User;
 import com.tomassirio.wanderer.query.dto.PromotedTripResponse;
 import com.tomassirio.wanderer.query.repository.PromotedTripRepository;
 import com.tomassirio.wanderer.query.repository.TripRepository;
@@ -14,7 +12,6 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 

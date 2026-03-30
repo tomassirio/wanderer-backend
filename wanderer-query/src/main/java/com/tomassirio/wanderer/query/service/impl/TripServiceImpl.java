@@ -99,11 +99,12 @@ public class TripServiceImpl implements TripService {
     @Override
     public Page<TripDTO> getOngoingPublicTrips(UUID requestingUserId, Pageable pageable) {
         Page<Trip> tripPage;
-        
+
         if (requestingUserId == null) {
             // Use optimized query that sorts promoted trips first
-            tripPage = tripRepository.findByVisibilityAndStatusInWithPromotedFirst(
-                    TripVisibility.PUBLIC, TripStatus.getActiveStatuses(), pageable);
+            tripPage =
+                    tripRepository.findByVisibilityAndStatusInWithPromotedFirst(
+                            TripVisibility.PUBLIC, TripStatus.getActiveStatuses(), pageable);
         } else {
             // Get followed user IDs
             Set<UUID> followedUserIds =
@@ -112,8 +113,9 @@ public class TripServiceImpl implements TripService {
                             .collect(Collectors.toSet());
 
             if (followedUserIds.isEmpty()) {
-                tripPage = tripRepository.findByVisibilityAndStatusInWithPromotedFirst(
-                        TripVisibility.PUBLIC, TripStatus.getActiveStatuses(), pageable);
+                tripPage =
+                        tripRepository.findByVisibilityAndStatusInWithPromotedFirst(
+                                TripVisibility.PUBLIC, TripStatus.getActiveStatuses(), pageable);
             } else {
                 // Use unsorted pageable for the custom query (has its own ORDER BY)
                 Pageable unsortedPageable =
@@ -126,7 +128,7 @@ public class TripServiceImpl implements TripService {
                                 unsortedPageable);
             }
         }
-        
+
         return enrichPageWithUsernamesAndPromotedStatus(tripPage, pageable);
     }
 
@@ -258,20 +260,21 @@ public class TripServiceImpl implements TripService {
      * @param originalPageable the original pageable request
      * @return page of enriched TripDTOs
      */
-    private Page<TripDTO> enrichPageWithUsernamesAndPromotedStatus(Page<Trip> tripPage, Pageable originalPageable) {
+    private Page<TripDTO> enrichPageWithUsernamesAndPromotedStatus(
+            Page<Trip> tripPage, Pageable originalPageable) {
         if (tripPage.isEmpty()) {
             return Page.empty(originalPageable);
         }
 
         // Get promoted trip IDs in a single query
         Set<UUID> promotedTripIds = promotedTripRepository.findAllPromotedTripIds();
-        
+
         // Get promoted trip details (for promotedAt timestamp)
-        Map<UUID, PromotedTrip> promotedTripsMap = 
-                promotedTripIds.isEmpty() 
-                    ? Map.of() 
-                    : promotedTripRepository.findAllById(promotedTripIds).stream()
-                            .collect(Collectors.toMap(PromotedTrip::getTripId, pt -> pt));
+        Map<UUID, PromotedTrip> promotedTripsMap =
+                promotedTripIds.isEmpty()
+                        ? Map.of()
+                        : promotedTripRepository.findAllById(promotedTripIds).stream()
+                                .collect(Collectors.toMap(PromotedTrip::getTripId, pt -> pt));
 
         // Collect all unique user IDs
         Set<UUID> userIds =
@@ -292,17 +295,22 @@ public class TripServiceImpl implements TripService {
                                 trip -> {
                                     boolean isPromoted = promotedTripIds.contains(trip.getId());
                                     PromotedTrip promotedInfo = promotedTripsMap.get(trip.getId());
-                                    
+
                                     return new TripDTO(
                                             trip.getId() != null ? trip.getId().toString() : null,
                                             trip.getName(),
-                                            trip.getUserId() != null ? trip.getUserId().toString() : null,
+                                            trip.getUserId() != null
+                                                    ? trip.getUserId().toString()
+                                                    : null,
                                             trip.getUserId() != null
                                                     ? userIdToUsername.get(trip.getUserId())
                                                     : null,
-                                            TripSettingsMapper.INSTANCE.toDTO(trip.getTripSettings()),
+                                            TripSettingsMapper.INSTANCE.toDTO(
+                                                    trip.getTripSettings()),
                                             TripDetailsMapper.INSTANCE.toDTO(trip.getTripDetails()),
-                                            trip.getTripPlanId() != null ? trip.getTripPlanId().toString() : null,
+                                            trip.getTripPlanId() != null
+                                                    ? trip.getTripPlanId().toString()
+                                                    : null,
                                             null, // comments
                                             null, // tripUpdates
                                             null, // tripDays
@@ -313,9 +321,15 @@ public class TripServiceImpl implements TripService {
                                             trip.getCreationTimestamp(),
                                             trip.getEnabled(),
                                             isPromoted,
-                                            promotedInfo != null ? promotedInfo.getPromotedAt() : null,
-                                            promotedInfo != null ? promotedInfo.isPreAnnounced() : false,
-                                            promotedInfo != null ? promotedInfo.getCountdownStartDate() : null);
+                                            promotedInfo != null
+                                                    ? promotedInfo.getPromotedAt()
+                                                    : null,
+                                            promotedInfo != null
+                                                    ? promotedInfo.isPreAnnounced()
+                                                    : false,
+                                            promotedInfo != null
+                                                    ? promotedInfo.getCountdownStartDate()
+                                                    : null);
                                 })
                         .toList();
 

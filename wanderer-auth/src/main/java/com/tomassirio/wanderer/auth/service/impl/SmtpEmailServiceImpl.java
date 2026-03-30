@@ -83,7 +83,8 @@ public class SmtpEmailServiceImpl implements EmailService {
 
     @Override
     @Async
-    public CompletableFuture<Void> sendVerificationEmail(String email, String username, String verificationToken) {
+    public CompletableFuture<Void> sendVerificationEmail(
+            String email, String username, String verificationToken) {
         try {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper =
@@ -128,7 +129,8 @@ public class SmtpEmailServiceImpl implements EmailService {
 
     @Override
     @Async
-    public CompletableFuture<Void> sendPasswordResetEmail(String email, String username, String resetToken) {
+    public CompletableFuture<Void> sendPasswordResetEmail(
+            String email, String username, String resetToken) {
         try {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper =

@@ -57,7 +57,8 @@ class UsernameLookupStrategyTest {
     void lookupUser_whenUsernameExists_shouldReturnUser() {
         String username = "TestUser";
         String normalizedUsername = "testuser";
-        when(wandererQueryClient.getUserByUsername(normalizedUsername, "basic")).thenReturn(testUserInfo);
+        when(wandererQueryClient.getUserByUsername(normalizedUsername, "basic"))
+                .thenReturn(testUserInfo);
 
         Optional<User> result = strategy.lookupUser(username);
 
@@ -111,7 +112,8 @@ class UsernameLookupStrategyTest {
     void lookupUser_shouldNormalizeUsernameToLowercase() {
         String username = "TestUser";
         String expectedNormalized = "testuser";
-        when(wandererQueryClient.getUserByUsername(expectedNormalized, "basic")).thenReturn(testUserInfo);
+        when(wandererQueryClient.getUserByUsername(expectedNormalized, "basic"))
+                .thenReturn(testUserInfo);
 
         strategy.lookupUser(username);
 

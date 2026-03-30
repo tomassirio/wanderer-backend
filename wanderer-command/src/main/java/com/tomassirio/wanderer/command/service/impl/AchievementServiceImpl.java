@@ -43,8 +43,8 @@ public class AchievementServiceImpl implements AchievementService {
     private final List<SocialAchievementChecker> socialCheckers;
 
     /**
-     * Checks and unlocks trip-scoped achievements after a new update is added.
-     * Runs asynchronously to avoid blocking the main request.
+     * Checks and unlocks trip-scoped achievements after a new update is added. Runs asynchronously
+     * to avoid blocking the main request.
      *
      * @param tripId the trip ID to check achievements for
      */
@@ -61,8 +61,8 @@ public class AchievementServiceImpl implements AchievementService {
     }
 
     /**
-     * Checks and unlocks social achievements for a user (followers and friends).
-     * Runs asynchronously to avoid blocking the main request.
+     * Checks and unlocks social achievements for a user (followers and friends). Runs
+     * asynchronously to avoid blocking the main request.
      *
      * @param userId the user ID to check achievements for
      */

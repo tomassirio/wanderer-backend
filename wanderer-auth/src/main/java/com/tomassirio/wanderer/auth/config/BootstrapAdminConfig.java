@@ -71,7 +71,8 @@ public class BootstrapAdminConfig {
 
             User user;
             try {
-                UserBasicInfo userInfo = wandererQueryClient.getUserByUsername(bootstrapAdminUsername, "basic");
+                UserBasicInfo userInfo =
+                        wandererQueryClient.getUserByUsername(bootstrapAdminUsername, "basic");
                 user = new User();
                 user.setId(userInfo.id());
                 user.setUsername(userInfo.username());

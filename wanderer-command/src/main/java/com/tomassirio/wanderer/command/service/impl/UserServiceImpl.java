@@ -108,10 +108,11 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    @Caching(evict = {
-        @CacheEvict(value = RedisCacheConfig.USERS_CACHE, key = "#userId"),
-        @CacheEvict(value = RedisCacheConfig.USER_BY_USERNAME_CACHE, allEntries = true)
-    })
+    @Caching(
+            evict = {
+                @CacheEvict(value = RedisCacheConfig.USERS_CACHE, key = "#userId"),
+                @CacheEvict(value = RedisCacheConfig.USER_BY_USERNAME_CACHE, allEntries = true)
+            })
     public UUID updateUserDetails(UUID userId, UserDetailsRequest request) {
         log.info("Updating user details for userId={}", userId);
 
@@ -133,10 +134,11 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    @Caching(evict = {
-        @CacheEvict(value = RedisCacheConfig.USERS_CACHE, key = "#userId"),
-        @CacheEvict(value = RedisCacheConfig.USER_BY_USERNAME_CACHE, allEntries = true)
-    })
+    @Caching(
+            evict = {
+                @CacheEvict(value = RedisCacheConfig.USERS_CACHE, key = "#userId"),
+                @CacheEvict(value = RedisCacheConfig.USER_BY_USERNAME_CACHE, allEntries = true)
+            })
     public UUID updateAvatar(UUID userId, MultipartFile file) {
         log.info("Updating avatar for userId={}", userId);
 

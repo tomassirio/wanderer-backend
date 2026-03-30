@@ -6,12 +6,7 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.factory.Mappers;
 
-@Mapper(
-        uses = {
-            TripSettingsMapper.class,
-            TripDetailsMapper.class,
-            TripDayMapper.class
-        })
+@Mapper(uses = {TripSettingsMapper.class, TripDetailsMapper.class, TripDayMapper.class})
 public interface TripMapper {
 
     TripMapper INSTANCE = Mappers.getMapper(TripMapper.class);

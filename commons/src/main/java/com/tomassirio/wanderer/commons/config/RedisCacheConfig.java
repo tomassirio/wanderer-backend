@@ -21,8 +21,9 @@ import org.springframework.data.redis.serializer.StringRedisSerializer;
 
 /**
  * Redis-based cache configuration for distributed caching across pods.
- * 
+ *
  * <p>This replaces per-pod Caffeine caches with a centralized Redis cache, ensuring:
+ *
  * <ul>
  *   <li>Cache consistency across multiple service instances
  *   <li>Reduced database load
@@ -82,46 +83,57 @@ public class RedisCacheConfig {
         objectMapper.findAndRegisterModules();
         objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
         objectMapper.configure(DeserializationFeature.FAIL_ON_INVALID_SUBTYPE, false);
-        
+
         objectMapper.activateDefaultTyping(
                 objectMapper.getPolymorphicTypeValidator(),
                 ObjectMapper.DefaultTyping.NON_FINAL,
                 JsonTypeInfo.As.PROPERTY);
-        
-        GenericJackson2JsonRedisSerializer serializer = 
+
+        GenericJackson2JsonRedisSerializer serializer =
                 new GenericJackson2JsonRedisSerializer(objectMapper);
 
-        RedisCacheConfiguration defaultConfig = RedisCacheConfiguration.defaultCacheConfig()
-                .entryTtl(Duration.ofSeconds(defaultTtlSeconds))
-                .serializeKeysWith(RedisSerializationContext.SerializationPair
-                        .fromSerializer(new StringRedisSerializer()))
-                .serializeValuesWith(RedisSerializationContext.SerializationPair
-                        .fromSerializer(serializer))
-                .disableCachingNullValues();
+        RedisCacheConfiguration defaultConfig =
+                RedisCacheConfiguration.defaultCacheConfig()
+                        .entryTtl(Duration.ofSeconds(defaultTtlSeconds))
+                        .serializeKeysWith(
+                                RedisSerializationContext.SerializationPair.fromSerializer(
+                                        new StringRedisSerializer()))
+                        .serializeValuesWith(
+                                RedisSerializationContext.SerializationPair.fromSerializer(
+                                        serializer))
+                        .disableCachingNullValues();
 
         return RedisCacheManager.builder(connectionFactory)
                 .cacheDefaults(defaultConfig)
-                .withCacheConfiguration(USERS_CACHE, 
+                .withCacheConfiguration(
+                        USERS_CACHE, defaultConfig.entryTtl(Duration.ofSeconds(usersTtl)))
+                .withCacheConfiguration(
+                        USER_BY_USERNAME_CACHE,
                         defaultConfig.entryTtl(Duration.ofSeconds(usersTtl)))
-                .withCacheConfiguration(USER_BY_USERNAME_CACHE, 
-                        defaultConfig.entryTtl(Duration.ofSeconds(usersTtl)))
-                .withCacheConfiguration(TRIPS_CACHE, 
-                        defaultConfig.entryTtl(Duration.ofSeconds(tripsTtl)))
-                .withCacheConfiguration(TRIP_UPDATES_CACHE, 
+                .withCacheConfiguration(
+                        TRIPS_CACHE, defaultConfig.entryTtl(Duration.ofSeconds(tripsTtl)))
+                .withCacheConfiguration(
+                        TRIP_UPDATES_CACHE,
                         defaultConfig.entryTtl(Duration.ofSeconds(tripUpdatesTtl)))
-                .withCacheConfiguration(TRIP_UPDATE_LOCATIONS_CACHE, 
+                .withCacheConfiguration(
+                        TRIP_UPDATE_LOCATIONS_CACHE,
                         defaultConfig.entryTtl(Duration.ofSeconds(tripUpdatesTtl)))
-                .withCacheConfiguration(PROMOTED_TRIPS_CACHE, 
+                .withCacheConfiguration(
+                        PROMOTED_TRIPS_CACHE,
                         defaultConfig.entryTtl(Duration.ofSeconds(promotedTripsTtl)))
-                .withCacheConfiguration(ACHIEVEMENTS_CACHE, 
+                .withCacheConfiguration(
+                        ACHIEVEMENTS_CACHE,
                         defaultConfig.entryTtl(Duration.ofSeconds(achievementsTtl)))
-                .withCacheConfiguration(USER_ACHIEVEMENTS_CACHE, 
+                .withCacheConfiguration(
+                        USER_ACHIEVEMENTS_CACHE,
                         defaultConfig.entryTtl(Duration.ofSeconds(achievementsTtl)))
-                .withCacheConfiguration(FRIENDSHIPS_CACHE, 
+                .withCacheConfiguration(
+                        FRIENDSHIPS_CACHE,
                         defaultConfig.entryTtl(Duration.ofSeconds(friendshipsTtl)))
-                .withCacheConfiguration(FOLLOWERS_CACHE, 
-                        defaultConfig.entryTtl(Duration.ofSeconds(friendshipsTtl)))
-                .withCacheConfiguration(NOTIFICATIONS_COUNT_CACHE, 
+                .withCacheConfiguration(
+                        FOLLOWERS_CACHE, defaultConfig.entryTtl(Duration.ofSeconds(friendshipsTtl)))
+                .withCacheConfiguration(
+                        NOTIFICATIONS_COUNT_CACHE,
                         defaultConfig.entryTtl(Duration.ofSeconds(notificationsCountTtl)))
                 .transactionAware()
                 .build();

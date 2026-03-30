@@ -103,7 +103,8 @@ public class TokenServiceImpl implements TokenService {
         // Get user information
         User user;
         try {
-            UserBasicInfo userInfo = wandererQueryClient.getUserById(storedToken.getUserId(), "basic");
+            UserBasicInfo userInfo =
+                    wandererQueryClient.getUserById(storedToken.getUserId(), "basic");
             user = new User();
             user.setId(userInfo.id());
             user.setUsername(userInfo.username());

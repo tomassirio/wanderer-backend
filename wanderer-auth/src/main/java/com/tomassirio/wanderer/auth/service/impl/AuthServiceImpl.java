@@ -131,7 +131,8 @@ public class AuthServiceImpl implements AuthService {
 
         // Check if username is already taken by querying the read side
         try {
-            UserBasicInfo existingUser = wandererQueryClient.getUserByUsername(normalizedUsername, "basic");
+            UserBasicInfo existingUser =
+                    wandererQueryClient.getUserByUsername(normalizedUsername, "basic");
             if (existingUser != null) {
                 throw new IllegalArgumentException("Username already taken: " + normalizedUsername);
             }

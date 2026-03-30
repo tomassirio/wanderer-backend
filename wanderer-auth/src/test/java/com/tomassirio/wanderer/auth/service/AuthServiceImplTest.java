@@ -120,7 +120,8 @@ class AuthServiceImplTest {
         String ipAddress = "192.168.1.1";
 
         when(loginAttemptService.isAccountLocked(testUserInfo.username())).thenReturn(false);
-        when(wandererQueryClient.getUserByUsername(testUserInfo.username(), "basic")).thenReturn(testUserInfo);
+        when(wandererQueryClient.getUserByUsername(testUserInfo.username(), "basic"))
+                .thenReturn(testUserInfo);
         when(credentialRepository.findById(testUserInfo.id()))
                 .thenReturn(Optional.of(testCredential));
         when(passwordEncoder.matches(password, testCredential.getPasswordHash())).thenReturn(true);
@@ -161,7 +162,8 @@ class AuthServiceImplTest {
 
     @Test
     void login_whenCredentialsNotFound_shouldThrowIllegalArgumentException() {
-        when(wandererQueryClient.getUserByUsername(testUserInfo.username(), "basic")).thenReturn(testUserInfo);
+        when(wandererQueryClient.getUserByUsername(testUserInfo.username(), "basic"))
+                .thenReturn(testUserInfo);
         when(credentialRepository.findById(testUserInfo.id())).thenReturn(Optional.empty());
 
         assertThrows(
@@ -173,7 +175,8 @@ class AuthServiceImplTest {
     void login_whenAccountDisabled_shouldThrowIllegalArgumentException() {
         testCredential.setEnabled(false);
 
-        when(wandererQueryClient.getUserByUsername(testUserInfo.username(), "basic")).thenReturn(testUserInfo);
+        when(wandererQueryClient.getUserByUsername(testUserInfo.username(), "basic"))
+                .thenReturn(testUserInfo);
         when(credentialRepository.findById(testUserInfo.id()))
                 .thenReturn(Optional.of(testCredential));
 
@@ -184,7 +187,8 @@ class AuthServiceImplTest {
 
     @Test
     void login_whenPasswordIncorrect_shouldThrowIllegalArgumentException() {
-        when(wandererQueryClient.getUserByUsername(testUserInfo.username(), "basic")).thenReturn(testUserInfo);
+        when(wandererQueryClient.getUserByUsername(testUserInfo.username(), "basic"))
+                .thenReturn(testUserInfo);
         when(credentialRepository.findById(testUserInfo.id()))
                 .thenReturn(Optional.of(testCredential));
         when(passwordEncoder.matches("wrongpassword", testCredential.getPasswordHash()))
@@ -253,7 +257,8 @@ class AuthServiceImplTest {
         String ipAddress = "192.168.1.1";
 
         when(loginAttemptService.isAccountLocked(testUserInfo.username())).thenReturn(false);
-        when(wandererQueryClient.getUserByUsername(testUserInfo.username(), "basic")).thenReturn(testUserInfo);
+        when(wandererQueryClient.getUserByUsername(testUserInfo.username(), "basic"))
+                .thenReturn(testUserInfo);
         when(credentialRepository.findById(testUserInfo.id()))
                 .thenReturn(Optional.of(testCredential));
         when(passwordEncoder.matches("wrongpassword", testCredential.getPasswordHash()))
@@ -352,7 +357,8 @@ class AuthServiceImplTest {
                 new RegisterRequest("existinguser", "test@example.com", "SecurePass1!");
 
         when(credentialRepository.findByEmail(request.email())).thenReturn(Optional.empty());
-        when(wandererQueryClient.getUserByUsername("existinguser", "basic")).thenReturn(testUserInfo);
+        when(wandererQueryClient.getUserByUsername("existinguser", "basic"))
+                .thenReturn(testUserInfo);
 
         assertThrows(IllegalArgumentException.class, () -> authService.register(request));
         verify(tokenService, never()).createEmailVerificationToken(any(), any(), any());
@@ -457,7 +463,8 @@ class AuthServiceImplTest {
                 .thenReturn(verificationData);
         when(credentialRepository.findByEmail(verificationData[0])).thenReturn(Optional.empty());
         when(wandererCommandClient.createUser(any())).thenReturn(testUserInfo.id());
-        when(wandererQueryClient.getUserById(testUserInfo.id(), "basic")).thenThrow(FeignException.class);
+        when(wandererQueryClient.getUserById(testUserInfo.id(), "basic"))
+                .thenThrow(FeignException.class);
 
         IllegalStateException exception =
                 assertThrows(
@@ -489,7 +496,8 @@ class AuthServiceImplTest {
         when(credentialRepository.findByEmail(email)).thenReturn(Optional.of(testCredential));
         when(tokenService.createPasswordResetToken(testCredential.getUserId()))
                 .thenReturn(resetToken);
-        when(wandererQueryClient.getUserById(testCredential.getUserId(), "basic")).thenReturn(testUserInfo);
+        when(wandererQueryClient.getUserById(testCredential.getUserId(), "basic"))
+                .thenReturn(testUserInfo);
 
         String result = authService.initiatePasswordReset(email);
 

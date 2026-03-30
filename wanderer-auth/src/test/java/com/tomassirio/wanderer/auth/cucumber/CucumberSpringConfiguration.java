@@ -31,7 +31,9 @@ public class CucumberSpringConfiguration extends BaseCucumberSpringConfiguration
 
         Mockito.when(wandererCommandClient.createUser(Mockito.any(Map.class))).thenReturn(userId);
         Mockito.when(wandererQueryClient.getUserById(userId, "basic")).thenReturn(dummyUserInfo);
-        Mockito.when(wandererQueryClient.getUserByUsername("testuser", "basic")).thenReturn(dummyUserInfo);
-        Mockito.when(wandererQueryClient.getUserByUsername("nonexistent", "basic")).thenReturn(null);
+        Mockito.when(wandererQueryClient.getUserByUsername("testuser", "basic"))
+                .thenReturn(dummyUserInfo);
+        Mockito.when(wandererQueryClient.getUserByUsername("nonexistent", "basic"))
+                .thenReturn(null);
     }
 }

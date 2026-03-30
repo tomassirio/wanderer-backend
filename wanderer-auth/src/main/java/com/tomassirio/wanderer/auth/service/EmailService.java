@@ -16,7 +16,8 @@ public interface EmailService {
      * @param verificationToken The verification token (plain text, not hashed)
      * @return CompletableFuture that completes when email is sent
      */
-    CompletableFuture<Void> sendVerificationEmail(String email, String username, String verificationToken);
+    CompletableFuture<Void> sendVerificationEmail(
+            String email, String username, String verificationToken);
 
     /**
      * Sends a password reset email with a link to the password reset form asynchronously.
@@ -26,5 +27,6 @@ public interface EmailService {
      * @param resetToken The password reset token (plain text, not hashed)
      * @return CompletableFuture that completes when email is sent
      */
-    CompletableFuture<Void> sendPasswordResetEmail(String email, String username, String resetToken);
+    CompletableFuture<Void> sendPasswordResetEmail(
+            String email, String username, String resetToken);
 }

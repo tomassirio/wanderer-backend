@@ -92,7 +92,8 @@ class EmailLookupStrategyTest {
     void lookupUser_whenUserServiceFails_shouldReturnEmpty() {
         String email = "test@example.com";
         when(credentialRepository.findByEmail(email)).thenReturn(Optional.of(testCredential));
-        when(wandererQueryClient.getUserById(userId, "basic")).thenThrow(FeignException.NotFound.class);
+        when(wandererQueryClient.getUserById(userId, "basic"))
+                .thenThrow(FeignException.NotFound.class);
 
         Optional<User> result = strategy.lookupUser(email);
 

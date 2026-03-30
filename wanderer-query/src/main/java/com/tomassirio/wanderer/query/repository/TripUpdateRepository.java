@@ -18,10 +18,8 @@ public interface TripUpdateRepository extends JpaRepository<TripUpdate, UUID> {
     List<TripUpdate> findByTripIdOrderByTimestampAsc(UUID tripId);
 
     Page<TripUpdate> findByTripId(UUID tripId, Pageable pageable);
-    
-    /**
-     * Batch fetch trip updates for multiple trips to prevent N+1 queries
-     */
+
+    /** Batch fetch trip updates for multiple trips to prevent N+1 queries */
     @Query("SELECT tu FROM TripUpdate tu WHERE tu.trip.id IN :tripIds ORDER BY tu.timestamp DESC")
     List<TripUpdate> findByTripIdIn(@Param("tripIds") List<UUID> tripIds);
 }

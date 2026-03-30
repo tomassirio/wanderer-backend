@@ -36,7 +36,8 @@ public class EmailLookupStrategy implements UserLookupStrategy {
                         credential -> {
                             UUID userId = credential.getUserId();
                             try {
-                                UserBasicInfo userInfo = wandererQueryClient.getUserById(userId, "basic");
+                                UserBasicInfo userInfo =
+                                        wandererQueryClient.getUserById(userId, "basic");
                                 // Convert UserBasicInfo to User entity for authentication
                                 User user = new User();
                                 user.setId(userInfo.id());

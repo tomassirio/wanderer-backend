@@ -33,7 +33,8 @@ public class EmailServiceImpl implements EmailService {
 
     @Override
     @Async
-    public CompletableFuture<Void> sendVerificationEmail(String email, String username, String verificationToken) {
+    public CompletableFuture<Void> sendVerificationEmail(
+            String email, String username, String verificationToken) {
         // For now, just log the email content
         // In production, this would send an actual email via SMTP
         log.info("========================================");
@@ -63,7 +64,8 @@ public class EmailServiceImpl implements EmailService {
 
     @Override
     @Async
-    public CompletableFuture<Void> sendPasswordResetEmail(String email, String username, String resetToken) {
+    public CompletableFuture<Void> sendPasswordResetEmail(
+            String email, String username, String resetToken) {
         log.info("========================================");
         log.info("PASSWORD RESET");
         log.info("========================================");
