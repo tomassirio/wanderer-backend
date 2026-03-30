@@ -74,8 +74,10 @@ public class TripServiceImpl implements TripService {
 
     @Override
     public List<TripDTO> getTripsForUser(UUID userId) {
-        return enrichListWithUsernames(
-                tripRepository.findByUserId(userId).stream().map(tripMapper::toDTO).toList());
+        List<TripDTO> trips = tripRepository.findByUserId(userId).stream()
+                .map(tripMapper::toDTO)
+                .toList();
+        return enrichListWithUsernamesAndPromotedStatus(trips);
     }
 
     @Override
@@ -180,7 +182,7 @@ public class TripServiceImpl implements TripService {
 
         Page<Trip> tripPage =
                 tripRepository.findAllAvailableTripsForUser(userId, friendIds, pageable);
-        return enrichPageWithUsernames(tripPage, pageable);
+        return enrichPageWithUsernamesAndPromotedStatus(tripPage, pageable);
     }
 
     /**
@@ -248,6 +250,85 @@ public class TripServiceImpl implements TripService {
                                         null,
                                         null,
                                         null))
+                .toList();
+    }
+
+    /**
+     * Enriches a list of TripDTOs with usernames and promoted status by fetching data in batch.
+     *
+     * @param trips list of TripDTOs to enrich
+     * @return list of enriched TripDTOs with usernames and promoted fields populated
+     */
+    private List<TripDTO> enrichListWithUsernamesAndPromotedStatus(List<TripDTO> trips) {
+        if (trips.isEmpty()) {
+            return trips;
+        }
+
+        // Collect all unique trip IDs
+        Set<UUID> tripIds =
+                trips.stream()
+                        .map(TripDTO::id)
+                        .filter(Objects::nonNull)
+                        .map(UUID::fromString)
+                        .collect(Collectors.toSet());
+
+        // Get promoted trip details in a single query
+        Map<UUID, PromotedTrip> promotedTripsMap =
+                tripIds.isEmpty()
+                        ? Map.of()
+                        : promotedTripRepository.findByTripIdIn(tripIds).stream()
+                                .collect(Collectors.toMap(PromotedTrip::getTripId, pt -> pt));
+
+        // Collect all unique user IDs
+        Set<UUID> userIds =
+                trips.stream()
+                        .map(TripDTO::userId)
+                        .filter(Objects::nonNull)
+                        .map(UUID::fromString)
+                        .collect(Collectors.toSet());
+
+        // Fetch all users in a single query
+        Map<UUID, String> userIdToUsername =
+                userRepository.findAllById(userIds).stream()
+                        .collect(Collectors.toMap(User::getId, User::getUsername));
+
+        // Enrich each trip DTO with username and promoted status
+        return trips.stream()
+                .map(
+                        trip -> {
+                            PromotedTrip promotedInfo =
+                                    trip.id() != null
+                                            ? promotedTripsMap.get(UUID.fromString(trip.id()))
+                                            : null;
+                            boolean isPromoted = promotedInfo != null;
+
+                            return new TripDTO(
+                                    trip.id(),
+                                    trip.name(),
+                                    trip.userId(),
+                                    trip.userId() != null
+                                            ? userIdToUsername.get(
+                                                    UUID.fromString(trip.userId()))
+                                            : null,
+                                    trip.tripSettings(),
+                                    trip.tripDetails(),
+                                    trip.tripPlanId(),
+                                    trip.comments(),
+                                    trip.tripUpdates(),
+                                    trip.tripDays(),
+                                    trip.encodedPolyline(),
+                                    trip.plannedPolyline(),
+                                    trip.polylineUpdatedAt(),
+                                    trip.accruedDistanceKm(),
+                                    trip.creationTimestamp(),
+                                    trip.enabled(),
+                                    isPromoted,
+                                    promotedInfo != null ? promotedInfo.getPromotedAt() : null,
+                                    promotedInfo != null && promotedInfo.isPreAnnounced(),
+                                    promotedInfo != null
+                                            ? promotedInfo.getCountdownStartDate()
+                                            : null);
+                        })
                 .toList();
     }
 
