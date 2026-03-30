@@ -2,6 +2,7 @@ package com.tomassirio.wanderer.query.service;
 
 import com.tomassirio.wanderer.commons.dto.TripDTO;
 import com.tomassirio.wanderer.commons.dto.TripMaintenanceStatsDTO;
+import com.tomassirio.wanderer.commons.dto.TripSummaryDTO;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
@@ -67,12 +68,25 @@ public interface TripService {
 
     /**
      * Retrieves all ongoing public trips with pagination. If a requesting user ID is provided,
-     * trips from followed users are prioritized.
+     * trips from followed users are prioritized. Returns lightweight trip summaries optimized for
+     * list views.
+     *
+     * @param requestingUserId the UUID of the user making the request (optional)
+     * @param pageable pagination and sorting parameters
+     * @return a page of {@link TripSummaryDTO} objects representing ongoing public trips
+     */
+    Page<TripSummaryDTO> getOngoingPublicTripSummaries(UUID requestingUserId, Pageable pageable);
+
+    /**
+     * Retrieves all ongoing public trips with pagination (full details). If a requesting user ID is
+     * provided, trips from followed users are prioritized.
      *
      * @param requestingUserId the UUID of the user making the request (optional)
      * @param pageable pagination and sorting parameters
      * @return a page of {@link TripDTO} objects representing ongoing public trips
+     * @deprecated Use {@link #getOngoingPublicTripSummaries} for list views to reduce payload size
      */
+    @Deprecated
     Page<TripDTO> getOngoingPublicTrips(UUID requestingUserId, Pageable pageable);
 
     /**

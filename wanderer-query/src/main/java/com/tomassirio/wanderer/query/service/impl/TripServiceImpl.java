@@ -10,6 +10,7 @@ import com.tomassirio.wanderer.commons.domain.User;
 import com.tomassirio.wanderer.commons.domain.UserFollow;
 import com.tomassirio.wanderer.commons.dto.TripDTO;
 import com.tomassirio.wanderer.commons.dto.TripMaintenanceStatsDTO;
+import com.tomassirio.wanderer.commons.dto.TripSummaryDTO;
 import com.tomassirio.wanderer.commons.mapper.TripDetailsMapper;
 import com.tomassirio.wanderer.commons.mapper.TripMapper;
 import com.tomassirio.wanderer.commons.mapper.TripSettingsMapper;
@@ -130,6 +131,43 @@ public class TripServiceImpl implements TripService {
         }
 
         return enrichPageWithUsernamesAndPromotedStatus(tripPage, pageable);
+    }
+
+    @Override
+    public Page<TripSummaryDTO> getOngoingPublicTripSummaries(
+            UUID requestingUserId, Pageable pageable) {
+        Page<Trip> tripPage;
+
+        if (requestingUserId == null) {
+            // Use optimized query that sorts promoted trips first
+            tripPage =
+                    tripRepository.findByVisibilityAndStatusInWithPromotedFirst(
+                            TripVisibility.PUBLIC, TripStatus.getActiveStatuses(), pageable);
+        } else {
+            // Get followed user IDs
+            Set<UUID> followedUserIds =
+                    userFollowRepository.findByFollowerId(requestingUserId).stream()
+                            .map(UserFollow::getFollowedId)
+                            .collect(Collectors.toSet());
+
+            if (followedUserIds.isEmpty()) {
+                tripPage =
+                        tripRepository.findByVisibilityAndStatusInWithPromotedFirst(
+                                TripVisibility.PUBLIC, TripStatus.getActiveStatuses(), pageable);
+            } else {
+                // Use unsorted pageable for the custom query (has its own ORDER BY)
+                Pageable unsortedPageable =
+                        PageRequest.of(pageable.getPageNumber(), pageable.getPageSize());
+                tripPage =
+                        tripRepository.findPublicActiveTripsWithFollowedPriority(
+                                TripVisibility.PUBLIC,
+                                TripStatus.getActiveStatuses(),
+                                followedUserIds,
+                                unsortedPageable);
+            }
+        }
+
+        return enrichPageWithUsernamesAndPromotedStatusForSummaries(tripPage, pageable);
     }
 
     @Override
@@ -380,6 +418,82 @@ public class TripServiceImpl implements TripService {
                                             promotedInfo != null
                                                     ? promotedInfo.isPreAnnounced()
                                                     : false,
+                                            promotedInfo != null
+                                                    ? promotedInfo.getCountdownStartDate()
+                                                    : null);
+                                })
+                        .toList();
+
+        return new PageImpl<>(enrichedTrips, originalPageable, tripPage.getTotalElements());
+    }
+
+    /**
+     * Enriches a page of trips with usernames and promoted status for summary DTOs (lightweight).
+     *
+     * @param tripPage page of Trip entities
+     * @param originalPageable the original pageable request
+     * @return page of enriched TripSummaryDTOs
+     */
+    private Page<TripSummaryDTO> enrichPageWithUsernamesAndPromotedStatusForSummaries(
+            Page<Trip> tripPage, Pageable originalPageable) {
+        if (tripPage.isEmpty()) {
+            return Page.empty(originalPageable);
+        }
+
+        // Get promoted trip IDs in a single query
+        Set<UUID> promotedTripIds = promotedTripRepository.findAllPromotedTripIds();
+
+        // Get promoted trip details (for promotedAt timestamp and pre-announced status)
+        Map<UUID, PromotedTrip> promotedTripsMap =
+                promotedTripIds.isEmpty()
+                        ? Map.of()
+                        : promotedTripRepository.findByTripIdIn(promotedTripIds).stream()
+                                .collect(Collectors.toMap(PromotedTrip::getTripId, pt -> pt));
+
+        // Collect all unique user IDs
+        Set<UUID> userIds =
+                tripPage.stream()
+                        .map(Trip::getUserId)
+                        .filter(Objects::nonNull)
+                        .collect(Collectors.toSet());
+
+        // Fetch all users in a single query
+        Map<UUID, String> userIdToUsername =
+                userRepository.findAllById(userIds).stream()
+                        .collect(Collectors.toMap(User::getId, User::getUsername));
+
+        // Enrich each trip with username and promoted status - using lightweight DTO
+        List<TripSummaryDTO> enrichedTrips =
+                tripPage.stream()
+                        .map(
+                                trip -> {
+                                    boolean isPromoted = promotedTripIds.contains(trip.getId());
+                                    PromotedTrip promotedInfo = promotedTripsMap.get(trip.getId());
+
+                                    return new TripSummaryDTO(
+                                            trip.getId() != null ? trip.getId().toString() : null,
+                                            trip.getName(),
+                                            trip.getUserId() != null
+                                                    ? trip.getUserId().toString()
+                                                    : null,
+                                            trip.getUserId() != null
+                                                    ? userIdToUsername.get(trip.getUserId())
+                                                    : null,
+                                            TripSettingsMapper.INSTANCE.toDTO(
+                                                    trip.getTripSettings()),
+                                            trip.getCreationTimestamp(),
+                                            0, // commentsCount - would need separate query
+                                            trip.getTripDetails() != null
+                                                    ? trip.getTripDetails().getCurrentDay()
+                                                    : null,
+                                            trip.getTripPlanId() != null
+                                                    ? trip.getTripPlanId().toString()
+                                                    : null,
+                                            isPromoted,
+                                            promotedInfo != null
+                                                    ? promotedInfo.getPromotedAt()
+                                                    : null,
+                                            promotedInfo != null && promotedInfo.isPreAnnounced(),
                                             promotedInfo != null
                                                     ? promotedInfo.getCountdownStartDate()
                                                     : null);
