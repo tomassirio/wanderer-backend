@@ -50,14 +50,7 @@ databaseChangeLog:
                   name: creation_timestamp
                   descending: true
         
-        # Comments table indexes (new) - idx_comments_trip_id already exists from 004-create-comments-table
-        - createIndex:
-            indexName: idx_comments_user_id
-            tableName: comments
-            columns:
-              - column:
-                  name: user_id
-        
+        # Comments table indexes (new) - idx_comments_trip_id and idx_comments_user_id already exist
         - createIndex:
             indexName: idx_comments_parent_comment_id
             tableName: comments
