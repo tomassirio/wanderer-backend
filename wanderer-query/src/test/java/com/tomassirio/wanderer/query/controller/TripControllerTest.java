@@ -177,30 +177,119 @@ class TripControllerTest {
     }
 
     @Test
-    void getMyTrips_whenTripsExist_shouldReturnListOfTrips() throws Exception {
+    void getMyTrips_whenTripsExist_shouldReturnPageOfTrips() throws Exception {
         // Given
-        List<TripDTO> trips =
-                List.of(createTripDTO(UUID.randomUUID(), "My Trip", TripVisibility.PUBLIC));
-        when(tripService.getTripsForUser(USER_ID)).thenReturn(trips);
+        UUID tripId1 = UUID.randomUUID();
+        UUID tripId2 = UUID.randomUUID();
+        TripDTO trip1 = createTripDTO(tripId1, "My Trip 1", TripVisibility.PUBLIC);
+        TripDTO trip2 = createTripDTO(tripId2, "My Trip 2", TripVisibility.PRIVATE);
+        
+        Page<TripDTO> page = new PageImpl<>(List.of(trip1, trip2));
+        when(tripService.getTripsForUser(eq(USER_ID), any(Pageable.class))).thenReturn(page);
 
         // When & Then
         mockMvc.perform(get(TRIPS_ME_URL))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$").isArray())
-                .andExpect(jsonPath("$.length()").value(1))
-                .andExpect(jsonPath("$[0].name").value("My Trip"));
+                .andExpect(jsonPath("$.content").isArray())
+                .andExpect(jsonPath("$.content.length()").value(2))
+                .andExpect(jsonPath("$.content[0].id").value(tripId1.toString()))
+                .andExpect(jsonPath("$.content[0].name").value("My Trip 1"))
+                .andExpect(jsonPath("$.content[1].id").value(tripId2.toString()))
+                .andExpect(jsonPath("$.content[1].name").value("My Trip 2"))
+                .andExpect(jsonPath("$.totalElements").value(2));
+        
+        verify(tripService).getTripsForUser(eq(USER_ID), any(Pageable.class));
     }
 
     @Test
-    void getMyTrips_whenNoTripsExist_shouldReturnEmptyList() throws Exception {
+    void getMyTrips_whenNoTripsExist_shouldReturnEmptyPage() throws Exception {
         // Given
-        when(tripService.getTripsForUser(USER_ID)).thenReturn(List.of());
+        Page<TripDTO> page = new PageImpl<>(List.of());
+        when(tripService.getTripsForUser(eq(USER_ID), any(Pageable.class))).thenReturn(page);
 
         // When & Then
         mockMvc.perform(get(TRIPS_ME_URL))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$").isArray())
-                .andExpect(jsonPath("$.length()").value(0));
+                .andExpect(jsonPath("$.content").isArray())
+                .andExpect(jsonPath("$.content.length()").value(0))
+                .andExpect(jsonPath("$.totalElements").value(0));
+        
+        verify(tripService).getTripsForUser(eq(USER_ID), any(Pageable.class));
+    }
+
+    @Test
+    void getMyTrips_withPaginationParams_shouldPassPageableToService() throws Exception {
+        // Given
+        Page<TripDTO> page = new PageImpl<>(List.of());
+        when(tripService.getTripsForUser(eq(USER_ID), any(Pageable.class))).thenReturn(page);
+
+        // When & Then
+        mockMvc.perform(get(TRIPS_ME_URL)
+                        .param("page", "1")
+                        .param("size", "10")
+                        .param("sort", "creationTimestamp,desc"))
+                .andExpect(status().isOk());
+        
+        verify(tripService).getTripsForUser(eq(USER_ID), any(Pageable.class));
+    }
+
+    @Test
+    void getTripsByUser_whenTripsExist_shouldReturnPageOfTrips() throws Exception {
+        // Given
+        UUID targetUserId = UUID.randomUUID();
+        UUID tripId1 = UUID.randomUUID();
+        UUID tripId2 = UUID.randomUUID();
+        TripDTO trip1 = createTripDTO(tripId1, "User Trip 1", TripVisibility.PUBLIC);
+        TripDTO trip2 = createTripDTO(tripId2, "User Trip 2", TripVisibility.PUBLIC);
+        
+        Page<TripDTO> page = new PageImpl<>(List.of(trip1, trip2));
+        when(tripService.getTripsForUserWithVisibility(eq(targetUserId), eq(USER_ID), any(Pageable.class)))
+                .thenReturn(page);
+
+        // When & Then
+        mockMvc.perform(get(TRIPS_BASE_URL + "/user/{userId}", targetUserId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content").isArray())
+                .andExpect(jsonPath("$.content.length()").value(2))
+                .andExpect(jsonPath("$.content[0].id").value(tripId1.toString()))
+                .andExpect(jsonPath("$.content[1].id").value(tripId2.toString()))
+                .andExpect(jsonPath("$.totalElements").value(2));
+        
+        verify(tripService).getTripsForUserWithVisibility(eq(targetUserId), eq(USER_ID), any(Pageable.class));
+    }
+
+    @Test
+    void getTripsByUser_whenNoTripsExist_shouldReturnEmptyPage() throws Exception {
+        // Given
+        UUID targetUserId = UUID.randomUUID();
+        Page<TripDTO> page = new PageImpl<>(List.of());
+        when(tripService.getTripsForUserWithVisibility(eq(targetUserId), eq(USER_ID), any(Pageable.class)))
+                .thenReturn(page);
+
+        // When & Then
+        mockMvc.perform(get(TRIPS_BASE_URL + "/user/{userId}", targetUserId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content").isArray())
+                .andExpect(jsonPath("$.content.length()").value(0))
+                .andExpect(jsonPath("$.totalElements").value(0));
+    }
+
+    @Test
+    void getTripsByUser_withPaginationParams_shouldPassPageableToService() throws Exception {
+        // Given
+        UUID targetUserId = UUID.randomUUID();
+        Page<TripDTO> page = new PageImpl<>(List.of());
+        when(tripService.getTripsForUserWithVisibility(eq(targetUserId), eq(USER_ID), any(Pageable.class)))
+                .thenReturn(page);
+
+        // When & Then
+        mockMvc.perform(get(TRIPS_BASE_URL + "/user/{userId}", targetUserId)
+                        .param("page", "2")
+                        .param("size", "15")
+                        .param("sort", "name,asc"))
+                .andExpect(status().isOk());
+        
+        verify(tripService).getTripsForUserWithVisibility(eq(targetUserId), eq(USER_ID), any(Pageable.class));
     }
 
     @Test

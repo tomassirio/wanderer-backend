@@ -57,6 +57,15 @@ public interface TripService {
     List<TripDTO> getTripsForUser(UUID userId);
 
     /**
+     * Retrieves all trips that belong to the given user with pagination.
+     *
+     * @param userId the UUID of the owner/user
+     * @param pageable pagination and sorting parameters
+     * @return a page of {@link TripDTO} objects representing trips owned by the user
+     */
+    Page<TripDTO> getTripsForUser(UUID userId, Pageable pageable);
+
+    /**
      * Retrieves trips by another user, respecting visibility rules. Returns PUBLIC trips and
      * PROTECTED trips if the requesting user is friends with the trip owner.
      *
@@ -65,6 +74,16 @@ public interface TripService {
      * @return a list of {@link TripDTO} objects representing visible trips owned by the user
      */
     List<TripDTO> getTripsForUserWithVisibility(UUID userId, UUID requestingUserId);
+
+    /**
+     * Retrieves trips by another user with pagination, respecting visibility rules.
+     *
+     * @param userId the UUID of the user whose trips to retrieve
+     * @param requestingUserId the UUID of the user making the request (optional)
+     * @param pageable pagination and sorting parameters
+     * @return a page of {@link TripDTO} objects representing visible trips owned by the user
+     */
+    Page<TripDTO> getTripsForUserWithVisibility(UUID userId, UUID requestingUserId, Pageable pageable);
 
     /**
      * Retrieves all ongoing public trips with pagination. If a requesting user ID is provided,

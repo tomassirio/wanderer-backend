@@ -82,14 +82,22 @@ public class TripController {
     @PreAuthorize("hasAnyRole('ADMIN','USER')")
     @Operation(
             summary = "Get trips for current authenticated user",
-            description = "Retrieves all trips belonging to the authenticated user")
-    public ResponseEntity<List<TripDTO>> getMyTrips(
-            @Parameter(hidden = true) @CurrentUserId UUID userId) {
-        log.info("Received request to retrieve trips for current user: {}", userId);
+            description = "Retrieves all trips belonging to the authenticated user with pagination. "
+                    + "Use query parameters: page, size, sort (e.g., sort=creationTimestamp,desc)")
+    public ResponseEntity<Page<TripDTO>> getMyTrips(
+            @Parameter(hidden = true) @CurrentUserId UUID userId,
+            @Parameter(description = "Pagination and sorting parameters")
+                    @PageableDefault(
+                            size = 20,
+                            sort = "creationTimestamp",
+                            direction = Sort.Direction.DESC)
+                    Pageable pageable) {
+        log.info("Received request to retrieve trips for current user: {} with pagination", userId);
 
-        List<TripDTO> trips = tripService.getTripsForUser(userId);
+        Page<TripDTO> trips = tripService.getTripsForUser(userId, pageable);
 
-        log.info("Successfully retrieved {} trips for user {}", trips.size(), userId);
+        log.info("Successfully retrieved {} trips for user {} (page {} of {})", 
+                trips.getNumberOfElements(), userId, trips.getNumber() + 1, trips.getTotalPages());
         return ResponseEntity.ok(trips);
     }
 
@@ -133,18 +141,26 @@ public class TripController {
     @Operation(
             summary = "Get trips by another user",
             description =
-                    "Retrieves trips by another user, respecting visibility (PUBLIC and PROTECTED if friends)")
-    public ResponseEntity<List<TripDTO>> getTripsByUser(
+                    "Retrieves trips by another user with pagination, respecting visibility (PUBLIC and PROTECTED if friends). "
+                    + "Use query parameters: page, size, sort (e.g., sort=creationTimestamp,desc)")
+    public ResponseEntity<Page<TripDTO>> getTripsByUser(
             @Parameter(hidden = true) @CurrentUserId UUID requestingUserId,
-            @PathVariable UUID userId) {
+            @PathVariable UUID userId,
+            @Parameter(description = "Pagination and sorting parameters")
+                    @PageableDefault(
+                            size = 20,
+                            sort = "creationTimestamp",
+                            direction = Sort.Direction.DESC)
+                    Pageable pageable) {
         log.info(
-                "Received request to retrieve trips for user {} from user {}",
+                "Received request to retrieve trips for user {} from user {} with pagination",
                 userId,
                 requestingUserId);
 
-        List<TripDTO> trips = tripService.getTripsForUserWithVisibility(userId, requestingUserId);
+        Page<TripDTO> trips = tripService.getTripsForUserWithVisibility(userId, requestingUserId, pageable);
 
-        log.info("Successfully retrieved {} trips for user {}", trips.size(), userId);
+        log.info("Successfully retrieved {} trips for user {} (page {} of {})", 
+                trips.getNumberOfElements(), userId, trips.getNumber() + 1, trips.getTotalPages());
         return ResponseEntity.ok(trips);
     }
 
