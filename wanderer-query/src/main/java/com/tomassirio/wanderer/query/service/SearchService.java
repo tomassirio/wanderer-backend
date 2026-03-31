@@ -1,6 +1,7 @@
 package com.tomassirio.wanderer.query.service;
 
 import com.tomassirio.wanderer.query.dto.SearchResultsResponse;
+import org.springframework.data.domain.Pageable;
 
 /**
  * Service interface for unified search operations. Provides methods to search for users and trips.
@@ -10,14 +11,15 @@ import com.tomassirio.wanderer.query.dto.SearchResultsResponse;
 public interface SearchService {
 
     /**
-     * Performs a unified search for users and trips based on the search term.
-     * Users are searched by username and display name.
-     * Trips are searched by name and follow the same criteria as the /public endpoint
-     * (ongoing public trips with promoted status).
+     * Performs a unified search for users and trips based on the search term. Users are searched by
+     * username and display name. Trips are searched by name and owner username (partial or full
+     * match), following the same criteria as the /public endpoint (ongoing public trips with
+     * promoted status). Each category is independently paginated.
      *
      * @param searchTerm the term to search for
-     * @param limit maximum number of results to return for each category (users/trips)
-     * @return search results containing matching users and trips
+     * @param userPageable pagination parameters for users
+     * @param tripPageable pagination parameters for trips
+     * @return search results containing paginated matching users and trips
      */
-    SearchResultsResponse search(String searchTerm, int limit);
+    SearchResultsResponse search(String searchTerm, Pageable userPageable, Pageable tripPageable);
 }

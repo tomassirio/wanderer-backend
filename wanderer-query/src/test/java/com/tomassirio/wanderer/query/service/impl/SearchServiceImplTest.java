@@ -1,6 +1,7 @@
 package com.tomassirio.wanderer.query.service.impl;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -33,6 +34,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 @ExtendWith(MockitoExtension.class)
 class SearchServiceImplTest {
@@ -49,6 +51,9 @@ class SearchServiceImplTest {
     private UUID tripId;
     private UUID tripPlanId;
 
+    private static final Pageable DEFAULT_USER_PAGEABLE = PageRequest.of(0, 10);
+    private static final Pageable DEFAULT_TRIP_PAGEABLE = PageRequest.of(0, 10);
+
     @BeforeEach
     void setUp() {
         userId = UUID.randomUUID();
@@ -59,133 +64,127 @@ class SearchServiceImplTest {
     @Test
     void search_shouldReturnUsersAndTrips() {
         String searchTerm = "camino";
-        int limit = 5;
 
-        // Mock user search
         UserSummaryDto userSummary = createUserSummary(userId, "caminoWalker", "Camino Walker");
-        PageRequest pageRequest = PageRequest.of(0, limit);
-        when(userRepository.searchUserSummaries(eq(searchTerm), eq(pageRequest)))
-                .thenReturn(new PageImpl<>(List.of(userSummary)));
+        when(userRepository.searchUserSummaries(eq(searchTerm), eq(DEFAULT_USER_PAGEABLE)))
+                .thenReturn(new PageImpl<>(List.of(userSummary), DEFAULT_USER_PAGEABLE, 1));
 
-        // Mock trip search
         Trip trip = createTrip(tripId, userId, "Camino de Santiago");
         when(tripRepository.searchPublicTripsByName(
                         eq(searchTerm),
                         eq(TripVisibility.PUBLIC),
                         eq(TripStatus.getActiveStatuses()),
-                        eq(pageRequest)))
-                .thenReturn(List.of(trip));
+                        eq(DEFAULT_TRIP_PAGEABLE)))
+                .thenReturn(new PageImpl<>(List.of(trip), DEFAULT_TRIP_PAGEABLE, 1));
 
         TripSummaryDTO tripSummary = createTripSummaryDTO(tripId, userId, "Camino de Santiago");
         when(tripEnrichmentHelper.enrichTripsToSummaries(List.of(trip)))
                 .thenReturn(List.of(tripSummary));
 
-        // Execute
-        SearchResultsResponse result = searchService.search(searchTerm, limit);
+        SearchResultsResponse result =
+                searchService.search(searchTerm, DEFAULT_USER_PAGEABLE, DEFAULT_TRIP_PAGEABLE);
 
-        // Verify
         assertNotNull(result);
-        assertEquals(1, result.users().size());
-        assertEquals(1, result.trips().size());
+        assertEquals(1, result.users().getTotalElements());
+        assertEquals(1, result.trips().getTotalElements());
 
-        UserSearchResult userResult = result.users().get(0);
+        UserSearchResult userResult = result.users().getContent().getFirst();
         assertEquals(userId, userResult.id());
         assertEquals("caminoWalker", userResult.username());
         assertEquals("Camino Walker", userResult.displayName());
 
-        assertEquals(tripSummary, result.trips().get(0));
+        assertEquals(tripSummary, result.trips().getContent().getFirst());
     }
 
     @Test
     void search_shouldReturnEmptyResults_whenNothingMatches() {
         String searchTerm = "nonexistent";
-        int limit = 10;
 
-        PageRequest pageRequest = PageRequest.of(0, limit);
-        when(userRepository.searchUserSummaries(eq(searchTerm), eq(pageRequest)))
-                .thenReturn(Page.empty());
+        when(userRepository.searchUserSummaries(eq(searchTerm), eq(DEFAULT_USER_PAGEABLE)))
+                .thenReturn(Page.empty(DEFAULT_USER_PAGEABLE));
         when(tripRepository.searchPublicTripsByName(
                         eq(searchTerm),
                         eq(TripVisibility.PUBLIC),
                         eq(TripStatus.getActiveStatuses()),
-                        eq(pageRequest)))
-                .thenReturn(List.of());
+                        eq(DEFAULT_TRIP_PAGEABLE)))
+                .thenReturn(Page.empty(DEFAULT_TRIP_PAGEABLE));
         when(tripEnrichmentHelper.enrichTripsToSummaries(List.of())).thenReturn(List.of());
 
-        SearchResultsResponse result = searchService.search(searchTerm, limit);
+        SearchResultsResponse result =
+                searchService.search(searchTerm, DEFAULT_USER_PAGEABLE, DEFAULT_TRIP_PAGEABLE);
 
         assertNotNull(result);
-        assertTrue(result.users().isEmpty());
-        assertTrue(result.trips().isEmpty());
+        assertEquals(0, result.users().getTotalElements());
+        assertEquals(0, result.trips().getTotalElements());
+        assertTrue(result.users().getContent().isEmpty());
+        assertTrue(result.trips().getContent().isEmpty());
     }
 
     @Test
     void search_shouldReturnOnlyUsers_whenNoTripsMatch() {
         String searchTerm = "walker";
-        int limit = 5;
 
         UserSummaryDto userSummary = createUserSummary(userId, "walker123", "The Walker");
-        PageRequest pageRequest = PageRequest.of(0, limit);
-        when(userRepository.searchUserSummaries(eq(searchTerm), eq(pageRequest)))
-                .thenReturn(new PageImpl<>(List.of(userSummary)));
+        when(userRepository.searchUserSummaries(eq(searchTerm), eq(DEFAULT_USER_PAGEABLE)))
+                .thenReturn(new PageImpl<>(List.of(userSummary), DEFAULT_USER_PAGEABLE, 1));
         when(tripRepository.searchPublicTripsByName(
                         eq(searchTerm),
                         eq(TripVisibility.PUBLIC),
                         eq(TripStatus.getActiveStatuses()),
-                        eq(pageRequest)))
-                .thenReturn(List.of());
+                        eq(DEFAULT_TRIP_PAGEABLE)))
+                .thenReturn(Page.empty(DEFAULT_TRIP_PAGEABLE));
         when(tripEnrichmentHelper.enrichTripsToSummaries(List.of())).thenReturn(List.of());
 
-        SearchResultsResponse result = searchService.search(searchTerm, limit);
+        SearchResultsResponse result =
+                searchService.search(searchTerm, DEFAULT_USER_PAGEABLE, DEFAULT_TRIP_PAGEABLE);
 
         assertNotNull(result);
-        assertEquals(1, result.users().size());
-        assertTrue(result.trips().isEmpty());
-        assertEquals("walker123", result.users().get(0).username());
+        assertEquals(1, result.users().getTotalElements());
+        assertEquals(0, result.trips().getTotalElements());
+        assertEquals("walker123", result.users().getContent().getFirst().username());
     }
 
     @Test
     void search_shouldReturnOnlyTrips_whenNoUsersMatch() {
         String searchTerm = "santiago";
-        int limit = 5;
 
-        PageRequest pageRequest = PageRequest.of(0, limit);
-        when(userRepository.searchUserSummaries(eq(searchTerm), eq(pageRequest)))
-                .thenReturn(Page.empty());
+        when(userRepository.searchUserSummaries(eq(searchTerm), eq(DEFAULT_USER_PAGEABLE)))
+                .thenReturn(Page.empty(DEFAULT_USER_PAGEABLE));
 
         Trip trip = createTrip(tripId, userId, "Santiago Trail");
         when(tripRepository.searchPublicTripsByName(
                         eq(searchTerm),
                         eq(TripVisibility.PUBLIC),
                         eq(TripStatus.getActiveStatuses()),
-                        eq(pageRequest)))
-                .thenReturn(List.of(trip));
+                        eq(DEFAULT_TRIP_PAGEABLE)))
+                .thenReturn(new PageImpl<>(List.of(trip), DEFAULT_TRIP_PAGEABLE, 1));
 
         TripSummaryDTO tripSummary = createTripSummaryDTO(tripId, userId, "Santiago Trail");
         when(tripEnrichmentHelper.enrichTripsToSummaries(List.of(trip)))
                 .thenReturn(List.of(tripSummary));
 
-        SearchResultsResponse result = searchService.search(searchTerm, limit);
+        SearchResultsResponse result =
+                searchService.search(searchTerm, DEFAULT_USER_PAGEABLE, DEFAULT_TRIP_PAGEABLE);
 
         assertNotNull(result);
-        assertTrue(result.users().isEmpty());
-        assertEquals(1, result.trips().size());
-        assertEquals("Santiago Trail", result.trips().get(0).name());
+        assertEquals(0, result.users().getTotalElements());
+        assertEquals(1, result.trips().getTotalElements());
+        assertEquals("Santiago Trail", result.trips().getContent().getFirst().name());
     }
 
     @Test
     void search_shouldReturnMultipleUsersAndTrips() {
         String searchTerm = "test";
-        int limit = 10;
 
         UUID userId2 = UUID.randomUUID();
         UUID tripId2 = UUID.randomUUID();
 
         UserSummaryDto userSummary1 = createUserSummary(userId, "testUser1", "Test User One");
         UserSummaryDto userSummary2 = createUserSummary(userId2, "testUser2", "Test User Two");
-        PageRequest pageRequest = PageRequest.of(0, limit);
-        when(userRepository.searchUserSummaries(eq(searchTerm), eq(pageRequest)))
-                .thenReturn(new PageImpl<>(List.of(userSummary1, userSummary2)));
+        when(userRepository.searchUserSummaries(eq(searchTerm), eq(DEFAULT_USER_PAGEABLE)))
+                .thenReturn(
+                        new PageImpl<>(
+                                List.of(userSummary1, userSummary2), DEFAULT_USER_PAGEABLE, 2));
 
         Trip trip1 = createTrip(tripId, userId, "Test Trip 1");
         Trip trip2 = createTrip(tripId2, userId2, "Test Trip 2");
@@ -194,78 +193,121 @@ class SearchServiceImplTest {
                         eq(searchTerm),
                         eq(TripVisibility.PUBLIC),
                         eq(TripStatus.getActiveStatuses()),
-                        eq(pageRequest)))
-                .thenReturn(trips);
+                        eq(DEFAULT_TRIP_PAGEABLE)))
+                .thenReturn(new PageImpl<>(trips, DEFAULT_TRIP_PAGEABLE, 2));
 
         TripSummaryDTO summary1 = createTripSummaryDTO(tripId, userId, "Test Trip 1");
         TripSummaryDTO summary2 = createTripSummaryDTO(tripId2, userId2, "Test Trip 2");
         when(tripEnrichmentHelper.enrichTripsToSummaries(trips))
                 .thenReturn(List.of(summary1, summary2));
 
-        SearchResultsResponse result = searchService.search(searchTerm, limit);
+        SearchResultsResponse result =
+                searchService.search(searchTerm, DEFAULT_USER_PAGEABLE, DEFAULT_TRIP_PAGEABLE);
 
         assertNotNull(result);
-        assertEquals(2, result.users().size());
-        assertEquals(2, result.trips().size());
+        assertEquals(2, result.users().getTotalElements());
+        assertEquals(2, result.trips().getTotalElements());
     }
 
     @Test
-    void search_shouldRespectLimit() {
+    void search_shouldUseIndependentPagination() {
         String searchTerm = "trail";
-        int limit = 1;
+        Pageable userPageable = PageRequest.of(0, 1);
+        Pageable tripPageable = PageRequest.of(0, 5);
 
         UserSummaryDto userSummary = createUserSummary(userId, "trail_fan", "Trail Fan");
-        PageRequest pageRequest = PageRequest.of(0, limit);
-        when(userRepository.searchUserSummaries(eq(searchTerm), eq(pageRequest)))
-                .thenReturn(new PageImpl<>(List.of(userSummary)));
+        when(userRepository.searchUserSummaries(eq(searchTerm), eq(userPageable)))
+                .thenReturn(new PageImpl<>(List.of(userSummary), userPageable, 3));
 
         Trip trip = createTrip(tripId, userId, "Mountain Trail");
         when(tripRepository.searchPublicTripsByName(
                         eq(searchTerm),
                         eq(TripVisibility.PUBLIC),
                         eq(TripStatus.getActiveStatuses()),
-                        eq(pageRequest)))
-                .thenReturn(List.of(trip));
+                        eq(tripPageable)))
+                .thenReturn(new PageImpl<>(List.of(trip), tripPageable, 1));
 
         TripSummaryDTO tripSummary = createTripSummaryDTO(tripId, userId, "Mountain Trail");
         when(tripEnrichmentHelper.enrichTripsToSummaries(List.of(trip)))
                 .thenReturn(List.of(tripSummary));
 
-        SearchResultsResponse result = searchService.search(searchTerm, limit);
+        SearchResultsResponse result =
+                searchService.search(searchTerm, userPageable, tripPageable);
 
         assertNotNull(result);
-        // Verify PageRequest was constructed with the correct limit
-        verify(userRepository).searchUserSummaries(eq(searchTerm), eq(PageRequest.of(0, 1)));
+        // Users: page size 1, total 3 → has next
+        assertEquals(3, result.users().getTotalElements());
+        assertEquals(3, result.users().getTotalPages());
+        assertEquals(1, result.users().getContent().size());
+        assertTrue(result.users().hasNext());
+
+        // Trips: page size 5, total 1 → no next
+        assertEquals(1, result.trips().getTotalElements());
+        assertEquals(1, result.trips().getTotalPages());
+        assertEquals(1, result.trips().getContent().size());
+        assertFalse(result.trips().hasNext());
+
+        verify(userRepository).searchUserSummaries(eq(searchTerm), eq(userPageable));
         verify(tripRepository)
                 .searchPublicTripsByName(
                         eq(searchTerm),
                         eq(TripVisibility.PUBLIC),
                         eq(TripStatus.getActiveStatuses()),
-                        eq(PageRequest.of(0, 1)));
+                        eq(tripPageable));
+    }
+
+    @Test
+    void search_shouldPaginateUsersIndependentlyFromTrips() {
+        String searchTerm = "camino";
+        Pageable userPageable = PageRequest.of(2, 5);
+        Pageable tripPageable = PageRequest.of(0, 10);
+
+        when(userRepository.searchUserSummaries(eq(searchTerm), eq(userPageable)))
+                .thenReturn(Page.empty(userPageable));
+
+        Trip trip = createTrip(tripId, userId, "Camino Trip");
+        when(tripRepository.searchPublicTripsByName(
+                        eq(searchTerm),
+                        eq(TripVisibility.PUBLIC),
+                        eq(TripStatus.getActiveStatuses()),
+                        eq(tripPageable)))
+                .thenReturn(new PageImpl<>(List.of(trip), tripPageable, 1));
+
+        TripSummaryDTO summary = createTripSummaryDTO(tripId, userId, "Camino Trip");
+        when(tripEnrichmentHelper.enrichTripsToSummaries(List.of(trip)))
+                .thenReturn(List.of(summary));
+
+        SearchResultsResponse result =
+                searchService.search(searchTerm, userPageable, tripPageable);
+
+        // User page 2 is empty but trips page 0 has results
+        assertTrue(result.users().getContent().isEmpty());
+        assertEquals(1, result.trips().getContent().size());
+        assertEquals(2, result.users().getNumber());
+        assertEquals(0, result.trips().getNumber());
     }
 
     @Test
     void search_shouldGenerateAvatarUrlForUsers() {
         String searchTerm = "pilgrim";
-        int limit = 5;
 
         UserSummaryDto userSummary = createUserSummary(userId, "pilgrim", "The Pilgrim");
-        PageRequest pageRequest = PageRequest.of(0, limit);
-        when(userRepository.searchUserSummaries(eq(searchTerm), eq(pageRequest)))
-                .thenReturn(new PageImpl<>(List.of(userSummary)));
+        when(userRepository.searchUserSummaries(eq(searchTerm), eq(DEFAULT_USER_PAGEABLE)))
+                .thenReturn(new PageImpl<>(List.of(userSummary), DEFAULT_USER_PAGEABLE, 1));
         when(tripRepository.searchPublicTripsByName(
                         eq(searchTerm),
                         eq(TripVisibility.PUBLIC),
                         eq(TripStatus.getActiveStatuses()),
-                        eq(pageRequest)))
-                .thenReturn(List.of());
+                        eq(DEFAULT_TRIP_PAGEABLE)))
+                .thenReturn(Page.empty(DEFAULT_TRIP_PAGEABLE));
         when(tripEnrichmentHelper.enrichTripsToSummaries(List.of())).thenReturn(List.of());
 
-        SearchResultsResponse result = searchService.search(searchTerm, limit);
+        SearchResultsResponse result =
+                searchService.search(searchTerm, DEFAULT_USER_PAGEABLE, DEFAULT_TRIP_PAGEABLE);
 
         assertNotNull(result);
-        assertEquals(1, result.users().size());
-        UserSearchResult userResult = result.users().get(0);
+        assertEquals(1, result.users().getTotalElements());
+        UserSearchResult userResult = result.users().getContent().getFirst();
         assertNotNull(userResult.avatarUrl());
         assertTrue(userResult.avatarUrl().contains(userId.toString()));
         assertTrue(userResult.avatarUrl().contains("profiles"));
@@ -274,11 +316,9 @@ class SearchServiceImplTest {
     @Test
     void search_shouldDelegateEnrichmentToHelper() {
         String searchTerm = "camino";
-        int limit = 5;
 
-        PageRequest pageRequest = PageRequest.of(0, limit);
-        when(userRepository.searchUserSummaries(eq(searchTerm), eq(pageRequest)))
-                .thenReturn(Page.empty());
+        when(userRepository.searchUserSummaries(eq(searchTerm), eq(DEFAULT_USER_PAGEABLE)))
+                .thenReturn(Page.empty(DEFAULT_USER_PAGEABLE));
 
         Trip trip = createTrip(tripId, userId, "Camino Trip");
         List<Trip> trips = List.of(trip);
@@ -286,44 +326,134 @@ class SearchServiceImplTest {
                         eq(searchTerm),
                         eq(TripVisibility.PUBLIC),
                         eq(TripStatus.getActiveStatuses()),
-                        eq(pageRequest)))
-                .thenReturn(trips);
+                        eq(DEFAULT_TRIP_PAGEABLE)))
+                .thenReturn(new PageImpl<>(trips, DEFAULT_TRIP_PAGEABLE, 1));
 
         TripSummaryDTO summary =
                 createPromotedTripSummaryDTO(tripId, userId, "Camino Trip", Instant.now());
         when(tripEnrichmentHelper.enrichTripsToSummaries(trips)).thenReturn(List.of(summary));
 
-        SearchResultsResponse result = searchService.search(searchTerm, limit);
+        SearchResultsResponse result =
+                searchService.search(searchTerm, DEFAULT_USER_PAGEABLE, DEFAULT_TRIP_PAGEABLE);
 
-        // Verify the enrichment helper was called with the raw trips
         verify(tripEnrichmentHelper).enrichTripsToSummaries(trips);
-        assertEquals(1, result.trips().size());
-        assertTrue(result.trips().get(0).isPromoted());
+        assertEquals(1, result.trips().getTotalElements());
+        assertTrue(result.trips().getContent().getFirst().isPromoted());
     }
 
     @Test
     void search_shouldHandleUserWithNullDisplayName() {
         String searchTerm = "anon";
-        int limit = 5;
 
         UserSummaryDto userSummary = createUserSummary(userId, "anon_user", null);
-        PageRequest pageRequest = PageRequest.of(0, limit);
-        when(userRepository.searchUserSummaries(eq(searchTerm), eq(pageRequest)))
-                .thenReturn(new PageImpl<>(List.of(userSummary)));
+        when(userRepository.searchUserSummaries(eq(searchTerm), eq(DEFAULT_USER_PAGEABLE)))
+                .thenReturn(new PageImpl<>(List.of(userSummary), DEFAULT_USER_PAGEABLE, 1));
         when(tripRepository.searchPublicTripsByName(
                         eq(searchTerm),
                         eq(TripVisibility.PUBLIC),
                         eq(TripStatus.getActiveStatuses()),
-                        eq(pageRequest)))
-                .thenReturn(List.of());
+                        eq(DEFAULT_TRIP_PAGEABLE)))
+                .thenReturn(Page.empty(DEFAULT_TRIP_PAGEABLE));
         when(tripEnrichmentHelper.enrichTripsToSummaries(List.of())).thenReturn(List.of());
 
-        SearchResultsResponse result = searchService.search(searchTerm, limit);
+        SearchResultsResponse result =
+                searchService.search(searchTerm, DEFAULT_USER_PAGEABLE, DEFAULT_TRIP_PAGEABLE);
 
         assertNotNull(result);
-        assertEquals(1, result.users().size());
-        assertEquals("anon_user", result.users().get(0).username());
-        assertNull(result.users().get(0).displayName());
+        assertEquals(1, result.users().getTotalElements());
+        assertEquals("anon_user", result.users().getContent().getFirst().username());
+        assertNull(result.users().getContent().getFirst().displayName());
+    }
+
+    @Test
+    void search_shouldReturnTripsMatchingOwnerUsername() {
+        String searchTerm = "user123";
+
+        UUID userId1 = UUID.randomUUID();
+        UUID userId2 = UUID.randomUUID();
+        UUID tripId1 = UUID.randomUUID();
+        UUID tripId2 = UUID.randomUUID();
+
+        UserSummaryDto user1 = createUserSummary(userId1, "user123", "User 123");
+        UserSummaryDto user2 = createUserSummary(userId2, "user12345", "User 12345");
+        when(userRepository.searchUserSummaries(eq(searchTerm), eq(DEFAULT_USER_PAGEABLE)))
+                .thenReturn(
+                        new PageImpl<>(List.of(user1, user2), DEFAULT_USER_PAGEABLE, 2));
+
+        Trip trip1 = createTrip(tripId1, userId1, "My Awesome Trip");
+        Trip trip2 = createTrip(tripId2, userId2, "Another Great Journey");
+        List<Trip> trips = List.of(trip1, trip2);
+        when(tripRepository.searchPublicTripsByName(
+                        eq(searchTerm),
+                        eq(TripVisibility.PUBLIC),
+                        eq(TripStatus.getActiveStatuses()),
+                        eq(DEFAULT_TRIP_PAGEABLE)))
+                .thenReturn(new PageImpl<>(trips, DEFAULT_TRIP_PAGEABLE, 2));
+
+        TripSummaryDTO summary1 = createTripSummaryDTO(tripId1, userId1, "My Awesome Trip");
+        TripSummaryDTO summary2 =
+                createTripSummaryDTO(tripId2, userId2, "Another Great Journey");
+        when(tripEnrichmentHelper.enrichTripsToSummaries(trips))
+                .thenReturn(List.of(summary1, summary2));
+
+        SearchResultsResponse result =
+                searchService.search(searchTerm, DEFAULT_USER_PAGEABLE, DEFAULT_TRIP_PAGEABLE);
+
+        assertNotNull(result);
+        assertEquals(2, result.users().getTotalElements());
+        assertEquals(2, result.trips().getTotalElements());
+        assertEquals("My Awesome Trip", result.trips().getContent().get(0).name());
+        assertEquals("Another Great Journey", result.trips().getContent().get(1).name());
+    }
+
+    @Test
+    void search_shouldReturnCorrectPaginationMetadata() {
+        String searchTerm = "popular";
+        Pageable userPageable = PageRequest.of(1, 2);
+        Pageable tripPageable = PageRequest.of(0, 3);
+
+        // User page 1 with 2 items, total 5 → 3 pages
+        UserSummaryDto user1 = createUserSummary(UUID.randomUUID(), "popular1", "Popular One");
+        UserSummaryDto user2 = createUserSummary(UUID.randomUUID(), "popular2", "Popular Two");
+        when(userRepository.searchUserSummaries(eq(searchTerm), eq(userPageable)))
+                .thenReturn(new PageImpl<>(List.of(user1, user2), userPageable, 5));
+
+        // Trip page 0 with 2 items, total 2 → 1 page
+        Trip trip1 = createTrip(UUID.randomUUID(), userId, "Popular Trip 1");
+        Trip trip2 = createTrip(UUID.randomUUID(), userId, "Popular Trip 2");
+        List<Trip> trips = List.of(trip1, trip2);
+        when(tripRepository.searchPublicTripsByName(
+                        eq(searchTerm),
+                        eq(TripVisibility.PUBLIC),
+                        eq(TripStatus.getActiveStatuses()),
+                        eq(tripPageable)))
+                .thenReturn(new PageImpl<>(trips, tripPageable, 2));
+
+        TripSummaryDTO summary1 =
+                createTripSummaryDTO(trip1.getId(), userId, "Popular Trip 1");
+        TripSummaryDTO summary2 =
+                createTripSummaryDTO(trip2.getId(), userId, "Popular Trip 2");
+        when(tripEnrichmentHelper.enrichTripsToSummaries(trips))
+                .thenReturn(List.of(summary1, summary2));
+
+        SearchResultsResponse result =
+                searchService.search(searchTerm, userPageable, tripPageable);
+
+        // Verify user pagination metadata
+        assertEquals(1, result.users().getNumber());
+        assertEquals(2, result.users().getSize());
+        assertEquals(5, result.users().getTotalElements());
+        assertEquals(3, result.users().getTotalPages());
+        assertTrue(result.users().hasNext());
+        assertTrue(result.users().hasPrevious());
+
+        // Verify trip pagination metadata
+        assertEquals(0, result.trips().getNumber());
+        assertEquals(3, result.trips().getSize());
+        assertEquals(2, result.trips().getTotalElements());
+        assertEquals(1, result.trips().getTotalPages());
+        assertFalse(result.trips().hasNext());
+        assertFalse(result.trips().hasPrevious());
     }
 
     // --- Helper methods ---
@@ -413,5 +543,4 @@ class SearchServiceImplTest {
         };
     }
 }
-
 

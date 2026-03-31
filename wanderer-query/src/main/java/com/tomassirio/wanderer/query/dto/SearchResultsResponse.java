@@ -1,14 +1,15 @@
 package com.tomassirio.wanderer.query.dto;
 
 import com.tomassirio.wanderer.commons.dto.TripSummaryDTO;
-import java.util.List;
+import org.springframework.data.domain.Page;
 
 /**
- * Response DTO for unified search results containing both users and trips.
+ * Response DTO for unified search results containing both users and trips. Each category is
+ * independently paginated.
  *
  * @since 1.2.0
  */
 public record SearchResultsResponse(
-        List<UserSearchResult> users,
-        List<TripSummaryDTO> trips
+        Page<UserSearchResult> users,
+        Page<TripSummaryDTO> trips
 ) {}
