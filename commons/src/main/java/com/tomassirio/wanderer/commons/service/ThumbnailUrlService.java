@@ -38,21 +38,47 @@ public class ThumbnailUrlService {
     /**
      * Resolves the appropriate thumbnail URL for a trip. If the trip has no updates but has a trip
      * plan, falls back to the plan thumbnail. Otherwise uses the trip thumbnail.
+     * Includes a cache-busting query parameter based on the polyline update timestamp.
+     *
+     * @param tripId the trip ID (as String)
+     * @param hasUpdates whether the trip has any updates/locations
+     * @param tripPlanId the trip plan ID (as String), may be null
+     * @param polylineUpdatedAt the timestamp when polyline was last updated, used for cache busting
+     * @return the resolved thumbnail URL with cache-busting parameter, or null if tripId is null
+     */
+    public static String resolveTripThumbnailUrl(
+            String tripId, boolean hasUpdates, String tripPlanId, Long polylineUpdatedAt) {
+        if (tripId == null) {
+            return null;
+        }
+        String baseUrl;
+        if (!hasUpdates && tripPlanId != null && !tripPlanId.isEmpty()) {
+            baseUrl = generateTripPlanThumbnailUrl(UUID.fromString(tripPlanId));
+        } else {
+            baseUrl = generateTripThumbnailUrl(UUID.fromString(tripId));
+        }
+        
+        // Add cache-busting parameter if polylineUpdatedAt is available
+        if (polylineUpdatedAt != null && polylineUpdatedAt > 0) {
+            return baseUrl + "?v=" + polylineUpdatedAt;
+        }
+        return baseUrl;
+    }
+    
+    /**
+     * Resolves the appropriate thumbnail URL for a trip without cache-busting.
+     * Kept for backward compatibility.
      *
      * @param tripId the trip ID (as String)
      * @param hasUpdates whether the trip has any updates/locations
      * @param tripPlanId the trip plan ID (as String), may be null
      * @return the resolved thumbnail URL, or null if tripId is null
+     * @deprecated Use {@link #resolveTripThumbnailUrl(String, boolean, String, Long)} instead
      */
+    @Deprecated
     public static String resolveTripThumbnailUrl(
             String tripId, boolean hasUpdates, String tripPlanId) {
-        if (tripId == null) {
-            return null;
-        }
-        if (!hasUpdates && tripPlanId != null && !tripPlanId.isEmpty()) {
-            return generateTripPlanThumbnailUrl(UUID.fromString(tripPlanId));
-        }
-        return generateTripThumbnailUrl(UUID.fromString(tripId));
+        return resolveTripThumbnailUrl(tripId, hasUpdates, tripPlanId, null);
     }
 
     public static String generateUserProfileThumbnailUrl(UUID userId) {

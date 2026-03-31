@@ -182,7 +182,8 @@ public class TripEnrichmentHelper {
                 isPromoted,
                 promotedInfo != null ? promotedInfo.getPromotedAt() : null,
                 promotedInfo != null && promotedInfo.isPreAnnounced(),
-                promotedInfo != null ? promotedInfo.getCountdownStartDate() : null);
+                promotedInfo != null ? promotedInfo.getCountdownStartDate() : null,
+                trip.getPolylineUpdatedAt()); // For cache-busting
     }
 
     /**
