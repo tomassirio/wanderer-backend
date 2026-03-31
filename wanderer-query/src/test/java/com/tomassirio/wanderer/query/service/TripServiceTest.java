@@ -1240,6 +1240,8 @@ class TripServiceTest {
         trip2.setTripUpdates(List.of(update2a));
 
         when(tripRepository.findAll()).thenReturn(List.of(trip1, trip2));
+        when(tripUpdateRepository.findByTripIdIn(any()))
+                .thenReturn(List.of(update1a, update1b, update2a));
 
         // When
         TripMaintenanceStatsDTO stats = tripService.getTripMaintenanceStats();
@@ -1265,6 +1267,8 @@ class TripServiceTest {
         trip.setEncodedPolyline(null);
 
         when(tripRepository.findAll()).thenReturn(List.of(trip));
+        when(tripUpdateRepository.findByTripIdIn(any()))
+                .thenReturn(List.of(update1, update2));
 
         // When
         TripMaintenanceStatsDTO stats = tripService.getTripMaintenanceStats();
@@ -1290,6 +1294,8 @@ class TripServiceTest {
         trip.setTripUpdates(List.of(update1, update2));
 
         when(tripRepository.findAll()).thenReturn(List.of(trip));
+        when(tripUpdateRepository.findByTripIdIn(any()))
+                .thenReturn(List.of(update1, update2));
 
         // When
         TripMaintenanceStatsDTO stats = tripService.getTripMaintenanceStats();
