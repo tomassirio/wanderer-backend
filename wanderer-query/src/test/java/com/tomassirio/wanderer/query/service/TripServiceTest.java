@@ -20,6 +20,7 @@ import com.tomassirio.wanderer.commons.dto.TripMaintenanceStatsDTO;
 import com.tomassirio.wanderer.query.repository.FriendshipRepository;
 import com.tomassirio.wanderer.query.repository.PromotedTripRepository;
 import com.tomassirio.wanderer.query.repository.TripRepository;
+import com.tomassirio.wanderer.query.repository.TripUpdateRepository;
 import com.tomassirio.wanderer.query.repository.UserFollowRepository;
 import com.tomassirio.wanderer.query.repository.UserRepository;
 import com.tomassirio.wanderer.query.service.helper.TripEnrichmentHelper;
@@ -57,6 +58,8 @@ class TripServiceTest {
     @Mock private PromotedTripRepository promotedTripRepository;
 
     @Mock private TripEnrichmentHelper tripEnrichmentHelper;
+    
+    @Mock private TripUpdateRepository tripUpdateRepository;
 
     @InjectMocks private TripServiceImpl tripService;
 
@@ -114,6 +117,7 @@ class TripServiceTest {
                 .thenReturn(new PageImpl<>(trips, pageable, trips.size()));
         when(tripEnrichmentHelper.fetchUsernamesByUserIds(any()))
                 .thenReturn(Map.of(TestEntityFactory.USER_ID, "testuser"));
+        when(tripUpdateRepository.findByTripIdIn(any())).thenReturn(Collections.emptyList());
 
         // When
         Page<TripDTO> result = tripService.getAllTrips(pageable);
@@ -167,6 +171,7 @@ class TripServiceTest {
                 .thenReturn(new PageImpl<>(List.of(trip), pageable, 1));
         when(tripEnrichmentHelper.fetchUsernamesByUserIds(any()))
                 .thenReturn(Map.of(TestEntityFactory.USER_ID, "testuser"));
+        when(tripUpdateRepository.findByTripIdIn(any())).thenReturn(Collections.emptyList());
 
         // When
         Page<TripDTO> result = tripService.getAllTrips(pageable);
