@@ -3,7 +3,9 @@ package com.tomassirio.wanderer.query.service.helper;
 import com.tomassirio.wanderer.commons.domain.PromotedTrip;
 import com.tomassirio.wanderer.commons.domain.Trip;
 import com.tomassirio.wanderer.commons.domain.User;
+import com.tomassirio.wanderer.commons.dto.TripDTO;
 import com.tomassirio.wanderer.commons.dto.TripSummaryDTO;
+import com.tomassirio.wanderer.commons.mapper.TripDetailsMapper;
 import com.tomassirio.wanderer.commons.mapper.TripSettingsMapper;
 import com.tomassirio.wanderer.query.repository.CommentRepository;
 import com.tomassirio.wanderer.query.repository.PromotedTripRepository;
@@ -15,6 +17,9 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
 
 /**
@@ -179,5 +184,304 @@ public class TripEnrichmentHelper {
                 promotedInfo != null && promotedInfo.isPreAnnounced(),
                 promotedInfo != null ? promotedInfo.getCountdownStartDate() : null);
     }
+
+    /**
+     * Enriches a page of Trip entities into TripDTOs with usernames, promoted status, and comment
+     * counts. All lookups are done in batch to avoid N+1 queries.
+     *
+     * @param tripPage page of Trip entities
+     * @param originalPageable the original pageable request
+     * @return page of enriched TripDTOs
+     */
+    public Page<TripDTO> enrichTripsToTripDTOs(Page<Trip> tripPage, Pageable originalPageable) {
+        if (tripPage.isEmpty()) {
+            return Page.empty(originalPageable);
+        }
+
+        List<Trip> trips = tripPage.getContent();
+        Set<UUID> tripIds = collectTripIds(trips);
+        Map<UUID, PromotedTrip> promotedTripsMap = fetchAllPromotedTripsMap();
+        Map<UUID, String> userIdToUsername = fetchUsernames(trips);
+        Map<UUID, Long> commentCounts = fetchCommentCounts(tripIds);
+
+        List<TripDTO> enrichedTrips =
+                trips.stream()
+                        .map(
+                                trip -> {
+                                    PromotedTrip promotedInfo =
+                                            promotedTripsMap.get(trip.getId());
+                                    boolean isPromoted = promotedInfo != null;
+                                    Integer commentCount =
+                                            trip.getId() != null
+                                                    ? commentCounts
+                                                            .getOrDefault(trip.getId(), 0L)
+                                                            .intValue()
+                                                    : 0;
+
+                                    return new TripDTO(
+                                            trip.getId() != null
+                                                    ? trip.getId().toString()
+                                                    : null,
+                                            trip.getName(),
+                                            trip.getUserId() != null
+                                                    ? trip.getUserId().toString()
+                                                    : null,
+                                            trip.getUserId() != null
+                                                    ? userIdToUsername.get(trip.getUserId())
+                                                    : null,
+                                            TripSettingsMapper.INSTANCE.toDTO(
+                                                    trip.getTripSettings()),
+                                            TripDetailsMapper.INSTANCE.toDTO(
+                                                    trip.getTripDetails()),
+                                            trip.getTripPlanId() != null
+                                                    ? trip.getTripPlanId().toString()
+                                                    : null,
+                                            null,
+                                            null,
+                                            null,
+                                            trip.getEncodedPolyline(),
+                                            trip.getPlannedPolyline(),
+                                            trip.getPolylineUpdatedAt(),
+                                            trip.getCachedDistanceKm(),
+                                            trip.getCreationTimestamp(),
+                                            trip.getEnabled(),
+                                            isPromoted,
+                                            promotedInfo != null
+                                                    ? promotedInfo.getPromotedAt()
+                                                    : null,
+                                            promotedInfo != null && promotedInfo.isPreAnnounced(),
+                                            promotedInfo != null
+                                                    ? promotedInfo.getCountdownStartDate()
+                                                    : null,
+                                            commentCount,
+                                            trip.getUpdateCount());
+                                })
+                        .toList();
+
+        return new PageImpl<>(enrichedTrips, originalPageable, tripPage.getTotalElements());
+    }
+
+    /**
+     * Enriches a page of Trip entities into TripSummaryDTOs with usernames, promoted status, and
+     * comment counts.
+     *
+     * @param tripPage page of Trip entities
+     * @param originalPageable the original pageable request
+     * @return page of enriched TripSummaryDTOs
+     */
+    public Page<TripSummaryDTO> enrichTripsToSummaryPage(
+            Page<Trip> tripPage, Pageable originalPageable) {
+        if (tripPage.isEmpty()) {
+            return Page.empty(originalPageable);
+        }
+
+        List<TripSummaryDTO> enrichedTrips = enrichTripsToSummaries(tripPage.getContent());
+        return new PageImpl<>(enrichedTrips, originalPageable, tripPage.getTotalElements());
+    }
+
+    /**
+     * Enriches a list of TripDTOs with usernames by fetching users in batch.
+     *
+     * @param trips list of TripDTOs to enrich
+     * @return list of enriched TripDTOs with usernames populated
+     */
+    public List<TripDTO> enrichListWithUsernames(List<TripDTO> trips) {
+        if (trips.isEmpty()) {
+            return trips;
+        }
+
+        Set<UUID> userIds = extractUserIdsFromDTOs(trips);
+        Map<UUID, String> userIdToUsername = fetchUsernamesByUserIds(userIds);
+
+        return trips.stream()
+                .map(trip -> enrichTripDTOWithUsername(trip, userIdToUsername))
+                .toList();
+    }
+
+    /**
+     * Enriches a list of TripDTOs with usernames and promoted status by fetching data in batch.
+     *
+     * @param trips list of TripDTOs to enrich
+     * @return list of enriched TripDTOs with usernames and promoted fields populated
+     */
+    public List<TripDTO> enrichListWithUsernamesAndPromotedStatus(List<TripDTO> trips) {
+        if (trips.isEmpty()) {
+            return trips;
+        }
+
+        Set<UUID> tripIds = extractTripIdsFromDTOs(trips);
+        Map<UUID, PromotedTrip> promotedTripsMap = fetchPromotedTripsMap(tripIds);
+
+        Set<UUID> userIds = extractUserIdsFromDTOs(trips);
+        Map<UUID, String> userIdToUsername = fetchUsernamesByUserIds(userIds);
+
+        return trips.stream()
+                .map(
+                        trip -> {
+                            PromotedTrip promotedInfo =
+                                    trip.id() != null
+                                            ? promotedTripsMap.get(UUID.fromString(trip.id()))
+                                            : null;
+                            return enrichTripDTOWithUsernameAndPromoted(
+                                    trip, userIdToUsername, promotedInfo);
+                        })
+                .toList();
+    }
+
+    /**
+     * Enriches a single TripDTO with username and promoted status.
+     *
+     * @param trip the TripDTO to enrich
+     * @return enriched TripDTO with username and promoted fields populated
+     */
+    public TripDTO enrichWithUsernameAndPromotedStatus(TripDTO trip) {
+        if (trip.id() == null) {
+            return trip;
+        }
+
+        UUID tripId = UUID.fromString(trip.id());
+        
+        // Get username
+        String username = null;
+        if (trip.userId() != null) {
+            username = userRepository
+                    .findById(UUID.fromString(trip.userId()))
+                    .map(User::getUsername)
+                    .orElse(null);
+        }
+
+        // Get promoted status
+        PromotedTrip promotedInfo = promotedTripRepository.findByTripId(tripId).orElse(null);
+        boolean isPromoted = promotedInfo != null;
+
+        // Determine if the trip should be marked as pre-announced
+        boolean isPreAnnounced = promotedInfo != null && promotedInfo.isPreAnnounced();
+        
+        return new TripDTO(
+                trip.id(),
+                trip.name(),
+                trip.userId(),
+                username,
+                trip.tripSettings(),
+                trip.tripDetails(),
+                trip.tripPlanId(),
+                trip.comments(),
+                trip.tripUpdates(),
+                trip.tripDays(),
+                trip.encodedPolyline(),
+                trip.plannedPolyline(),
+                trip.polylineUpdatedAt(),
+                trip.accruedDistanceKm(),
+                trip.creationTimestamp(),
+                trip.enabled(),
+                isPromoted,
+                promotedInfo != null ? promotedInfo.getPromotedAt() : null,
+                isPreAnnounced,
+                promotedInfo != null ? promotedInfo.getCountdownStartDate() : null,
+                trip.commentsCount(),
+                trip.updateCount());
+    }
+
+    /**
+     * Extracts unique user IDs from a list of TripDTOs.
+     *
+     * @param trips list of TripDTOs
+     * @return set of user UUIDs
+     */
+    private Set<UUID> extractUserIdsFromDTOs(List<TripDTO> trips) {
+        return trips.stream()
+                .map(TripDTO::userId)
+                .filter(Objects::nonNull)
+                .map(UUID::fromString)
+                .collect(Collectors.toSet());
+    }
+
+    /**
+     * Extracts unique trip IDs from a list of TripDTOs.
+     *
+     * @param trips list of TripDTOs
+     * @return set of trip UUIDs
+     */
+    private Set<UUID> extractTripIdsFromDTOs(List<TripDTO> trips) {
+        return trips.stream()
+                .map(TripDTO::id)
+                .filter(Objects::nonNull)
+                .map(UUID::fromString)
+                .collect(Collectors.toSet());
+    }
+
+    /**
+     * Enriches a TripDTO with a username from the lookup map.
+     *
+     * @param trip the TripDTO to enrich
+     * @param userIdToUsername map of user ID to username
+     * @return enriched TripDTO with username populated
+     */
+    private TripDTO enrichTripDTOWithUsername(TripDTO trip, Map<UUID, String> userIdToUsername) {
+        return new TripDTO(
+                trip.id(),
+                trip.name(),
+                trip.userId(),
+                trip.userId() != null
+                        ? userIdToUsername.get(UUID.fromString(trip.userId()))
+                        : null,
+                trip.tripSettings(),
+                trip.tripDetails(),
+                trip.tripPlanId(),
+                trip.comments(),
+                trip.tripUpdates(),
+                trip.tripDays(),
+                trip.encodedPolyline(),
+                trip.plannedPolyline(),
+                trip.polylineUpdatedAt(),
+                trip.accruedDistanceKm(),
+                trip.creationTimestamp(),
+                trip.enabled(),
+                null,
+                null,
+                null,
+                null,
+                trip.commentsCount(),
+                trip.updateCount());
+    }
+
+    /**
+     * Enriches a TripDTO with a username and promoted status.
+     *
+     * @param trip the TripDTO to enrich
+     * @param userIdToUsername map of user ID to username
+     * @param promotedInfo the PromotedTrip info (nullable)
+     * @return enriched TripDTO with username and promoted fields populated
+     */
+    private TripDTO enrichTripDTOWithUsernameAndPromoted(
+            TripDTO trip, Map<UUID, String> userIdToUsername, PromotedTrip promotedInfo) {
+        boolean isPromoted = promotedInfo != null;
+        return new TripDTO(
+                trip.id(),
+                trip.name(),
+                trip.userId(),
+                trip.userId() != null
+                        ? userIdToUsername.get(UUID.fromString(trip.userId()))
+                        : null,
+                trip.tripSettings(),
+                trip.tripDetails(),
+                trip.tripPlanId(),
+                trip.comments(),
+                trip.tripUpdates(),
+                trip.tripDays(),
+                trip.encodedPolyline(),
+                trip.plannedPolyline(),
+                trip.polylineUpdatedAt(),
+                trip.accruedDistanceKm(),
+                trip.creationTimestamp(),
+                trip.enabled(),
+                isPromoted,
+                promotedInfo != null ? promotedInfo.getPromotedAt() : null,
+                promotedInfo != null && promotedInfo.isPreAnnounced(),
+                promotedInfo != null ? promotedInfo.getCountdownStartDate() : null,
+                trip.commentsCount(),
+                trip.updateCount());
+    }
 }
+
 

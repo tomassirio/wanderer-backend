@@ -33,6 +33,8 @@ public interface TripMapper {
     @Mapping(source = "comments", target = "comments")
     @Mapping(source = "tripUpdates", target = "tripUpdates")
     @Mapping(source = "tripDays", target = "tripDays")
+    @Mapping(source = "updateCount", target = "updateCount")
+    @Mapping(target = "commentsCount", expression = "java(trip.getComments() != null ? trip.getComments().size() : 0)")
     @Mapping(target = "isPromoted", ignore = true)
     @Mapping(target = "promotedAt", ignore = true)
     @Mapping(target = "isPreAnnounced", ignore = true)

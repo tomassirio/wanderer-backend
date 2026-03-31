@@ -25,11 +25,13 @@ public record TripDTO(
         Boolean isPromoted,
         Instant promotedAt,
         Boolean isPreAnnounced,
-        Instant countdownStartDate) {
+        Instant countdownStartDate,
+        Integer commentsCount,
+        Integer updateCount) {
 
     @JsonProperty("thumbnailUrl")
     public String thumbnailUrl() {
-        boolean hasUpdates = tripUpdates != null && !tripUpdates.isEmpty();
+        boolean hasUpdates = updateCount != null && updateCount > 0;
         return ThumbnailUrlService.resolveTripThumbnailUrl(id, hasUpdates, tripPlanId);
     }
 }
