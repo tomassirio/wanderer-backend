@@ -586,7 +586,9 @@ class TripControllerTest {
                 Boolean.FALSE, // isPromoted
                 null, // promotedAt
                 Boolean.FALSE, // isPreAnnounced
-                null); // countdownStartDate
+                null, // countdownStartDate
+                0, // commentsCount
+                0); // updateCount
     }
 
     private TripDTO createTripDTOWithStatus(
@@ -614,7 +616,9 @@ class TripControllerTest {
                 Boolean.FALSE, // isPromoted
                 null, // promotedAt
                 Boolean.FALSE, // isPreAnnounced
-                null); // countdownStartDate
+                null, // countdownStartDate
+                0, // commentsCount
+                0); // updateCount
     }
 
     private TripSummaryDTO createTripSummaryDTOWithStatus(
@@ -631,6 +635,7 @@ class TripControllerTest {
                 0, // commentsCount
                 null, // currentDay
                 null, // tripPlanId
+                0, // updateCount
                 Boolean.FALSE, // isPromoted
                 null, // promotedAt
                 Boolean.FALSE, // isPreAnnounced

@@ -65,6 +65,9 @@ public class Trip implements Polylineable, Thumbnailable {
     @Column(name = "cached_distance_km")
     private Double cachedDistanceKm;
 
+    @Column(name = "update_count")
+    private Integer updateCount; // Cached count of trip updates for performance
+
     @NotNull
     @Column(name = "creation_timestamp", nullable = false)
     private Instant creationTimestamp;

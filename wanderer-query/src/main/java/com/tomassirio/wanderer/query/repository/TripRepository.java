@@ -173,4 +173,36 @@ public interface TripRepository extends JpaRepository<Trip, UUID> {
             Pageable pageable);
 
     long countByUserId(UUID userId);
+
+    /**
+     * Search trips by name or owner username matching the search term. Returns public ongoing trips
+     * (active statuses) that match the search criteria by trip name or by the trip owner's username,
+     * similar to the /public endpoint but filtered by search term.
+     */
+    @Query(
+            value =
+                    "SELECT t FROM Trip t "
+                            + "LEFT JOIN PromotedTrip pt ON t.id = pt.tripId "
+                            + "LEFT JOIN User u ON t.userId = u.id "
+                            + "WHERE t.tripSettings.visibility = :visibility "
+                            + "AND (t.tripSettings.tripStatus IN :statuses "
+                            + "     OR (pt.id IS NOT NULL AND t.tripSettings.tripStatus = 'CREATED')) "
+                            + "AND (LOWER(t.name) LIKE LOWER(CONCAT('%', :searchTerm, '%')) "
+                            + "     OR LOWER(u.username) LIKE LOWER(CONCAT('%', :searchTerm, '%'))) "
+                            + "ORDER BY CASE WHEN pt.id IS NOT NULL THEN 0 ELSE 1 END, "
+                            + "t.creationTimestamp DESC",
+            countQuery =
+                    "SELECT COUNT(t) FROM Trip t "
+                            + "LEFT JOIN PromotedTrip pt ON t.id = pt.tripId "
+                            + "LEFT JOIN User u ON t.userId = u.id "
+                            + "WHERE t.tripSettings.visibility = :visibility "
+                            + "AND (t.tripSettings.tripStatus IN :statuses "
+                            + "     OR (pt.id IS NOT NULL AND t.tripSettings.tripStatus = 'CREATED')) "
+                            + "AND (LOWER(t.name) LIKE LOWER(CONCAT('%', :searchTerm, '%')) "
+                            + "     OR LOWER(u.username) LIKE LOWER(CONCAT('%', :searchTerm, '%')))")
+    Page<Trip> searchPublicTripsByName(
+            @Param("searchTerm") String searchTerm,
+            @Param("visibility") TripVisibility visibility,
+            @Param("statuses") List<TripStatus> statuses,
+            Pageable pageable);
 }

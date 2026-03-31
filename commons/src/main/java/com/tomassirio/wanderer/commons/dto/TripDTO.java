@@ -4,7 +4,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.tomassirio.wanderer.commons.service.ThumbnailUrlService;
 import java.time.Instant;
 import java.util.List;
-import java.util.UUID;
 
 public record TripDTO(
         String id,
@@ -26,12 +25,13 @@ public record TripDTO(
         Boolean isPromoted,
         Instant promotedAt,
         Boolean isPreAnnounced,
-        Instant countdownStartDate) {
+        Instant countdownStartDate,
+        Integer commentsCount,
+        Integer updateCount) {
 
     @JsonProperty("thumbnailUrl")
     public String thumbnailUrl() {
-        return id != null
-                ? ThumbnailUrlService.generateTripThumbnailUrl(UUID.fromString(id))
-                : null;
+        boolean hasUpdates = updateCount != null && updateCount > 0;
+        return ThumbnailUrlService.resolveTripThumbnailUrl(id, hasUpdates, tripPlanId);
     }
 }

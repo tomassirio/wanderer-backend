@@ -3,7 +3,6 @@ package com.tomassirio.wanderer.commons.dto;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.tomassirio.wanderer.commons.service.ThumbnailUrlService;
 import java.time.Instant;
-import java.util.UUID;
 
 /**
  * Lightweight DTO for trip summaries in list views (e.g., home feed). Contains only the essential
@@ -21,6 +20,7 @@ public record TripSummaryDTO(
         Integer commentsCount,
         Integer currentDay,
         String tripPlanId,
+        Integer updateCount, // Number of trip updates/locations
         Boolean isPromoted,
         Instant promotedAt,
         Boolean isPreAnnounced,
@@ -28,8 +28,7 @@ public record TripSummaryDTO(
 
     @JsonProperty("thumbnailUrl")
     public String thumbnailUrl() {
-        return id != null
-                ? ThumbnailUrlService.generateTripThumbnailUrl(UUID.fromString(id))
-                : null;
+        boolean hasUpdates = updateCount != null && updateCount > 0;
+        return ThumbnailUrlService.resolveTripThumbnailUrl(id, hasUpdates, tripPlanId);
     }
 }
