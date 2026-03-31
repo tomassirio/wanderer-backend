@@ -5,6 +5,7 @@ import com.tomassirio.wanderer.commons.domain.Friendship;
 import com.tomassirio.wanderer.commons.domain.PromotedTrip;
 import com.tomassirio.wanderer.commons.domain.Trip;
 import com.tomassirio.wanderer.commons.domain.TripStatus;
+import com.tomassirio.wanderer.commons.domain.TripUpdate;
 import com.tomassirio.wanderer.commons.domain.TripVisibility;
 import com.tomassirio.wanderer.commons.domain.User;
 import com.tomassirio.wanderer.commons.domain.UserFollow;
@@ -17,6 +18,7 @@ import com.tomassirio.wanderer.commons.mapper.TripSettingsMapper;
 import com.tomassirio.wanderer.query.repository.FriendshipRepository;
 import com.tomassirio.wanderer.query.repository.PromotedTripRepository;
 import com.tomassirio.wanderer.query.repository.TripRepository;
+import com.tomassirio.wanderer.query.repository.TripUpdateRepository;
 import com.tomassirio.wanderer.query.repository.UserFollowRepository;
 import com.tomassirio.wanderer.query.repository.UserRepository;
 import com.tomassirio.wanderer.query.service.TripService;
@@ -47,6 +49,7 @@ public class TripServiceImpl implements TripService {
     private final UserRepository userRepository;
     private final PromotedTripRepository promotedTripRepository;
     private final TripEnrichmentHelper tripEnrichmentHelper;
+    private final TripUpdateRepository tripUpdateRepository;
 
     private final TripMapper tripMapper = TripMapper.INSTANCE;
 
@@ -63,6 +66,29 @@ public class TripServiceImpl implements TripService {
     @Override
     public Page<TripDTO> getAllTrips(Pageable pageable) {
         Page<Trip> tripPage = tripRepository.findAll(pageable);
+        
+        // Batch fetch tripUpdates to avoid N+1 queries and populate them into trips
+        List<UUID> tripIds = tripPage.getContent().stream()
+                .map(Trip::getId)
+                .collect(Collectors.toList());
+        
+        if (!tripIds.isEmpty()) {
+            List<TripUpdate> allUpdates =
+                    tripUpdateRepository.findByTripIdIn(tripIds);
+            
+            // Group updates by trip ID
+            Map<UUID, List<TripUpdate>> updatesByTripId =
+                    allUpdates.stream().collect(Collectors.groupingBy(
+                            update -> update.getTrip().getId()));
+            
+            // Populate each trip's updates
+            tripPage.getContent().forEach(trip -> {
+                List<TripUpdate> tripUpdates =
+                        updatesByTripId.getOrDefault(trip.getId(), List.of());
+                trip.setTripUpdates(tripUpdates);
+            });
+        }
+        
         return enrichPageWithUsernames(tripPage, pageable);
     }
 
