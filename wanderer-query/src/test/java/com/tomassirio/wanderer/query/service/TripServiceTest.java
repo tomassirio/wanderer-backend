@@ -69,7 +69,9 @@ class TripServiceTest {
         UUID tripId = UUID.randomUUID();
         Trip trip = TestEntityFactory.createTrip(tripId, "Test Trip");
 
-        when(tripRepository.findById(tripId)).thenReturn(Optional.of(trip));
+        when(tripRepository.findWithDetailsById(tripId)).thenReturn(Optional.of(trip));
+        when(tripUpdateRepository.findByTripIdOrderByTimestampAsc(tripId))
+                .thenReturn(List.of());
         when(userRepository.findById(TestEntityFactory.USER_ID))
                 .thenReturn(Optional.of(TestEntityFactory.createUser()));
 
@@ -85,21 +87,21 @@ class TripServiceTest {
         assertThat(result.tripSettings().tripStatus()).isEqualTo(TripStatus.CREATED);
         assertThat(result.enabled()).isTrue();
 
-        verify(tripRepository).findById(tripId);
+        verify(tripRepository).findWithDetailsById(tripId);
     }
 
     @Test
     void getTrip_whenTripDoesNotExist_shouldThrowEntityNotFoundException() {
         // Given
         UUID nonExistentTripId = UUID.randomUUID();
-        when(tripRepository.findById(nonExistentTripId)).thenReturn(Optional.empty());
+        when(tripRepository.findWithDetailsById(nonExistentTripId)).thenReturn(Optional.empty());
 
         // When & Then
         assertThatThrownBy(() -> tripService.getTrip(nonExistentTripId))
                 .isInstanceOf(EntityNotFoundException.class)
                 .hasMessage("Trip not found");
 
-        verify(tripRepository).findById(nonExistentTripId);
+        verify(tripRepository).findWithDetailsById(nonExistentTripId);
     }
 
     @Test
