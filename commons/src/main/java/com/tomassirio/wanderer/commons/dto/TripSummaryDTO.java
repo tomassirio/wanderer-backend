@@ -32,13 +32,13 @@ public record TripSummaryDTO(
         if (id == null) {
             return null;
         }
-        
+
         // If trip has no updates but has a trip plan, use the plan thumbnail
         boolean hasNoUpdates = updateCount == null || updateCount == 0;
         if (hasNoUpdates && tripPlanId != null && !tripPlanId.isEmpty()) {
             return ThumbnailUrlService.generateTripPlanThumbnailUrl(UUID.fromString(tripPlanId));
         }
-        
+
         // Otherwise use trip thumbnail
         return ThumbnailUrlService.generateTripThumbnailUrl(UUID.fromString(id));
     }

@@ -6,7 +6,14 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.factory.Mappers;
 
-@Mapper(uses = {TripSettingsMapper.class, TripDetailsMapper.class, TripDayMapper.class})
+@Mapper(
+        uses = {
+            TripSettingsMapper.class,
+            TripDetailsMapper.class,
+            TripDayMapper.class,
+            TripUpdateMapper.class,
+            CommentMapper.class
+        })
 public interface TripMapper {
 
     TripMapper INSTANCE = Mappers.getMapper(TripMapper.class);
@@ -23,9 +30,9 @@ public interface TripMapper {
             expression =
                     "java(trip.getTripPlanId() != null ? trip.getTripPlanId().toString() : null)")
     @Mapping(source = "cachedDistanceKm", target = "accruedDistanceKm")
-    @Mapping(target = "comments", ignore = true)
-    @Mapping(target = "tripUpdates", ignore = true)
-    @Mapping(target = "tripDays", ignore = true)
+    @Mapping(source = "comments", target = "comments")
+    @Mapping(source = "tripUpdates", target = "tripUpdates")
+    @Mapping(source = "tripDays", target = "tripDays")
     @Mapping(target = "isPromoted", ignore = true)
     @Mapping(target = "promotedAt", ignore = true)
     @Mapping(target = "isPreAnnounced", ignore = true)

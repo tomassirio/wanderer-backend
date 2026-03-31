@@ -58,8 +58,11 @@ public class TripServiceImpl implements TripService {
     public TripDTO getTrip(UUID id) {
         Trip trip =
                 tripRepository
-                        .findById(id)
+                        .findWithDetailsById(id)
                         .orElseThrow(() -> new EntityNotFoundException("Trip not found"));
+        
+        trip.setTripUpdates(tripUpdateRepository.findByTripIdOrderByTimestampAsc(id));
+        
         return enrichWithUsernameAndPromotedStatus(tripMapper.toDTO(trip));
     }
 

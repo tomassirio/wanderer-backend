@@ -15,7 +15,6 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.cache.RedisCacheConfiguration;
 import org.springframework.data.redis.cache.RedisCacheManager;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
-import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer;
 import org.springframework.data.redis.serializer.Jackson2JsonRedisSerializer;
 import org.springframework.data.redis.serializer.RedisSerializationContext;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
@@ -36,6 +35,7 @@ import org.springframework.data.web.config.SpringDataWebSettings;
  *
  * <p><b>IMPORTANT:</b> After deploying changes to this configuration, you MUST clear the Redis
  * cache to prevent deserialization errors from incompatible cached data:
+ *
  * <pre>
  * kubectl exec -n wanderer-dev &lt;redis-pod-name&gt; -- redis-cli FLUSHDB
  * </pre>
@@ -88,21 +88,21 @@ public class RedisCacheConfig {
     @Bean
     public CacheManager cacheManager(RedisConnectionFactory connectionFactory) {
         ObjectMapper objectMapper = new ObjectMapper();
-        
+
         // Register Java time module for LocalDateTime, etc.
         objectMapper.registerModule(new JavaTimeModule());
         objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-        
+
         // Configure deserialization to be lenient
         objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
         objectMapper.configure(DeserializationFeature.FAIL_ON_INVALID_SUBTYPE, false);
         objectMapper.configure(DeserializationFeature.ACCEPT_EMPTY_STRING_AS_NULL_OBJECT, true);
-        
+
         // Register Spring Data module for Page serialization BEFORE findAndRegisterModules
-        SpringDataWebSettings settings = new SpringDataWebSettings(
-                EnableSpringDataWebSupport.PageSerializationMode.VIA_DTO);
+        SpringDataWebSettings settings =
+                new SpringDataWebSettings(EnableSpringDataWebSupport.PageSerializationMode.VIA_DTO);
         objectMapper.registerModule(new SpringDataJacksonConfiguration.PageModule(settings));
-        
+
         // Find and register other modules (after Spring Data module to avoid conflicts)
         objectMapper.findAndRegisterModules();
 
