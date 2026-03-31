@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -24,6 +25,7 @@ import com.tomassirio.wanderer.query.repository.TripUpdateRepository;
 import com.tomassirio.wanderer.query.repository.UserFollowRepository;
 import com.tomassirio.wanderer.query.repository.UserRepository;
 import com.tomassirio.wanderer.query.service.helper.TripEnrichmentHelper;
+import com.tomassirio.wanderer.commons.mapper.TripMapper;
 import com.tomassirio.wanderer.query.service.impl.TripServiceImpl;
 import com.tomassirio.wanderer.query.utils.TestEntityFactory;
 import jakarta.persistence.EntityNotFoundException;
@@ -31,8 +33,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.UUID;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -62,6 +64,124 @@ class TripServiceTest {
     @Mock private TripUpdateRepository tripUpdateRepository;
 
     @InjectMocks private TripServiceImpl tripService;
+    
+    private final TripMapper tripMapper = TripMapper.INSTANCE;
+    
+    @BeforeEach
+    void setUp() {
+        // Configure enrichment helper to return enriched DTOs
+        // Use lenient() to avoid UnnecessaryStubbingException for tests that don't use all stubs
+        
+        // enrichWithUsernameAndPromotedStatus
+        lenient().when(tripEnrichmentHelper.enrichWithUsernameAndPromotedStatus(any(TripDTO.class)))
+                .thenAnswer(invocation -> {
+                    TripDTO input = invocation.getArgument(0);
+                    // Ensure Boolean fields are non-null
+                    return new TripDTO(
+                            input.id(),
+                            input.name(),
+                            input.userId(),
+                            input.username(),
+                            input.tripSettings(),
+                            input.tripDetails(),
+                            input.tripPlanId(),
+                            input.comments(),
+                            input.tripUpdates(),
+                            input.tripDays(),
+                            input.encodedPolyline(),
+                            input.plannedPolyline(),
+                            input.polylineUpdatedAt(),
+                            input.accruedDistanceKm(),
+                            input.creationTimestamp(),
+                            input.enabled(),
+                            input.isPromoted() != null ? input.isPromoted() : Boolean.FALSE,
+                            input.promotedAt(),
+                            input.isPreAnnounced() != null ? input.isPreAnnounced() : Boolean.FALSE,
+                            input.countdownStartDate(),
+                            input.commentsCount(),
+                            input.updateCount()
+                    );
+                });
+        
+        // enrichListWithUsernames
+        lenient().when(tripEnrichmentHelper.enrichListWithUsernames(any(List.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        
+        // enrichListWithUsernamesAndPromotedStatus
+        lenient().when(tripEnrichmentHelper.enrichListWithUsernamesAndPromotedStatus(any(List.class)))
+                .thenAnswer(invocation -> {
+                    List<TripDTO> inputs = invocation.getArgument(0);
+                    // Ensure Boolean fields are non-null
+                    return inputs.stream().map(input -> new TripDTO(
+                            input.id(),
+                            input.name(),
+                            input.userId(),
+                            input.username(),
+                            input.tripSettings(),
+                            input.tripDetails(),
+                            input.tripPlanId(),
+                            input.comments(),
+                            input.tripUpdates(),
+                            input.tripDays(),
+                            input.encodedPolyline(),
+                            input.plannedPolyline(),
+                            input.polylineUpdatedAt(),
+                            input.accruedDistanceKm(),
+                            input.creationTimestamp(),
+                            input.enabled(),
+                            input.isPromoted() != null ? input.isPromoted() : Boolean.FALSE,
+                            input.promotedAt(),
+                            input.isPreAnnounced() != null ? input.isPreAnnounced() : Boolean.FALSE,
+                            input.countdownStartDate(),
+                            input.commentsCount(),
+                            input.updateCount()
+                    )).toList();
+                });
+        
+        // enrichTripsToTripDTOs - used for Page<Trip> -> Page<TripDTO>
+        lenient().when(tripEnrichmentHelper.enrichTripsToTripDTOs(any(Page.class), any(Pageable.class)))
+                .thenAnswer(invocation -> {
+                    Page<Trip> tripPage = invocation.getArgument(0);
+                    Pageable pageable = invocation.getArgument(1);
+                    List<TripDTO> dtos = tripPage.getContent().stream()
+                            .map(tripMapper::toDTO)
+                            .map(dto -> new TripDTO(
+                                    dto.id(),
+                                    dto.name(),
+                                    dto.userId(),
+                                    dto.username(),
+                                    dto.tripSettings(),
+                                    dto.tripDetails(),
+                                    dto.tripPlanId(),
+                                    dto.comments(),
+                                    dto.tripUpdates(),
+                                    dto.tripDays(),
+                                    dto.encodedPolyline(),
+                                    dto.plannedPolyline(),
+                                    dto.polylineUpdatedAt(),
+                                    dto.accruedDistanceKm(),
+                                    dto.creationTimestamp(),
+                                    dto.enabled(),
+                                    dto.isPromoted() != null ? dto.isPromoted() : Boolean.FALSE,
+                                    dto.promotedAt(),
+                                    dto.isPreAnnounced() != null ? dto.isPreAnnounced() : Boolean.FALSE,
+                                    dto.countdownStartDate(),
+                                    dto.commentsCount(),
+                                    dto.updateCount()
+                            ))
+                            .toList();
+                    return new PageImpl<>(dtos, pageable, tripPage.getTotalElements());
+                });
+        
+        // enrichTripsToSummaryPage
+        lenient().when(tripEnrichmentHelper.enrichTripsToSummaryPage(any(Page.class), any(Pageable.class)))
+                .thenAnswer(invocation -> {
+                    Page<Trip> tripPage = invocation.getArgument(0);
+                    Pageable pageable = invocation.getArgument(1);
+                    // For tests, we can return an empty result or mock the summary conversion
+                    return Page.empty(pageable);
+                });
+    }
 
     @Test
     void getTrip_whenTripExists_shouldReturnTripDTO() {
@@ -72,8 +192,6 @@ class TripServiceTest {
         when(tripRepository.findWithDetailsById(tripId)).thenReturn(Optional.of(trip));
         when(tripUpdateRepository.findByTripIdOrderByTimestampAsc(tripId))
                 .thenReturn(List.of());
-        when(userRepository.findById(TestEntityFactory.USER_ID))
-                .thenReturn(Optional.of(TestEntityFactory.createUser()));
 
         // When
         TripDTO result = tripService.getTrip(tripId);
@@ -117,8 +235,6 @@ class TripServiceTest {
         List<Trip> trips = List.of(trip1, trip2);
         when(tripRepository.findAll(pageable))
                 .thenReturn(new PageImpl<>(trips, pageable, trips.size()));
-        when(tripEnrichmentHelper.fetchUsernamesByUserIds(any()))
-                .thenReturn(Map.of(TestEntityFactory.USER_ID, "testuser"));
         when(tripUpdateRepository.findByTripIdIn(any())).thenReturn(Collections.emptyList());
 
         // When
@@ -171,8 +287,6 @@ class TripServiceTest {
 
         when(tripRepository.findAll(pageable))
                 .thenReturn(new PageImpl<>(List.of(trip), pageable, 1));
-        when(tripEnrichmentHelper.fetchUsernamesByUserIds(any()))
-                .thenReturn(Map.of(TestEntityFactory.USER_ID, "testuser"));
         when(tripUpdateRepository.findByTripIdIn(any())).thenReturn(Collections.emptyList());
 
         // When
@@ -200,9 +314,6 @@ class TripServiceTest {
         Trip trip = TestEntityFactory.createTrip(tripId, "Owned Trip");
 
         when(tripRepository.findByUserId(userId)).thenReturn(List.of(trip));
-        when(tripEnrichmentHelper.fetchPromotedTripsMap(any())).thenReturn(Map.of());
-        when(tripEnrichmentHelper.fetchUsernamesByUserIds(any()))
-                .thenReturn(Map.of(TestEntityFactory.USER_ID, "testuser"));
 
         // When
         List<TripDTO> result = tripService.getTripsForUser(userId);
@@ -246,8 +357,6 @@ class TripServiceTest {
 
         when(tripRepository.findByTripSettingsVisibility(TripVisibility.PUBLIC))
                 .thenReturn(List.of(publicTrip1, publicTrip2));
-        when(tripEnrichmentHelper.fetchUsernamesByUserIds(any()))
-                .thenReturn(Map.of(TestEntityFactory.USER_ID, "testuser"));
 
         // When
         List<TripDTO> result = tripService.getPublicTrips();
@@ -297,8 +406,6 @@ class TripServiceTest {
                 List.of(TripVisibility.PUBLIC, TripVisibility.PROTECTED);
         when(tripRepository.findByUserIdAndVisibilityIn(userId, visibilities))
                 .thenReturn(List.of(publicTrip, protectedTrip));
-        when(tripEnrichmentHelper.fetchUsernamesByUserIds(any()))
-                .thenReturn(Map.of(TestEntityFactory.USER_ID, "testuser"));
 
         // When
         List<TripDTO> result = tripService.getTripsForUserWithVisibility(userId, requestingUserId);
@@ -351,8 +458,6 @@ class TripServiceTest {
                 List.of(TripVisibility.PUBLIC, TripVisibility.PROTECTED);
         when(tripRepository.findByUserIdAndVisibilityIn(userId, visibilities))
                 .thenReturn(List.of(publicTrip));
-        when(tripEnrichmentHelper.fetchUsernamesByUserIds(any()))
-                .thenReturn(Map.of(TestEntityFactory.USER_ID, "testuser"));
 
         // When
         List<TripDTO> result = tripService.getTripsForUserWithVisibility(userId, requestingUserId);
@@ -385,8 +490,6 @@ class TripServiceTest {
         List<TripVisibility> visibilities = List.of(TripVisibility.PUBLIC);
         when(tripRepository.findByUserIdAndVisibilityIn(userId, visibilities))
                 .thenReturn(List.of(publicTrip));
-        when(tripEnrichmentHelper.fetchUsernamesByUserIds(any()))
-                .thenReturn(Map.of(TestEntityFactory.USER_ID, "testuser"));
 
         // When
         List<TripDTO> result = tripService.getTripsForUserWithVisibility(userId, requestingUserId);
@@ -412,8 +515,6 @@ class TripServiceTest {
         List<TripVisibility> visibilities = List.of(TripVisibility.PUBLIC);
         when(tripRepository.findByUserIdAndVisibilityIn(userId, visibilities))
                 .thenReturn(List.of(publicTrip));
-        when(tripEnrichmentHelper.fetchUsernamesByUserIds(any()))
-                .thenReturn(Map.of(TestEntityFactory.USER_ID, "testuser"));
 
         // When
         List<TripDTO> result = tripService.getTripsForUserWithVisibility(userId, null);
@@ -467,9 +568,6 @@ class TripServiceTest {
         when(tripRepository.findByVisibilityAndStatusInWithPromotedFirst(
                         TripVisibility.PUBLIC, TripStatus.getActiveStatuses(), pageable))
                 .thenReturn(new PageImpl<>(trips, pageable, trips.size()));
-        when(tripEnrichmentHelper.fetchAllPromotedTripsMap()).thenReturn(Map.of());
-        when(tripEnrichmentHelper.fetchUsernames(any()))
-                .thenReturn(Map.of(TestEntityFactory.USER_ID, "testuser"));
 
         // When
         Page<TripDTO> result = tripService.getOngoingPublicTrips(null, pageable);
@@ -526,9 +624,6 @@ class TripServiceTest {
         when(tripRepository.findByVisibilityAndStatusInWithPromotedFirst(
                         TripVisibility.PUBLIC, TripStatus.getActiveStatuses(), pageable))
                 .thenReturn(new PageImpl<>(List.of(ongoingPublicTrip), pageable, 1));
-        when(tripEnrichmentHelper.fetchAllPromotedTripsMap()).thenReturn(Map.of());
-        when(tripEnrichmentHelper.fetchUsernames(any()))
-                .thenReturn(Map.of(TestEntityFactory.USER_ID, "testuser"));
 
         // When
         Page<TripDTO> result = tripService.getOngoingPublicTrips(null, pageable);
@@ -568,11 +663,41 @@ class TripServiceTest {
         when(tripRepository.findByVisibilityAndStatusInWithPromotedFirst(
                         TripVisibility.PUBLIC, TripStatus.getActiveStatuses(), pageable))
                 .thenReturn(new PageImpl<>(trips, pageable, trips.size()));
-        when(tripEnrichmentHelper.fetchAllPromotedTripsMap())
-                .thenReturn(Map.of(promotedCreatedTripId,
-                        PromotedTrip.builder().tripId(promotedCreatedTripId).promotedAt(java.time.Instant.now()).build()));
-        when(tripEnrichmentHelper.fetchUsernames(any()))
-                .thenReturn(Map.of(TestEntityFactory.USER_ID, "testuser"));
+        
+        // Override enrichment for this test to mark the promoted trip
+        when(tripEnrichmentHelper.enrichTripsToTripDTOs(any(Page.class), any(Pageable.class)))
+                .thenAnswer(invocation -> {
+                    Page<Trip> tripPage = invocation.getArgument(0);
+                    Pageable page = invocation.getArgument(1);
+                    List<TripDTO> dtos = tripPage.getContent().stream()
+                            .map(tripMapper::toDTO)
+                            .map(dto -> new TripDTO(
+                                    dto.id(),
+                                    dto.name(),
+                                    dto.userId(),
+                                    dto.username(),
+                                    dto.tripSettings(),
+                                    dto.tripDetails(),
+                                    dto.tripPlanId(),
+                                    dto.comments(),
+                                    dto.tripUpdates(),
+                                    dto.tripDays(),
+                                    dto.encodedPolyline(),
+                                    dto.plannedPolyline(),
+                                    dto.polylineUpdatedAt(),
+                                    dto.accruedDistanceKm(),
+                                    dto.creationTimestamp(),
+                                    dto.enabled(),
+                                    dto.id().equals(promotedCreatedTripId.toString()) ? Boolean.TRUE : Boolean.FALSE,
+                                    dto.promotedAt(),
+                                    dto.isPreAnnounced() != null ? dto.isPreAnnounced() : Boolean.FALSE,
+                                    dto.countdownStartDate(),
+                                    dto.commentsCount(),
+                                    dto.updateCount()
+                            ))
+                            .toList();
+                    return new PageImpl<>(dtos, page, tripPage.getTotalElements());
+                });
 
         // When
         Page<TripDTO> result = tripService.getOngoingPublicTrips(null, pageable);
@@ -654,12 +779,6 @@ class TripServiceTest {
                         any(),
                         any(Pageable.class)))
                 .thenReturn(new PageImpl<>(trips, PageRequest.of(0, 20), trips.size()));
-        when(tripEnrichmentHelper.fetchAllPromotedTripsMap()).thenReturn(Map.of());
-        when(tripEnrichmentHelper.fetchUsernames(any()))
-                .thenReturn(Map.of(
-                        followedUserId1, "user1",
-                        followedUserId2, "user2",
-                        notFollowedUserId, "user3"));
 
         // When
         Page<TripDTO> result = tripService.getOngoingPublicTrips(requestingUserId, pageable);
@@ -698,11 +817,6 @@ class TripServiceTest {
         when(tripRepository.findByVisibilityAndStatusInWithPromotedFirst(
                         TripVisibility.PUBLIC, TripStatus.getActiveStatuses(), pageable))
                 .thenReturn(new PageImpl<>(trips, pageable, trips.size()));
-        when(tripEnrichmentHelper.fetchAllPromotedTripsMap()).thenReturn(Map.of());
-        when(userFollowRepository.findByFollowerId(requestingUserId))
-                .thenReturn(Collections.emptyList());
-        when(tripEnrichmentHelper.fetchUsernames(any()))
-                .thenReturn(Map.of(TestEntityFactory.USER_ID, "testuser"));
 
         // When
         Page<TripDTO> result = tripService.getOngoingPublicTrips(requestingUserId, pageable);
@@ -762,11 +876,6 @@ class TripServiceTest {
                         any(),
                         any(Pageable.class)))
                 .thenReturn(new PageImpl<>(trips, PageRequest.of(0, 20), trips.size()));
-        when(tripEnrichmentHelper.fetchAllPromotedTripsMap()).thenReturn(Map.of());
-        when(tripEnrichmentHelper.fetchUsernames(any()))
-                .thenReturn(Map.of(
-                        followedUserId1, "user1",
-                        followedUserId2, "user2"));
 
         // When
         Page<TripDTO> result = tripService.getOngoingPublicTrips(requestingUserId, pageable);
@@ -816,11 +925,6 @@ class TripServiceTest {
                         any(),
                         any(Pageable.class)))
                 .thenReturn(new PageImpl<>(trips, PageRequest.of(0, 20), trips.size()));
-        when(tripEnrichmentHelper.fetchAllPromotedTripsMap()).thenReturn(Map.of());
-        when(tripEnrichmentHelper.fetchUsernames(any()))
-                .thenReturn(Map.of(
-                        notFollowedUserId1, "user1",
-                        notFollowedUserId2, "user2"));
 
         // When
         Page<TripDTO> result = tripService.getOngoingPublicTrips(requestingUserId, pageable);
@@ -864,12 +968,6 @@ class TripServiceTest {
                                         .build()));
         when(tripRepository.findAllAvailableTripsForUser(userId, List.of(friendId), pageable))
                 .thenReturn(new PageImpl<>(trips, pageable, trips.size()));
-        when(tripEnrichmentHelper.fetchAllPromotedTripsMap()).thenReturn(Map.of());
-        when(tripEnrichmentHelper.fetchUsernames(any()))
-                .thenReturn(Map.of(
-                        userId, "myuser",
-                        publicUserId, "publicuser",
-                        friendId, "frienduser"));
 
         // When
         Page<TripDTO> result = tripService.getAllAvailableTripsForUser(userId, pageable);
@@ -906,11 +1004,6 @@ class TripServiceTest {
         when(friendshipRepository.findByUserId(userId)).thenReturn(Collections.emptyList());
         when(tripRepository.findAllAvailableTripsForUser(userId, Collections.emptyList(), pageable))
                 .thenReturn(new PageImpl<>(trips, pageable, trips.size()));
-        when(tripEnrichmentHelper.fetchAllPromotedTripsMap()).thenReturn(Map.of());
-        when(tripEnrichmentHelper.fetchUsernames(any()))
-                .thenReturn(Map.of(
-                        userId, "myuser",
-                        publicUserId, "publicuser"));
 
         // When
         Page<TripDTO> result = tripService.getAllAvailableTripsForUser(userId, pageable);
@@ -964,9 +1057,6 @@ class TripServiceTest {
         when(friendshipRepository.findByUserId(userId)).thenReturn(Collections.emptyList());
         when(tripRepository.findAllAvailableTripsForUser(userId, Collections.emptyList(), pageable))
                 .thenReturn(new PageImpl<>(List.of(privateTrip), pageable, 1));
-        when(tripEnrichmentHelper.fetchAllPromotedTripsMap()).thenReturn(Map.of());
-        when(tripEnrichmentHelper.fetchUsernames(any()))
-                .thenReturn(Map.of(userId, "myuser"));
 
         // When
         Page<TripDTO> result = tripService.getAllAvailableTripsForUser(userId, pageable);
@@ -1001,9 +1091,6 @@ class TripServiceTest {
         when(friendshipRepository.findByUserId(userId)).thenReturn(Collections.emptyList());
         when(tripRepository.findAllAvailableTripsForUser(userId, Collections.emptyList(), pageable))
                 .thenReturn(new PageImpl<>(List.of(publicTrip), pageable, 1));
-        when(tripEnrichmentHelper.fetchAllPromotedTripsMap()).thenReturn(Map.of());
-        when(tripEnrichmentHelper.fetchUsernames(any()))
-                .thenReturn(Map.of(otherUserId, "otheruser"));
 
         // When
         Page<TripDTO> result = tripService.getAllAvailableTripsForUser(userId, pageable);
@@ -1045,9 +1132,6 @@ class TripServiceTest {
                                         .build()));
         when(tripRepository.findAllAvailableTripsForUser(userId, List.of(friendId), pageable))
                 .thenReturn(new PageImpl<>(List.of(friendProtectedTrip), pageable, 1));
-        when(tripEnrichmentHelper.fetchAllPromotedTripsMap()).thenReturn(Map.of());
-        when(tripEnrichmentHelper.fetchUsernames(any()))
-                .thenReturn(Map.of(friendId, "frienduser"));
 
         // When
         Page<TripDTO> result = tripService.getAllAvailableTripsForUser(userId, pageable);
@@ -1076,9 +1160,6 @@ class TripServiceTest {
         when(friendshipRepository.findByUserId(userId)).thenReturn(Collections.emptyList());
         when(tripRepository.findAllAvailableTripsForUser(userId, Collections.emptyList(), pageable))
                 .thenReturn(new PageImpl<>(List.of(publicTrip), pageable, 1));
-        when(tripEnrichmentHelper.fetchAllPromotedTripsMap()).thenReturn(Map.of());
-        when(tripEnrichmentHelper.fetchUsernames(any()))
-                .thenReturn(Map.of(publicUserId, "publicuser"));
 
         // When
         Page<TripDTO> result = tripService.getAllAvailableTripsForUser(userId, pageable);
@@ -1139,13 +1220,6 @@ class TripServiceTest {
         when(tripRepository.findAllAvailableTripsForUser(
                         userId, List.of(friendId1, friendId2), pageable))
                 .thenReturn(new PageImpl<>(trips, pageable, trips.size()));
-        when(tripEnrichmentHelper.fetchAllPromotedTripsMap()).thenReturn(Map.of());
-        when(tripEnrichmentHelper.fetchUsernames(any()))
-                .thenReturn(Map.of(
-                        userId, "myuser",
-                        publicUserId, "publicuser",
-                        friendId1, "friend1",
-                        friendId2, "friend2"));
 
         // When
         Page<TripDTO> result = tripService.getAllAvailableTripsForUser(userId, pageable);
@@ -1178,9 +1252,6 @@ class TripServiceTest {
         when(friendshipRepository.findByUserId(userId)).thenReturn(Collections.emptyList());
         when(tripRepository.findAllAvailableTripsForUser(userId, Collections.emptyList(), pageable))
                 .thenReturn(new PageImpl<>(List.of(trip), pageable, 1));
-        when(tripEnrichmentHelper.fetchAllPromotedTripsMap()).thenReturn(Map.of());
-        when(tripEnrichmentHelper.fetchUsernames(any()))
-                .thenReturn(Map.of(userId, "testuser"));
 
         // When
         Page<TripDTO> result = tripService.getAllAvailableTripsForUser(userId, pageable);
