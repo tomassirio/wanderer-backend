@@ -492,13 +492,14 @@ class SearchServiceImplTest {
                 "testUser",
                 null,
                 Instant.now(),
-                0,
-                5,
+                0, // commentsCount
+                5, // currentDay
                 tripPlanId.toString(),
-                false,
-                null,
-                false,
-                null);
+                0, // updateCount
+                false, // isPromoted
+                null, // promotedAt
+                false, // isPreAnnounced
+                null); // countdownStartDate
     }
 
     private TripSummaryDTO createPromotedTripSummaryDTO(
@@ -510,13 +511,14 @@ class SearchServiceImplTest {
                 "testUser",
                 null,
                 Instant.now(),
-                0,
-                5,
+                0, // commentsCount
+                5, // currentDay
                 tripPlanId.toString(),
-                true,
+                0, // updateCount
+                true, // isPromoted
                 promotedAt,
-                false,
-                null);
+                false, // isPreAnnounced
+                null); // countdownStartDate
     }
 
     private UserSummaryDto createUserSummary(UUID id, String username, String displayName) {

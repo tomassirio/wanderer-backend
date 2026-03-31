@@ -631,6 +631,7 @@ class TripControllerTest {
                 0, // commentsCount
                 null, // currentDay
                 null, // tripPlanId
+                0, // updateCount
                 Boolean.FALSE, // isPromoted
                 null, // promotedAt
                 Boolean.FALSE, // isPreAnnounced
