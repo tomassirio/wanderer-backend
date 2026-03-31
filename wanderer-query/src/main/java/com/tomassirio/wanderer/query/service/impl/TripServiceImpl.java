@@ -542,6 +542,28 @@ public class TripServiceImpl implements TripService {
     @Override
     public TripMaintenanceStatsDTO getTripMaintenanceStats() {
         List<Trip> trips = tripRepository.findAll();
+        
+        // Batch fetch trip updates to populate counts
+        List<UUID> tripIds = trips.stream()
+                .map(Trip::getId)
+                .collect(Collectors.toList());
+        
+        if (!tripIds.isEmpty()) {
+            List<TripUpdate> allUpdates = tripUpdateRepository.findByTripIdIn(tripIds);
+            
+            // Group updates by trip ID
+            Map<UUID, List<TripUpdate>> updatesByTripId =
+                    allUpdates.stream().collect(Collectors.groupingBy(
+                            update -> update.getTrip().getId()));
+            
+            // Populate each trip's updates
+            trips.forEach(trip -> {
+                List<TripUpdate> tripUpdates =
+                        updatesByTripId.getOrDefault(trip.getId(), List.of());
+                trip.setTripUpdates(tripUpdates);
+                trip.setUpdateCount(tripUpdates.size()); // Update the count
+            });
+        }
 
         long totalTrips = trips.size();
         long tripsWithPolyline =
