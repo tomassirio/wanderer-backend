@@ -21,6 +21,7 @@ public record TripSummaryDTO(
         Integer commentsCount,
         Integer currentDay,
         String tripPlanId,
+        Integer updateCount, // Number of trip updates/locations
         Boolean isPromoted,
         Instant promotedAt,
         Boolean isPreAnnounced,
@@ -28,8 +29,17 @@ public record TripSummaryDTO(
 
     @JsonProperty("thumbnailUrl")
     public String thumbnailUrl() {
-        return id != null
-                ? ThumbnailUrlService.generateTripThumbnailUrl(UUID.fromString(id))
-                : null;
+        if (id == null) {
+            return null;
+        }
+        
+        // If trip has no updates but has a trip plan, use the plan thumbnail
+        boolean hasNoUpdates = updateCount == null || updateCount == 0;
+        if (hasNoUpdates && tripPlanId != null && !tripPlanId.isEmpty()) {
+            return ThumbnailUrlService.generateTripPlanThumbnailUrl(UUID.fromString(tripPlanId));
+        }
+        
+        // Otherwise use trip thumbnail
+        return ThumbnailUrlService.generateTripThumbnailUrl(UUID.fromString(id));
     }
 }

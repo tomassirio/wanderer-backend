@@ -1,0 +1,21 @@
+databaseChangeLog:
+  - changeSet:
+      id: 041-add-update-count-to-trips
+      author: tomassirio
+      changes:
+        - addColumn:
+            tableName: trips
+            columns:
+              - column:
+                  name: update_count
+                  type: integer
+                  defaultValueNumeric: 0
+                  remarks: Cached count of trip updates for thumbnail selection logic
+        - sql:
+            sql: |
+              UPDATE trips 
+              SET update_count = (
+                SELECT COUNT(*) 
+                FROM trip_updates 
+                WHERE trip_updates.trip_id = trips.id
+              )

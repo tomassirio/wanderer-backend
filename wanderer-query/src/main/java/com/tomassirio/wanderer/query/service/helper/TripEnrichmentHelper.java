@@ -173,6 +173,7 @@ public class TripEnrichmentHelper {
                         : 0,
                 trip.getTripDetails() != null ? trip.getTripDetails().getCurrentDay() : null,
                 trip.getTripPlanId() != null ? trip.getTripPlanId().toString() : null,
+                trip.getUpdateCount(), // Include update count for thumbnail logic
                 isPromoted,
                 promotedInfo != null ? promotedInfo.getPromotedAt() : null,
                 promotedInfo != null && promotedInfo.isPreAnnounced(),
