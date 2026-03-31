@@ -34,10 +34,11 @@ public class TripUpdateServiceImpl implements TripUpdateService {
     }
 
     @Override
-    @Cacheable(
-            value = RedisCacheConfig.TRIP_UPDATES_CACHE,
-            key =
-                    "#tripId + '-' + #pageable.pageNumber + '-' + #pageable.pageSize + '-' + #pageable.sort")
+    // TODO: Re-enable caching after fixing serialization issue with Pageable.sort (Sort object)
+    // @Cacheable(
+    //         value = RedisCacheConfig.TRIP_UPDATES_CACHE,
+    //         key =
+    //                 "#tripId + '-' + #pageable.pageNumber + '-' + #pageable.pageSize + '-' + #pageable.sort")
     public Page<TripUpdateDTO> getTripUpdatesForTrip(UUID tripId, Pageable pageable) {
         return tripUpdateRepository.findByTripId(tripId, pageable).map(tripUpdateMapper::toDTO);
     }
