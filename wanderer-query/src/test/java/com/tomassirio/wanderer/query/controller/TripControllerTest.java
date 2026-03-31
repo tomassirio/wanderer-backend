@@ -639,6 +639,7 @@ class TripControllerTest {
                 Boolean.FALSE, // isPromoted
                 null, // promotedAt
                 Boolean.FALSE, // isPreAnnounced
-                null); // countdownStartDate
+                null, // countdownStartDate
+                null); // polylineUpdatedAt
     }
 }

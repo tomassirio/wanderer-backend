@@ -499,7 +499,8 @@ class SearchServiceImplTest {
                 false, // isPromoted
                 null, // promotedAt
                 false, // isPreAnnounced
-                null); // countdownStartDate
+                null, // countdownStartDate
+                null); // polylineUpdatedAt
     }
 
     private TripSummaryDTO createPromotedTripSummaryDTO(
@@ -518,7 +519,8 @@ class SearchServiceImplTest {
                 true, // isPromoted
                 promotedAt,
                 false, // isPreAnnounced
-                null); // countdownStartDate
+                null, // countdownStartDate
+                null); // polylineUpdatedAt
     }
 
     private UserSummaryDto createUserSummary(UUID id, String username, String displayName) {

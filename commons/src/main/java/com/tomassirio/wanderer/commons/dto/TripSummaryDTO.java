@@ -24,11 +24,13 @@ public record TripSummaryDTO(
         Boolean isPromoted,
         Instant promotedAt,
         Boolean isPreAnnounced,
-        Instant countdownStartDate) {
+        Instant countdownStartDate,
+        Instant polylineUpdatedAt) { // For cache-busting
 
     @JsonProperty("thumbnailUrl")
     public String thumbnailUrl() {
         boolean hasUpdates = updateCount != null && updateCount > 0;
-        return ThumbnailUrlService.resolveTripThumbnailUrl(id, hasUpdates, tripPlanId);
+        Long timestamp = polylineUpdatedAt != null ? polylineUpdatedAt.getEpochSecond() : null;
+        return ThumbnailUrlService.resolveTripThumbnailUrl(id, hasUpdates, tripPlanId, timestamp);
     }
 }

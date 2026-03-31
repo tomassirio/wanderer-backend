@@ -94,7 +94,7 @@ class ThumbnailUrlServiceTest {
 
     @Test
     void resolveTripThumbnailUrl_shouldReturnNull_whenTripIdIsNull() {
-        assertNull(ThumbnailUrlService.resolveTripThumbnailUrl(null, true, null));
+        assertNull(ThumbnailUrlService.resolveTripThumbnailUrl(null, true, null, null));
     }
 
     @Test
@@ -104,7 +104,7 @@ class ThumbnailUrlServiceTest {
 
         String result =
                 ThumbnailUrlService.resolveTripThumbnailUrl(
-                        tripId.toString(), true, planId.toString());
+                        tripId.toString(), true, planId.toString(), null);
 
         assertEquals("/thumbnails/trips/" + tripId + ".png", result);
     }
@@ -116,7 +116,7 @@ class ThumbnailUrlServiceTest {
 
         String result =
                 ThumbnailUrlService.resolveTripThumbnailUrl(
-                        tripId.toString(), false, planId.toString());
+                        tripId.toString(), false, planId.toString(), null);
 
         assertEquals("/thumbnails/plans/" + planId + ".png", result);
     }
@@ -126,7 +126,7 @@ class ThumbnailUrlServiceTest {
         UUID tripId = UUID.randomUUID();
 
         String result =
-                ThumbnailUrlService.resolveTripThumbnailUrl(tripId.toString(), false, null);
+                ThumbnailUrlService.resolveTripThumbnailUrl(tripId.toString(), false, null, null);
 
         assertEquals("/thumbnails/trips/" + tripId + ".png", result);
     }
@@ -135,7 +135,7 @@ class ThumbnailUrlServiceTest {
     void resolveTripThumbnailUrl_shouldReturnTripThumbnail_whenNoUpdatesAndEmptyPlanId() {
         UUID tripId = UUID.randomUUID();
 
-        String result = ThumbnailUrlService.resolveTripThumbnailUrl(tripId.toString(), false, "");
+        String result = ThumbnailUrlService.resolveTripThumbnailUrl(tripId.toString(), false, "", null);
 
         assertEquals("/thumbnails/trips/" + tripId + ".png", result);
     }
@@ -145,7 +145,7 @@ class ThumbnailUrlServiceTest {
         UUID tripId = UUID.randomUUID();
 
         String result =
-                ThumbnailUrlService.resolveTripThumbnailUrl(tripId.toString(), true, null);
+                ThumbnailUrlService.resolveTripThumbnailUrl(tripId.toString(), true, null, null);
 
         assertEquals("/thumbnails/trips/" + tripId + ".png", result);
     }
@@ -158,9 +158,56 @@ class ThumbnailUrlServiceTest {
         // Even though a plan exists, having updates means we use the trip thumbnail
         String result =
                 ThumbnailUrlService.resolveTripThumbnailUrl(
-                        tripId.toString(), true, planId.toString());
+                        tripId.toString(), true, planId.toString(), null);
 
         assertEquals("/thumbnails/trips/" + tripId + ".png", result);
+    }
+    
+    @Test
+    void resolveTripThumbnailUrl_shouldIncludeCacheBustingParameter_whenTimestampProvided() {
+        UUID tripId = UUID.randomUUID();
+        Long timestamp = 1234567890L;
+
+        String result =
+                ThumbnailUrlService.resolveTripThumbnailUrl(
+                        tripId.toString(), true, null, timestamp);
+
+        assertEquals("/thumbnails/trips/" + tripId + ".png?v=" + timestamp, result);
+    }
+    
+    @Test
+    void resolveTripThumbnailUrl_shouldNotIncludeCacheBustingParameter_whenTimestampIsNull() {
+        UUID tripId = UUID.randomUUID();
+
+        String result =
+                ThumbnailUrlService.resolveTripThumbnailUrl(
+                        tripId.toString(), true, null, null);
+
+        assertEquals("/thumbnails/trips/" + tripId + ".png", result);
+    }
+    
+    @Test
+    void resolveTripThumbnailUrl_shouldNotIncludeCacheBustingParameter_whenTimestampIsZero() {
+        UUID tripId = UUID.randomUUID();
+
+        String result =
+                ThumbnailUrlService.resolveTripThumbnailUrl(
+                        tripId.toString(), true, null, 0L);
+
+        assertEquals("/thumbnails/trips/" + tripId + ".png", result);
+    }
+    
+    @Test
+    void resolveTripThumbnailUrl_shouldIncludeCacheBustingOnPlanThumbnail_whenTimestampProvided() {
+        UUID tripId = UUID.randomUUID();
+        UUID planId = UUID.randomUUID();
+        Long timestamp = 9876543210L;
+
+        String result =
+                ThumbnailUrlService.resolveTripThumbnailUrl(
+                        tripId.toString(), false, planId.toString(), timestamp);
+
+        assertEquals("/thumbnails/plans/" + planId + ".png?v=" + timestamp, result);
     }
 }
 
