@@ -27,28 +27,17 @@ public class TokenAuthenticationStrategy implements WebSocketAuthenticationStrat
     @Override
     public boolean canHandle(WebSocketSession session) {
         if (session.getUri() == null) {
-            log.warn("TokenAuthenticationStrategy.canHandle: session.getUri() is null for session {}", 
-                    session.getId());
             return false;
         }
         
         String query = session.getUri().getQuery();
-        log.debug("TokenAuthenticationStrategy.canHandle: sessionId={}, URI={}, query={}", 
-                session.getId(), session.getUri(), query);
-        
         if (query == null || query.isEmpty()) {
-            log.debug("TokenAuthenticationStrategy.canHandle: query is null or empty for session {}", 
-                    session.getId());
             return false;
         }
 
         Map<String, String> params = parseQueryParams(query);
         String token = params.get("token");
-        boolean hasToken = token != null && !token.isEmpty();
-        
-        log.debug("TokenAuthenticationStrategy.canHandle: sessionId={}, hasToken={}, tokenLength={}",
-                session.getId(), hasToken, token != null ? token.length() : 0);
-        return hasToken;
+        return token != null && !token.isEmpty();
     }
 
     @Override
@@ -63,10 +52,6 @@ public class TokenAuthenticationStrategy implements WebSocketAuthenticationStrat
             }
 
             UUID userId = validateToken(token);
-            log.debug(
-                    "Token authentication successful for session: {}, userId: {}",
-                    session.getId(),
-                    userId);
             return AuthenticationResult.authenticated(userId);
 
         } catch (Exception e) {

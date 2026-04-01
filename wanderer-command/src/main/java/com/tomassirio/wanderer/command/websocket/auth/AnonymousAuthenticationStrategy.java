@@ -25,10 +25,6 @@ public class AnonymousAuthenticationStrategy implements WebSocketAuthenticationS
 
     @Override
     public AuthenticationResult authenticate(WebSocketSession session) {
-        log.debug(
-                "Anonymous authentication for session: {}, remoteAddress: {}",
-                session.getId(),
-                session.getRemoteAddress());
         return AuthenticationResult.anonymous();
     }
 }

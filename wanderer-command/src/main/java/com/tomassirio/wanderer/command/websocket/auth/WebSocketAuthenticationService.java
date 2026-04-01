@@ -31,17 +31,11 @@ public class WebSocketAuthenticationService {
             if (strategy.canHandle(session)) {
                 AuthenticationResult result = strategy.authenticate(session);
                 if (result.isAuthenticated()) {
-                    log.debug(
-                            "Session {} authenticated using {} (anonymous: {})",
-                            session.getId(),
-                            strategy.getClass().getSimpleName(),
-                            result.isAnonymous());
                     return result;
                 }
             }
         }
 
-        // If no strategy succeeded, return failed result
         log.warn("All authentication strategies failed for session {}", session.getId());
         return AuthenticationResult.failed("Authentication failed");
     }
