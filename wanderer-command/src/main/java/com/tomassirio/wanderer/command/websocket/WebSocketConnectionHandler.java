@@ -25,20 +25,26 @@ public class WebSocketConnectionHandler extends TextWebSocketHandler {
     public void afterConnectionEstablished(WebSocketSession session) {
         try {
             AuthenticationResult authResult = authenticationService.authenticate(session);
-            
+
             if (!authResult.isAuthenticated()) {
-                log.warn("WebSocket authentication failed: sessionId={}, error={}",
-                        session.getId(), authResult.getErrorMessage());
+                log.warn(
+                        "WebSocket authentication failed: sessionId={}, error={}",
+                        session.getId(),
+                        authResult.getErrorMessage());
                 session.close(CloseStatus.POLICY_VIOLATION);
                 return;
             }
-            
+
             if (authResult.isAnonymous()) {
-                log.info("WebSocket connection established (anonymous): sessionId={}, remoteAddress={}",
-                        session.getId(), session.getRemoteAddress());
+                log.info(
+                        "WebSocket connection established (anonymous): sessionId={}, remoteAddress={}",
+                        session.getId(),
+                        session.getRemoteAddress());
             } else {
-                log.info("WebSocket connection established: sessionId={}, userId={}",
-                        session.getId(), authResult.getUserId());
+                log.info(
+                        "WebSocket connection established: sessionId={}, userId={}",
+                        session.getId(),
+                        authResult.getUserId());
             }
 
             sessionManager.registerSession(session, authResult.getUserId());

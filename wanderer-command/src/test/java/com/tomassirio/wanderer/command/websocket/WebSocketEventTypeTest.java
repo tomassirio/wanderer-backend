@@ -2,6 +2,7 @@ package com.tomassirio.wanderer.command.websocket;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.tomassirio.wanderer.command.websocket.event.WebSocketEventType;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
