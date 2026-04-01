@@ -18,8 +18,11 @@ public class WebSocketSessionManager {
     // sessionId -> WebSocketSession
     private final Map<String, WebSocketSession> sessions = new ConcurrentHashMap<>();
 
-    // sessionId -> userId
+    // sessionId -> userId (null not allowed in ConcurrentHashMap, so we use Optional)
     private final Map<String, UUID> sessionUsers = new ConcurrentHashMap<>();
+    
+    // sessionId -> anonymous flag (since ConcurrentHashMap doesn't support null values)
+    private final Map<String, Boolean> sessionAnonymousFlags = new ConcurrentHashMap<>();
 
     // topic -> set of sessionIds
     private final Map<String, Set<String>> topicSubscriptions = new ConcurrentHashMap<>();
@@ -32,13 +35,20 @@ public class WebSocketSessionManager {
 
     public void registerSession(WebSocketSession session, UUID userId) {
         sessions.put(session.getId(), session);
-        sessionUsers.put(session.getId(), userId);
+        
+        // ConcurrentHashMap doesn't allow null values, so track anonymous status separately
+        boolean isAnonymous = (userId == null);
+        if (!isAnonymous) {
+            sessionUsers.put(session.getId(), userId);
+        }
+        sessionAnonymousFlags.put(session.getId(), isAnonymous);
         sessionSubscriptionCounts.put(session.getId(), 0);
+        
         log.info(
                 "Registered session: {} for user: {} (anonymous: {})",
                 session.getId(),
                 userId,
-                userId == null);
+                isAnonymous);
     }
 
     public void unregisterSession(WebSocketSession session) {
@@ -49,6 +59,7 @@ public class WebSocketSessionManager {
 
         sessions.remove(sessionId);
         sessionUsers.remove(sessionId);
+        sessionAnonymousFlags.remove(sessionId);
         sessionSubscriptionCounts.remove(sessionId);
 
         log.info("Unregistered session: {}", sessionId);
@@ -56,10 +67,10 @@ public class WebSocketSessionManager {
 
     public void subscribe(WebSocketSession session, String topic) {
         String sessionId = session.getId();
-        UUID userId = sessionUsers.get(sessionId);
+        Boolean isAnonymous = sessionAnonymousFlags.getOrDefault(sessionId, false);
 
         // Rate limit anonymous users
-        if (userId == null) {
+        if (isAnonymous) {
             Integer currentCount = sessionSubscriptionCounts.getOrDefault(sessionId, 0);
             if (currentCount >= MAX_ANONYMOUS_SUBSCRIPTIONS) {
                 log.warn(
@@ -77,15 +88,15 @@ public class WebSocketSessionManager {
                 "Session {} subscribed to topic {} (anonymous: {})",
                 sessionId,
                 topic,
-                userId == null);
+                isAnonymous);
     }
 
     public void unsubscribe(WebSocketSession session, String topic) {
         String sessionId = session.getId();
-        UUID userId = sessionUsers.get(sessionId);
+        Boolean isAnonymous = sessionAnonymousFlags.getOrDefault(sessionId, false);
 
         // Decrement subscription count for anonymous users
-        if (userId == null) {
+        if (isAnonymous) {
             Integer currentCount = sessionSubscriptionCounts.getOrDefault(sessionId, 0);
             if (currentCount > 0) {
                 sessionSubscriptionCounts.put(sessionId, currentCount - 1);
