@@ -1,11 +1,9 @@
-package com.tomassirio.wanderer.command.websocket.config;
+package com.tomassirio.wanderer.command.websocket.auth;
 
-import com.tomassirio.wanderer.command.websocket.auth.WebSocketAuthenticationStrategy;
-import com.tomassirio.wanderer.command.websocket.auth.strategy.AnonymousAuthenticationStrategy;
-import com.tomassirio.wanderer.command.websocket.auth.strategy.TokenAuthenticationStrategy;
-import java.util.List;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
+import java.util.List;
 
 /**
  * Configuration for WebSocket authentication strategies.

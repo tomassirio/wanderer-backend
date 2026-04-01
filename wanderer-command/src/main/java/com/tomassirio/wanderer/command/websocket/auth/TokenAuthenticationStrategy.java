@@ -1,4 +1,4 @@
-package com.tomassirio.wanderer.command.websocket.auth.strategy;
+package com.tomassirio.wanderer.command.websocket.auth;
 
 import com.tomassirio.wanderer.command.websocket.auth.AuthenticationResult;
 import com.tomassirio.wanderer.command.websocket.auth.WebSocketAuthenticationStrategy;
