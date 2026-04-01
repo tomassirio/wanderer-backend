@@ -31,7 +31,8 @@ public class WebSocketSessionManager {
     private final Map<String, Integer> sessionSubscriptionCounts = new ConcurrentHashMap<>();
 
     // Maximum subscriptions per anonymous session
-    private static final int MAX_ANONYMOUS_SUBSCRIPTIONS = 10;
+    // Note: Authenticated users have unlimited subscriptions
+    private static final int MAX_ANONYMOUS_SUBSCRIPTIONS = 50;
 
     public void registerSession(WebSocketSession session, UUID userId) {
         sessions.put(session.getId(), session);
