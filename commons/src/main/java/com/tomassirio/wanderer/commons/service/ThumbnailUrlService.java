@@ -37,8 +37,8 @@ public class ThumbnailUrlService {
 
     /**
      * Resolves the appropriate thumbnail URL for a trip. If the trip has no updates but has a trip
-     * plan, falls back to the plan thumbnail. Otherwise uses the trip thumbnail.
-     * Includes a cache-busting query parameter based on the polyline update timestamp.
+     * plan, falls back to the plan thumbnail. Otherwise uses the trip thumbnail. Includes a
+     * cache-busting query parameter based on the polyline update timestamp.
      *
      * @param tripId the trip ID (as String)
      * @param hasUpdates whether the trip has any updates/locations
@@ -57,17 +57,17 @@ public class ThumbnailUrlService {
         } else {
             baseUrl = generateTripThumbnailUrl(UUID.fromString(tripId));
         }
-        
+
         // Add cache-busting parameter if polylineUpdatedAt is available
         if (polylineUpdatedAt != null && polylineUpdatedAt > 0) {
             return baseUrl + "?v=" + polylineUpdatedAt;
         }
         return baseUrl;
     }
-    
+
     /**
-     * Resolves the appropriate thumbnail URL for a trip without cache-busting.
-     * Kept for backward compatibility.
+     * Resolves the appropriate thumbnail URL for a trip without cache-busting. Kept for backward
+     * compatibility.
      *
      * @param tripId the trip ID (as String)
      * @param hasUpdates whether the trip has any updates/locations
