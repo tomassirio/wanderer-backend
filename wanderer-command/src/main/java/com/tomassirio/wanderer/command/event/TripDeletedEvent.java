@@ -1,6 +1,6 @@
 package com.tomassirio.wanderer.command.event;
 
-import com.tomassirio.wanderer.command.websocket.WebSocketEventType;
+import com.tomassirio.wanderer.command.websocket.event.WebSocketEventType;
 import com.tomassirio.wanderer.command.websocket.payload.TripLifecyclePayload;
 import java.util.UUID;
 import lombok.AllArgsConstructor;

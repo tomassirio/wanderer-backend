@@ -1,4 +1,4 @@
-package com.tomassirio.wanderer.command.websocket;
+package com.tomassirio.wanderer.command.websocket.event;
 
 import java.util.UUID;
 

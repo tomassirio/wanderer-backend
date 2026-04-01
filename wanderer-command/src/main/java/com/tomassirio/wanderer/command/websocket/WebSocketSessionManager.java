@@ -18,16 +18,38 @@ public class WebSocketSessionManager {
     // sessionId -> WebSocketSession
     private final Map<String, WebSocketSession> sessions = new ConcurrentHashMap<>();
 
-    // sessionId -> userId
+    // sessionId -> userId (null not allowed in ConcurrentHashMap, so we use Optional)
     private final Map<String, UUID> sessionUsers = new ConcurrentHashMap<>();
+    
+    // sessionId -> anonymous flag (since ConcurrentHashMap doesn't support null values)
+    private final Map<String, Boolean> sessionAnonymousFlags = new ConcurrentHashMap<>();
 
     // topic -> set of sessionIds
     private final Map<String, Set<String>> topicSubscriptions = new ConcurrentHashMap<>();
 
+    // sessionId -> subscription count (for rate limiting anonymous users)
+    private final Map<String, Integer> sessionSubscriptionCounts = new ConcurrentHashMap<>();
+
+    // Maximum subscriptions per anonymous session
+    // Note: Authenticated users have unlimited subscriptions
+    private static final int MAX_ANONYMOUS_SUBSCRIPTIONS = 50;
+
     public void registerSession(WebSocketSession session, UUID userId) {
         sessions.put(session.getId(), session);
-        sessionUsers.put(session.getId(), userId);
-        log.info("Registered session: {} for user: {}", session.getId(), userId);
+        
+        // ConcurrentHashMap doesn't allow null values, so track anonymous status separately
+        boolean isAnonymous = (userId == null);
+        if (!isAnonymous) {
+            sessionUsers.put(session.getId(), userId);
+        }
+        sessionAnonymousFlags.put(session.getId(), isAnonymous);
+        sessionSubscriptionCounts.put(session.getId(), 0);
+        
+        log.info(
+                "Registered session: {} for user: {} (anonymous: {})",
+                session.getId(),
+                userId,
+                isAnonymous);
     }
 
     public void unregisterSession(WebSocketSession session) {
@@ -38,18 +60,49 @@ public class WebSocketSessionManager {
 
         sessions.remove(sessionId);
         sessionUsers.remove(sessionId);
+        sessionAnonymousFlags.remove(sessionId);
+        sessionSubscriptionCounts.remove(sessionId);
 
         log.info("Unregistered session: {}", sessionId);
     }
 
     public void subscribe(WebSocketSession session, String topic) {
         String sessionId = session.getId();
+        Boolean isAnonymous = sessionAnonymousFlags.getOrDefault(sessionId, false);
+
+        // Rate limit anonymous users
+        if (isAnonymous) {
+            Integer currentCount = sessionSubscriptionCounts.getOrDefault(sessionId, 0);
+            if (currentCount >= MAX_ANONYMOUS_SUBSCRIPTIONS) {
+                log.warn(
+                        "Anonymous session {} exceeded subscription limit ({}), rejecting subscription to {}",
+                        sessionId,
+                        MAX_ANONYMOUS_SUBSCRIPTIONS,
+                        topic);
+                return;
+            }
+            sessionSubscriptionCounts.put(sessionId, currentCount + 1);
+        }
+
         topicSubscriptions.computeIfAbsent(topic, k -> new CopyOnWriteArraySet<>()).add(sessionId);
-        log.debug("Session {} subscribed to topic {}", sessionId, topic);
+        log.debug(
+                "Session {} subscribed to topic {} (anonymous: {})",
+                sessionId,
+                topic,
+                isAnonymous);
     }
 
     public void unsubscribe(WebSocketSession session, String topic) {
         String sessionId = session.getId();
+        Boolean isAnonymous = sessionAnonymousFlags.getOrDefault(sessionId, false);
+
+        // Decrement subscription count for anonymous users
+        if (isAnonymous) {
+            Integer currentCount = sessionSubscriptionCounts.getOrDefault(sessionId, 0);
+            if (currentCount > 0) {
+                sessionSubscriptionCounts.put(sessionId, currentCount - 1);
+            }
+        }
         Set<String> subscribers = topicSubscriptions.get(topic);
         if (subscribers != null) {
             subscribers.remove(sessionId);

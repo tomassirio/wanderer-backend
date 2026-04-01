@@ -3,6 +3,7 @@ package com.tomassirio.wanderer.command.websocket;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tomassirio.wanderer.command.event.Broadcastable;
+import com.tomassirio.wanderer.command.websocket.event.WebSocketEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

@@ -1,5 +1,6 @@
 package com.tomassirio.wanderer.command.event;
 
+import com.tomassirio.wanderer.command.websocket.event.WebSocketEventType;
 import java.util.UUID;
 
 /**
@@ -13,8 +14,7 @@ public interface Broadcastable {
     /**
      * Returns the WebSocket event type constant.
      *
-     * @return the event type string (use constants from {@link
-     *     com.tomassirio.wanderer.command.websocket.WebSocketEventType})
+     * @return the event type string (use constants from {@link WebSocketEventType})
      */
     String getEventType();
 
