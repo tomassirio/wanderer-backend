@@ -23,11 +23,19 @@ public class WebSocketSessionManager {
 
     // topic -> set of sessionIds
     private final Map<String, Set<String>> topicSubscriptions = new ConcurrentHashMap<>();
+    
+    // sessionId -> subscription count (for rate limiting anonymous users)
+    private final Map<String, Integer> sessionSubscriptionCounts = new ConcurrentHashMap<>();
+    
+    // Maximum subscriptions per anonymous session
+    private static final int MAX_ANONYMOUS_SUBSCRIPTIONS = 10;
 
     public void registerSession(WebSocketSession session, UUID userId) {
         sessions.put(session.getId(), session);
         sessionUsers.put(session.getId(), userId);
-        log.info("Registered session: {} for user: {}", session.getId(), userId);
+        sessionSubscriptionCounts.put(session.getId(), 0);
+        log.info("Registered session: {} for user: {} (anonymous: {})", 
+                session.getId(), userId, userId == null);
     }
 
     public void unregisterSession(WebSocketSession session) {
@@ -38,18 +46,41 @@ public class WebSocketSessionManager {
 
         sessions.remove(sessionId);
         sessionUsers.remove(sessionId);
+        sessionSubscriptionCounts.remove(sessionId);
 
         log.info("Unregistered session: {}", sessionId);
     }
 
     public void subscribe(WebSocketSession session, String topic) {
         String sessionId = session.getId();
+        UUID userId = sessionUsers.get(sessionId);
+        
+        // Rate limit anonymous users
+        if (userId == null) {
+            Integer currentCount = sessionSubscriptionCounts.getOrDefault(sessionId, 0);
+            if (currentCount >= MAX_ANONYMOUS_SUBSCRIPTIONS) {
+                log.warn("Anonymous session {} exceeded subscription limit ({}), rejecting subscription to {}",
+                        sessionId, MAX_ANONYMOUS_SUBSCRIPTIONS, topic);
+                return;
+            }
+            sessionSubscriptionCounts.put(sessionId, currentCount + 1);
+        }
+        
         topicSubscriptions.computeIfAbsent(topic, k -> new CopyOnWriteArraySet<>()).add(sessionId);
-        log.debug("Session {} subscribed to topic {}", sessionId, topic);
+        log.debug("Session {} subscribed to topic {} (anonymous: {})", sessionId, topic, userId == null);
     }
 
     public void unsubscribe(WebSocketSession session, String topic) {
         String sessionId = session.getId();
+        UUID userId = sessionUsers.get(sessionId);
+        
+        // Decrement subscription count for anonymous users
+        if (userId == null) {
+            Integer currentCount = sessionSubscriptionCounts.getOrDefault(sessionId, 0);
+            if (currentCount > 0) {
+                sessionSubscriptionCounts.put(sessionId, currentCount - 1);
+            }
+        }
         Set<String> subscribers = topicSubscriptions.get(topic);
         if (subscribers != null) {
             subscribers.remove(sessionId);
