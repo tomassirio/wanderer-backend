@@ -110,29 +110,45 @@ public class WebSocketSessionManager {
         }
     }
 
-    public void broadcast(String topic, String message) {
+    /**
+     * Broadcasts a message to LOCAL sessions subscribed to the topic.
+     * This method is called by the Redis listener when a message is received from Redis.
+     * 
+     * @param topic the WebSocket topic
+     * @param message the message to broadcast
+     */
+    public void broadcastToLocalSessions(String topic, String message) {
         Set<String> subscribers = topicSubscriptions.get(topic);
         if (subscribers == null || subscribers.isEmpty()) {
-            log.debug("No subscribers for topic: {}", topic);
+            log.debug("No local subscribers for topic: {}", topic);
             return;
         }
 
-        log.debug("Broadcasting to {} subscribers on topic: {}", subscribers.size(), topic);
+        log.debug("Broadcasting to {} local subscribers on topic: {}", subscribers.size(), topic);
 
         for (String sessionId : subscribers) {
             WebSocketSession session = sessions.get(sessionId);
             if (session != null && session.isOpen()) {
                 try {
                     session.sendMessage(new TextMessage(message));
-                    log.debug("Sent message to session: {}", sessionId);
+                    log.debug("Sent message to local session: {}", sessionId);
                 } catch (IOException e) {
-                    log.error("Error sending message to session: {}", sessionId, e);
+                    log.error("Error sending message to local session: {}", sessionId, e);
                 }
             } else {
                 log.warn("Session {} is not open, removing from subscriptions", sessionId);
                 subscribers.remove(sessionId);
             }
         }
+    }
+
+    /**
+     * @deprecated Use broadcastToLocalSessions instead. This method is kept for backward compatibility
+     * but will be removed once all callers are updated to use Redis broadcasting.
+     */
+    @Deprecated
+    public void broadcast(String topic, String message) {
+        broadcastToLocalSessions(topic, message);
     }
 
     public UUID getUserId(WebSocketSession session) {
