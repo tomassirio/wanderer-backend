@@ -1,6 +1,7 @@
 package com.tomassirio.wanderer.command.handler;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -14,6 +15,7 @@ import com.tomassirio.wanderer.commons.domain.TripUpdate;
 import com.tomassirio.wanderer.commons.domain.UpdateType;
 import com.tomassirio.wanderer.commons.domain.WeatherCondition;
 import java.time.Instant;
+import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -57,16 +59,16 @@ class TripUpdatedEventHandlerTest {
                         .timestamp(timestamp)
                         .build();
 
-        when(tripRepository.getReferenceById(tripId)).thenReturn(trip);
+        when(tripRepository.findById(tripId)).thenReturn(Optional.of(trip));
 
         // When
         handler.handle(event);
 
         // Then
-        ArgumentCaptor<TripUpdate> captor = ArgumentCaptor.forClass(TripUpdate.class);
-        verify(tripUpdateRepository).save(captor.capture());
+        ArgumentCaptor<TripUpdate> updateCaptor = ArgumentCaptor.forClass(TripUpdate.class);
+        verify(tripUpdateRepository).save(updateCaptor.capture());
 
-        TripUpdate saved = captor.getValue();
+        TripUpdate saved = updateCaptor.getValue();
         assertThat(saved.getId()).isEqualTo(tripUpdateId);
         assertThat(saved.getTrip()).isEqualTo(trip);
         assertThat(saved.getLocation()).isEqualTo(location);
@@ -77,6 +79,11 @@ class TripUpdatedEventHandlerTest {
         assertThat(saved.getTemperatureCelsius()).isEqualTo(18.5);
         assertThat(saved.getWeatherCondition()).isEqualTo(WeatherCondition.PARTLY_CLOUDY);
         assertThat(saved.getTimestamp()).isEqualTo(timestamp);
+
+        // Verify updateCount was incremented and trip saved
+        ArgumentCaptor<Trip> tripCaptor = ArgumentCaptor.forClass(Trip.class);
+        verify(tripRepository).save(tripCaptor.capture());
+        assertThat(tripCaptor.getValue().getUpdateCount()).isEqualTo(1);
 
         // Verify achievement calculation was triggered
         verify(achievementCalculationService).checkAndUnlockAchievements(tripId);
@@ -102,7 +109,7 @@ class TripUpdatedEventHandlerTest {
                         .timestamp(timestamp)
                         .build();
 
-        when(tripRepository.getReferenceById(tripId)).thenReturn(trip);
+        when(tripRepository.findById(tripId)).thenReturn(Optional.of(trip));
 
         // When
         handler.handle(event);
@@ -140,7 +147,7 @@ class TripUpdatedEventHandlerTest {
                         .timestamp(timestamp)
                         .build();
 
-        when(tripRepository.getReferenceById(tripId)).thenReturn(trip);
+        when(tripRepository.findById(tripId)).thenReturn(Optional.of(trip));
 
         // When
         handler.handle(event);
@@ -176,7 +183,7 @@ class TripUpdatedEventHandlerTest {
                         .timestamp(timestamp)
                         .build();
 
-        when(tripRepository.getReferenceById(tripId)).thenReturn(trip);
+        when(tripRepository.findById(tripId)).thenReturn(Optional.of(trip));
 
         // When
         handler.handle(event);
@@ -212,7 +219,7 @@ class TripUpdatedEventHandlerTest {
                         .timestamp(timestamp)
                         .build();
 
-        when(tripRepository.getReferenceById(tripId)).thenReturn(trip);
+        when(tripRepository.findById(tripId)).thenReturn(Optional.of(trip));
 
         // When
         handler.handle(event);
@@ -248,7 +255,7 @@ class TripUpdatedEventHandlerTest {
                         .timestamp(timestamp)
                         .build();
 
-        when(tripRepository.getReferenceById(tripId)).thenReturn(trip);
+        when(tripRepository.findById(tripId)).thenReturn(Optional.of(trip));
 
         // When
         handler.handle(event);

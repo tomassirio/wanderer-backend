@@ -36,8 +36,9 @@ public class TripUpdatedEventHandler implements EventHandler<TripUpdatedEvent> {
     public void handle(TripUpdatedEvent event) {
         log.debug("Persisting TripUpdatedEvent for trip: {}", event.getTripId());
 
-        // Use repository.getReferenceById() to get a proxy without loading the entity
-        Trip trip = tripRepository.getReferenceById(event.getTripId());
+        // Fetch trip to increment updateCount
+        Trip trip = tripRepository.findById(event.getTripId())
+                .orElseThrow(() -> new IllegalStateException("Trip not found: " + event.getTripId()));
 
         TripUpdate tripUpdate =
                 TripUpdate.builder()
@@ -56,7 +57,13 @@ public class TripUpdatedEventHandler implements EventHandler<TripUpdatedEvent> {
                         .build();
 
         tripUpdateRepository.save(tripUpdate);
-        log.info("Trip update created and persisted: {}", event.getTripUpdateId());
+        
+        // Increment updateCount for cache-busting and thumbnail logic
+        trip.incrementUpdateCount();
+        tripRepository.save(trip);
+        
+        log.info("Trip update created and persisted: {} (updateCount: {})", 
+                 event.getTripUpdateId(), trip.getUpdateCount());
 
         // Check and unlock achievements after persisting the update
         achievementCalculationService.checkAndUnlockAchievements(event.getTripId());
