@@ -20,9 +20,9 @@ import org.springframework.transaction.event.TransactionalEventListener;
 /**
  * Event handler for copying trip plan thumbnails when a trip is created from a plan.
  *
- * <p>When a trip is created from a trip plan, this handler copies the plan's thumbnail
- * to the trip's thumbnail location. This ensures the trip has a thumbnail immediately,
- * which will be replaced when the first trip update is added.
+ * <p>When a trip is created from a trip plan, this handler copies the plan's thumbnail to the
+ * trip's thumbnail location. This ensures the trip has a thumbnail immediately, which will be
+ * replaced when the first trip update is added.
  *
  * @author tomassirio
  * @since 1.2.3
@@ -44,22 +44,28 @@ public class TripCreatedThumbnailHandler implements EventHandler<TripCreatedEven
     public void handle(TripCreatedEvent event) {
         // Only copy thumbnail if trip was created from a plan
         if (event.getTripPlanId() == null) {
-            log.debug("Trip {} was not created from a plan, skipping thumbnail copy", event.getTripId());
+            log.debug(
+                    "Trip {} was not created from a plan, skipping thumbnail copy",
+                    event.getTripId());
             return;
         }
 
-        log.debug("Copying thumbnail from trip plan {} to trip {}", 
-                  event.getTripPlanId(), event.getTripId());
+        log.debug(
+                "Copying thumbnail from trip plan {} to trip {}",
+                event.getTripPlanId(),
+                event.getTripId());
 
         try {
             // Check if trip plan has a thumbnail
-            if (!thumbnailService.thumbnailExists(event.getTripPlanId(), ThumbnailEntityType.TRIP_PLAN)) {
+            if (!thumbnailService.thumbnailExists(
+                    event.getTripPlanId(), ThumbnailEntityType.TRIP_PLAN)) {
                 log.debug("Trip plan {} has no thumbnail, skipping copy", event.getTripPlanId());
                 return;
             }
 
             // Copy the thumbnail file
-            Path planThumbnail = getThumbnailPath(event.getTripPlanId(), ThumbnailEntityType.TRIP_PLAN);
+            Path planThumbnail =
+                    getThumbnailPath(event.getTripPlanId(), ThumbnailEntityType.TRIP_PLAN);
             Path tripThumbnail = getThumbnailPath(event.getTripId(), ThumbnailEntityType.TRIP);
 
             // Ensure trip thumbnails directory exists
@@ -68,12 +74,17 @@ public class TripCreatedThumbnailHandler implements EventHandler<TripCreatedEven
             // Copy the file
             Files.copy(planThumbnail, tripThumbnail, StandardCopyOption.REPLACE_EXISTING);
 
-            log.info("Successfully copied thumbnail from trip plan {} to trip {}", 
-                     event.getTripPlanId(), event.getTripId());
+            log.info(
+                    "Successfully copied thumbnail from trip plan {} to trip {}",
+                    event.getTripPlanId(),
+                    event.getTripId());
 
         } catch (IOException e) {
-            log.error("Failed to copy thumbnail from trip plan {} to trip {}", 
-                      event.getTripPlanId(), event.getTripId(), e);
+            log.error(
+                    "Failed to copy thumbnail from trip plan {} to trip {}",
+                    event.getTripPlanId(),
+                    event.getTripId(),
+                    e);
         }
     }
 

@@ -10,12 +10,13 @@ class TripTest {
     @Test
     void incrementUpdateCount_whenNull_shouldSetToOne() {
         // Given
-        Trip trip = Trip.builder()
-                .id(UUID.randomUUID())
-                .name("Test Trip")
-                .userId(UUID.randomUUID())
-                .updateCount(null)
-                .build();
+        Trip trip =
+                Trip.builder()
+                        .id(UUID.randomUUID())
+                        .name("Test Trip")
+                        .userId(UUID.randomUUID())
+                        .updateCount(null)
+                        .build();
 
         // When
         trip.incrementUpdateCount();
@@ -27,12 +28,13 @@ class TripTest {
     @Test
     void incrementUpdateCount_whenZero_shouldSetToOne() {
         // Given
-        Trip trip = Trip.builder()
-                .id(UUID.randomUUID())
-                .name("Test Trip")
-                .userId(UUID.randomUUID())
-                .updateCount(0)
-                .build();
+        Trip trip =
+                Trip.builder()
+                        .id(UUID.randomUUID())
+                        .name("Test Trip")
+                        .userId(UUID.randomUUID())
+                        .updateCount(0)
+                        .build();
 
         // When
         trip.incrementUpdateCount();
@@ -44,12 +46,13 @@ class TripTest {
     @Test
     void incrementUpdateCount_whenPositive_shouldIncrement() {
         // Given
-        Trip trip = Trip.builder()
-                .id(UUID.randomUUID())
-                .name("Test Trip")
-                .userId(UUID.randomUUID())
-                .updateCount(5)
-                .build();
+        Trip trip =
+                Trip.builder()
+                        .id(UUID.randomUUID())
+                        .name("Test Trip")
+                        .userId(UUID.randomUUID())
+                        .updateCount(5)
+                        .build();
 
         // When
         trip.incrementUpdateCount();
@@ -61,12 +64,13 @@ class TripTest {
     @Test
     void incrementUpdateCount_calledMultipleTimes_shouldIncrementEachTime() {
         // Given
-        Trip trip = Trip.builder()
-                .id(UUID.randomUUID())
-                .name("Test Trip")
-                .userId(UUID.randomUUID())
-                .updateCount(null)
-                .build();
+        Trip trip =
+                Trip.builder()
+                        .id(UUID.randomUUID())
+                        .name("Test Trip")
+                        .userId(UUID.randomUUID())
+                        .updateCount(null)
+                        .build();
 
         // When
         trip.incrementUpdateCount(); // null -> 1

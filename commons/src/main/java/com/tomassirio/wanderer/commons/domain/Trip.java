@@ -82,8 +82,8 @@ public class Trip implements Polylineable, Thumbnailable {
     }
 
     /**
-     * Increments the update count by 1.
-     * This is used for cache-busting thumbnails and tracking trip activity.
+     * Increments the update count by 1. This is used for cache-busting thumbnails and tracking trip
+     * activity.
      */
     public void incrementUpdateCount() {
         this.updateCount = (this.updateCount != null ? this.updateCount : 0) + 1;
