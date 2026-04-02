@@ -11,6 +11,8 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.event.TransactionPhase;
+import org.springframework.transaction.event.TransactionalEventListener;
 
 /**
  * Event handler for generating trip thumbnails when trip updates are created.
@@ -18,7 +20,9 @@ import org.springframework.transaction.annotation.Transactional;
  * <p>This handler listens to {@link TripUpdatedEvent} and generates a map thumbnail for the trip
  * using Google Maps Static API. The thumbnail is saved to persistent storage.
  *
- * <p>Thumbnail generation is performed asynchronously to avoid blocking the main transaction.
+ * <p>Thumbnail generation is performed asynchronously to avoid blocking the main transaction,
+ * and uses {@link TransactionalEventListener} to ensure the trip data is fully committed before
+ * generating the thumbnail (so all trip updates are available).
  *
  * @author tomassirio
  * @since 0.10.5
@@ -32,7 +36,7 @@ public class TripThumbnailEventHandler implements EventHandler<TripUpdatedEvent>
     private final ThumbnailService thumbnailService;
 
     @Override
-    @EventListener
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     @Async
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void handle(TripUpdatedEvent event) {
