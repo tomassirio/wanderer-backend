@@ -52,16 +52,15 @@ public interface CommentRepository extends JpaRepository<Comment, UUID> {
     @Query("SELECT c FROM Comment c WHERE c.id IN :commentIds")
     List<Comment> findByIdIn(@Param("commentIds") List<UUID> commentIds);
 
-    /**
-     * Count all comments (top-level and replies) for a specific trip.
-     */
+    /** Count all comments (top-level and replies) for a specific trip. */
     @Query("SELECT COUNT(c) FROM Comment c WHERE c.trip.id = :tripId")
     long countByTripId(@Param("tripId") UUID tripId);
 
     /**
-     * Count all comments for multiple trips in a single query.
-     * Returns a list of Object[] where each element is [tripId, count].
+     * Count all comments for multiple trips in a single query. Returns a list of Object[] where
+     * each element is [tripId, count].
      */
-    @Query("SELECT c.trip.id, COUNT(c) FROM Comment c WHERE c.trip.id IN :tripIds GROUP BY c.trip.id")
+    @Query(
+            "SELECT c.trip.id, COUNT(c) FROM Comment c WHERE c.trip.id IN :tripIds GROUP BY c.trip.id")
     List<Object[]> countByTripIdIn(@Param("tripIds") List<UUID> tripIds);
 }

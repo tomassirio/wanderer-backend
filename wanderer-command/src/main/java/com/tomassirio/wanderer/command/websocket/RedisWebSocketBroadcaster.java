@@ -3,14 +3,14 @@ package com.tomassirio.wanderer.command.websocket;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.data.redis.listener.ChannelTopic;
 import org.springframework.stereotype.Component;
 
 /**
  * Broadcasts WebSocket messages across multiple pods using Redis Pub/Sub.
  *
- * <p>When a message needs to be broadcast to a topic, this component publishes it to Redis.
- * All pods (including the sender) subscribe to Redis and deliver messages to their local WebSocket sessions.
+ * <p>When a message needs to be broadcast to a topic, this component publishes it to Redis. All
+ * pods (including the sender) subscribe to Redis and deliver messages to their local WebSocket
+ * sessions.
  */
 @Slf4j
 @Component
@@ -44,14 +44,5 @@ public class RedisWebSocketBroadcaster {
     public static String getRedisChannel(String topic) {
         // Use a prefix to avoid conflicts with other Redis keys
         return "websocket:" + topic;
-    }
-
-    /**
-     * Creates a ChannelTopic for subscribing to all WebSocket messages.
-     *
-     * @return a pattern-based topic that matches all websocket channels
-     */
-    public static ChannelTopic createWebSocketChannelPattern() {
-        return new ChannelTopic("websocket:*");
     }
 }

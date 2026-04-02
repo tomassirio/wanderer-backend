@@ -127,14 +127,15 @@ public class UserQueryController {
     @ApiResponse(responseCode = "401", description = "Unauthorized - valid JWT required")
     public ResponseEntity<Page<UserResponse>> getDiscoverableUsers(
             @Parameter(hidden = true) @CurrentUserId UUID userId,
-            @PageableDefault(size = 20, sort = "username")
-            Pageable pageable) {
+            @PageableDefault(size = 20, sort = "username") Pageable pageable) {
         log.info(
                 "Retrieving discoverable users for userId: {}, page: {}, size: {}",
                 userId,
                 pageable.getPageNumber(),
                 pageable.getPageSize());
-        Page<UserResponse> users = userQueryService.getDiscoverableUsers(userId, pageable.getPageNumber(), pageable.getPageSize());
+        Page<UserResponse> users =
+                userQueryService.getDiscoverableUsers(
+                        userId, pageable.getPageNumber(), pageable.getPageSize());
         log.info(
                 "Successfully retrieved {} discoverable users (page {} of {})",
                 users.getContent().size(),
@@ -155,8 +156,7 @@ public class UserQueryController {
     public ResponseEntity<Page<UserRelationshipResponse>> getAssociatedUsers(
             @Parameter(hidden = true) @CurrentUserId UUID currentUserId,
             @PathVariable UUID targetUserId,
-            @PageableDefault(size = 20, sort = "username")
-            Pageable pageable) {
+            @PageableDefault(size = 20, sort = "username") Pageable pageable) {
         log.info(
                 "Retrieving associated users for target user {} from current user {}, page: {}, size: {}",
                 targetUserId,
@@ -164,7 +164,11 @@ public class UserQueryController {
                 pageable.getPageNumber(),
                 pageable.getPageSize());
         Page<UserRelationshipResponse> users =
-                userQueryService.getAssociatedUsers(currentUserId, targetUserId, pageable.getPageNumber(), pageable.getPageSize());
+                userQueryService.getAssociatedUsers(
+                        currentUserId,
+                        targetUserId,
+                        pageable.getPageNumber(),
+                        pageable.getPageSize());
         log.info(
                 "Successfully retrieved {} associated users (page {} of {})",
                 users.getContent().size(),

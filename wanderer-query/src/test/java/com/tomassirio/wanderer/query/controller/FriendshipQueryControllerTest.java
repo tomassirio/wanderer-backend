@@ -91,7 +91,8 @@ class FriendshipQueryControllerTest {
         FriendshipResponse response = new FriendshipResponse(targetUserId, targetFriendId);
 
         Page<FriendshipResponse> page = new PageImpl<>(List.of(response));
-        when(friendshipQueryService.getFriends(eq(targetUserId), any(Pageable.class))).thenReturn(page);
+        when(friendshipQueryService.getFriends(eq(targetUserId), any(Pageable.class)))
+                .thenReturn(page);
 
         mockMvc.perform(get("/api/1/users/{userId}/friends", targetUserId))
                 .andExpect(status().isOk())
@@ -107,7 +108,8 @@ class FriendshipQueryControllerTest {
         UUID targetUserId = UUID.randomUUID();
 
         Page<FriendshipResponse> page = new PageImpl<>(List.of());
-        when(friendshipQueryService.getFriends(eq(targetUserId), any(Pageable.class))).thenReturn(page);
+        when(friendshipQueryService.getFriends(eq(targetUserId), any(Pageable.class)))
+                .thenReturn(page);
 
         mockMvc.perform(get("/api/1/users/{userId}/friends", targetUserId))
                 .andExpect(status().isOk())
@@ -180,14 +182,16 @@ class FriendshipQueryControllerTest {
     }
 
     @Test
-    void getMyFriends_paginated_withPaginationParams_shouldPassPageableToService() throws Exception {
+    void getMyFriends_paginated_withPaginationParams_shouldPassPageableToService()
+            throws Exception {
         Page<FriendshipResponse> page = new PageImpl<>(List.of());
         when(friendshipQueryService.getFriends(eq(userId), any(Pageable.class))).thenReturn(page);
 
-        mockMvc.perform(get(MY_FRIENDS_URL)
-                        .param("page", "1")
-                        .param("size", "10")
-                        .param("sort", "createdAt,desc"))
+        mockMvc.perform(
+                        get(MY_FRIENDS_URL)
+                                .param("page", "1")
+                                .param("size", "10")
+                                .param("sort", "createdAt,desc"))
                 .andExpect(status().isOk());
 
         verify(friendshipQueryService).getFriends(eq(userId), any(Pageable.class));
@@ -204,7 +208,8 @@ class FriendshipQueryControllerTest {
         FriendshipResponse response2 = new FriendshipResponse(targetUserId, targetFriendId2);
 
         Page<FriendshipResponse> page = new PageImpl<>(List.of(response1, response2));
-        when(friendshipQueryService.getFriends(eq(targetUserId), any(Pageable.class))).thenReturn(page);
+        when(friendshipQueryService.getFriends(eq(targetUserId), any(Pageable.class)))
+                .thenReturn(page);
 
         mockMvc.perform(get("/api/1/users/{userId}/friends", targetUserId))
                 .andExpect(status().isOk())
@@ -223,7 +228,8 @@ class FriendshipQueryControllerTest {
     void getFriendsByUserId_paginated_EmptyPage() throws Exception {
         UUID targetUserId = UUID.randomUUID();
         Page<FriendshipResponse> page = new PageImpl<>(List.of());
-        when(friendshipQueryService.getFriends(eq(targetUserId), any(Pageable.class))).thenReturn(page);
+        when(friendshipQueryService.getFriends(eq(targetUserId), any(Pageable.class)))
+                .thenReturn(page);
 
         mockMvc.perform(get("/api/1/users/{userId}/friends", targetUserId))
                 .andExpect(status().isOk())
@@ -235,15 +241,18 @@ class FriendshipQueryControllerTest {
     }
 
     @Test
-    void getFriendsByUserId_paginated_withPaginationParams_shouldPassPageableToService() throws Exception {
+    void getFriendsByUserId_paginated_withPaginationParams_shouldPassPageableToService()
+            throws Exception {
         UUID targetUserId = UUID.randomUUID();
         Page<FriendshipResponse> page = new PageImpl<>(List.of());
-        when(friendshipQueryService.getFriends(eq(targetUserId), any(Pageable.class))).thenReturn(page);
+        when(friendshipQueryService.getFriends(eq(targetUserId), any(Pageable.class)))
+                .thenReturn(page);
 
-        mockMvc.perform(get("/api/1/users/{userId}/friends", targetUserId)
-                        .param("page", "0")
-                        .param("size", "25")
-                        .param("sort", "createdAt,asc"))
+        mockMvc.perform(
+                        get("/api/1/users/{userId}/friends", targetUserId)
+                                .param("page", "0")
+                                .param("size", "25")
+                                .param("sort", "createdAt,asc"))
                 .andExpect(status().isOk());
 
         verify(friendshipQueryService).getFriends(eq(targetUserId), any(Pageable.class));

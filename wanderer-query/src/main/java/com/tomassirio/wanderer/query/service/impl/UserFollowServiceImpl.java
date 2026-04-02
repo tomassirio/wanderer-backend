@@ -36,9 +36,14 @@ public class UserFollowServiceImpl implements UserFollowService {
     @Override
     public Page<UserFollowResponse> getFollowing(UUID followerId, Pageable pageable) {
         log.info("Retrieving following list for user: {} with pagination", followerId);
-        Page<UserFollow> follows = userFollowRepository.findByFollowerIdPageable(followerId, pageable);
-        log.info("Found {} users that user {} is following (page {} of {})", 
-                follows.getNumberOfElements(), followerId, follows.getNumber() + 1, follows.getTotalPages());
+        Page<UserFollow> follows =
+                userFollowRepository.findByFollowerIdPageable(followerId, pageable);
+        log.info(
+                "Found {} users that user {} is following (page {} of {})",
+                follows.getNumberOfElements(),
+                followerId,
+                follows.getNumber() + 1,
+                follows.getTotalPages());
         return follows.map(this::toResponse);
     }
 
@@ -53,9 +58,14 @@ public class UserFollowServiceImpl implements UserFollowService {
     @Override
     public Page<UserFollowResponse> getFollowers(UUID followedId, Pageable pageable) {
         log.info("Retrieving followers list for user: {} with pagination", followedId);
-        Page<UserFollow> followers = userFollowRepository.findByFollowedIdPageable(followedId, pageable);
-        log.info("Found {} followers for user {} (page {} of {})", 
-                followers.getNumberOfElements(), followedId, followers.getNumber() + 1, followers.getTotalPages());
+        Page<UserFollow> followers =
+                userFollowRepository.findByFollowedIdPageable(followedId, pageable);
+        log.info(
+                "Found {} followers for user {} (page {} of {})",
+                followers.getNumberOfElements(),
+                followedId,
+                followers.getNumber() + 1,
+                followers.getTotalPages());
         return followers.map(this::toResponse);
     }
 

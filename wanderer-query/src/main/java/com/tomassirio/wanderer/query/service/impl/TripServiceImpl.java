@@ -48,38 +48,38 @@ public class TripServiceImpl implements TripService {
                 tripRepository
                         .findWithDetailsById(id)
                         .orElseThrow(() -> new EntityNotFoundException("Trip not found"));
-        
+
         trip.setTripUpdates(tripUpdateRepository.findByTripIdOrderByTimestampAsc(id));
-        
+
         return tripEnrichmentHelper.enrichWithUsernameAndPromotedStatus(tripMapper.toDTO(trip));
     }
 
     @Override
     public Page<TripDTO> getAllTrips(Pageable pageable) {
         Page<Trip> tripPage = tripRepository.findAll(pageable);
-        
+
         // Batch fetch tripUpdates to avoid N+1 queries and populate them into trips
-        List<UUID> tripIds = tripPage.getContent().stream()
-                .map(Trip::getId)
-                .collect(Collectors.toList());
-        
+        List<UUID> tripIds =
+                tripPage.getContent().stream().map(Trip::getId).collect(Collectors.toList());
+
         if (!tripIds.isEmpty()) {
-            List<TripUpdate> allUpdates =
-                    tripUpdateRepository.findByTripIdIn(tripIds);
-            
+            List<TripUpdate> allUpdates = tripUpdateRepository.findByTripIdIn(tripIds);
+
             // Group updates by trip ID
             Map<UUID, List<TripUpdate>> updatesByTripId =
-                    allUpdates.stream().collect(Collectors.groupingBy(
-                            update -> update.getTrip().getId()));
-            
+                    allUpdates.stream()
+                            .collect(Collectors.groupingBy(update -> update.getTrip().getId()));
+
             // Populate each trip's updates
-            tripPage.getContent().forEach(trip -> {
-                List<TripUpdate> tripUpdates =
-                        updatesByTripId.getOrDefault(trip.getId(), List.of());
-                trip.setTripUpdates(tripUpdates);
-            });
+            tripPage.getContent()
+                    .forEach(
+                            trip -> {
+                                List<TripUpdate> tripUpdates =
+                                        updatesByTripId.getOrDefault(trip.getId(), List.of());
+                                trip.setTripUpdates(tripUpdates);
+                            });
         }
-        
+
         return enrichPageWithUsernames(tripPage, pageable);
     }
 
@@ -93,9 +93,8 @@ public class TripServiceImpl implements TripService {
 
     @Override
     public List<TripDTO> getTripsForUser(UUID userId) {
-        List<TripDTO> trips = tripRepository.findByUserId(userId).stream()
-                .map(tripMapper::toDTO)
-                .toList();
+        List<TripDTO> trips =
+                tripRepository.findByUserId(userId).stream().map(tripMapper::toDTO).toList();
         return tripEnrichmentHelper.enrichListWithUsernamesAndPromotedStatus(trips);
     }
 
@@ -125,7 +124,8 @@ public class TripServiceImpl implements TripService {
     }
 
     @Override
-    public Page<TripDTO> getTripsForUserWithVisibility(UUID userId, UUID requestingUserId, Pageable pageable) {
+    public Page<TripDTO> getTripsForUserWithVisibility(
+            UUID userId, UUID requestingUserId, Pageable pageable) {
         // Check if users are friends
         boolean areFriends =
                 requestingUserId != null
@@ -137,7 +137,8 @@ public class TripServiceImpl implements TripService {
                         ? List.of(TripVisibility.PUBLIC, TripVisibility.PROTECTED)
                         : List.of(TripVisibility.PUBLIC);
 
-        Page<Trip> tripPage = tripRepository.findByUserIdAndVisibilityIn(userId, allowedVisibilities, pageable);
+        Page<Trip> tripPage =
+                tripRepository.findByUserIdAndVisibilityIn(userId, allowedVisibilities, pageable);
         return enrichPageWithUsernames(tripPage, pageable);
     }
 
@@ -267,27 +268,26 @@ public class TripServiceImpl implements TripService {
     @Override
     public TripMaintenanceStatsDTO getTripMaintenanceStats() {
         List<Trip> trips = tripRepository.findAll();
-        
+
         // Batch fetch trip updates to populate counts
-        List<UUID> tripIds = trips.stream()
-                .map(Trip::getId)
-                .collect(Collectors.toList());
-        
+        List<UUID> tripIds = trips.stream().map(Trip::getId).collect(Collectors.toList());
+
         if (!tripIds.isEmpty()) {
             List<TripUpdate> allUpdates = tripUpdateRepository.findByTripIdIn(tripIds);
-            
+
             // Group updates by trip ID
             Map<UUID, List<TripUpdate>> updatesByTripId =
-                    allUpdates.stream().collect(Collectors.groupingBy(
-                            update -> update.getTrip().getId()));
-            
+                    allUpdates.stream()
+                            .collect(Collectors.groupingBy(update -> update.getTrip().getId()));
+
             // Populate each trip's updates
-            trips.forEach(trip -> {
-                List<TripUpdate> tripUpdates =
-                        updatesByTripId.getOrDefault(trip.getId(), List.of());
-                trip.setTripUpdates(tripUpdates);
-                trip.setUpdateCount(tripUpdates.size()); // Update the count
-            });
+            trips.forEach(
+                    trip -> {
+                        List<TripUpdate> tripUpdates =
+                                updatesByTripId.getOrDefault(trip.getId(), List.of());
+                        trip.setTripUpdates(tripUpdates);
+                        trip.setUpdateCount(tripUpdates.size()); // Update the count
+                    });
         }
 
         long totalTrips = trips.size();

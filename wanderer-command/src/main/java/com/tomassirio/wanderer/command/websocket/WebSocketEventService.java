@@ -13,9 +13,9 @@ import org.springframework.stereotype.Service;
  *
  * <p>This service provides a simple interface for broadcasting events that implement {@link
  * Broadcastable}. The event itself knows its topic, event type, and payload.
- * 
- * <p>Messages are broadcast to all pods via Redis Pub/Sub, ensuring that all connected
- * clients receive updates regardless of which pod they're connected to.
+ *
+ * <p>Messages are broadcast to all pods via Redis Pub/Sub, ensuring that all connected clients
+ * receive updates regardless of which pod they're connected to.
  */
 @Slf4j
 @Service
@@ -38,10 +38,11 @@ public class WebSocketEventService {
 
         try {
             String message = objectMapper.writeValueAsString(wsEvent);
-            
-            // Publish to Redis - all pods (including this one) will receive and broadcast to their local sessions
+
+            // Publish to Redis - all pods (including this one) will receive and broadcast to their
+            // local sessions
             redisBroadcaster.publishToRedis(topic, message);
-            
+
             log.info("Published {} event to Redis for topic {}", event.getEventType(), topic);
         } catch (JsonProcessingException e) {
             log.error("Error serializing WebSocket event: {}", event.getEventType(), e);

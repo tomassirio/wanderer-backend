@@ -183,7 +183,7 @@ class TripControllerTest {
         UUID tripId2 = UUID.randomUUID();
         TripDTO trip1 = createTripDTO(tripId1, "My Trip 1", TripVisibility.PUBLIC);
         TripDTO trip2 = createTripDTO(tripId2, "My Trip 2", TripVisibility.PRIVATE);
-        
+
         Page<TripDTO> page = new PageImpl<>(List.of(trip1, trip2));
         when(tripService.getTripsForUser(eq(USER_ID), any(Pageable.class))).thenReturn(page);
 
@@ -197,7 +197,7 @@ class TripControllerTest {
                 .andExpect(jsonPath("$.content[1].id").value(tripId2.toString()))
                 .andExpect(jsonPath("$.content[1].name").value("My Trip 2"))
                 .andExpect(jsonPath("$.totalElements").value(2));
-        
+
         verify(tripService).getTripsForUser(eq(USER_ID), any(Pageable.class));
     }
 
@@ -213,7 +213,7 @@ class TripControllerTest {
                 .andExpect(jsonPath("$.content").isArray())
                 .andExpect(jsonPath("$.content.length()").value(0))
                 .andExpect(jsonPath("$.totalElements").value(0));
-        
+
         verify(tripService).getTripsForUser(eq(USER_ID), any(Pageable.class));
     }
 
@@ -224,12 +224,13 @@ class TripControllerTest {
         when(tripService.getTripsForUser(eq(USER_ID), any(Pageable.class))).thenReturn(page);
 
         // When & Then
-        mockMvc.perform(get(TRIPS_ME_URL)
-                        .param("page", "1")
-                        .param("size", "10")
-                        .param("sort", "creationTimestamp,desc"))
+        mockMvc.perform(
+                        get(TRIPS_ME_URL)
+                                .param("page", "1")
+                                .param("size", "10")
+                                .param("sort", "creationTimestamp,desc"))
                 .andExpect(status().isOk());
-        
+
         verify(tripService).getTripsForUser(eq(USER_ID), any(Pageable.class));
     }
 
@@ -241,9 +242,10 @@ class TripControllerTest {
         UUID tripId2 = UUID.randomUUID();
         TripDTO trip1 = createTripDTO(tripId1, "User Trip 1", TripVisibility.PUBLIC);
         TripDTO trip2 = createTripDTO(tripId2, "User Trip 2", TripVisibility.PUBLIC);
-        
+
         Page<TripDTO> page = new PageImpl<>(List.of(trip1, trip2));
-        when(tripService.getTripsForUserWithVisibility(eq(targetUserId), eq(USER_ID), any(Pageable.class)))
+        when(tripService.getTripsForUserWithVisibility(
+                        eq(targetUserId), eq(USER_ID), any(Pageable.class)))
                 .thenReturn(page);
 
         // When & Then
@@ -254,8 +256,9 @@ class TripControllerTest {
                 .andExpect(jsonPath("$.content[0].id").value(tripId1.toString()))
                 .andExpect(jsonPath("$.content[1].id").value(tripId2.toString()))
                 .andExpect(jsonPath("$.totalElements").value(2));
-        
-        verify(tripService).getTripsForUserWithVisibility(eq(targetUserId), eq(USER_ID), any(Pageable.class));
+
+        verify(tripService)
+                .getTripsForUserWithVisibility(eq(targetUserId), eq(USER_ID), any(Pageable.class));
     }
 
     @Test
@@ -263,7 +266,8 @@ class TripControllerTest {
         // Given
         UUID targetUserId = UUID.randomUUID();
         Page<TripDTO> page = new PageImpl<>(List.of());
-        when(tripService.getTripsForUserWithVisibility(eq(targetUserId), eq(USER_ID), any(Pageable.class)))
+        when(tripService.getTripsForUserWithVisibility(
+                        eq(targetUserId), eq(USER_ID), any(Pageable.class)))
                 .thenReturn(page);
 
         // When & Then
@@ -279,17 +283,20 @@ class TripControllerTest {
         // Given
         UUID targetUserId = UUID.randomUUID();
         Page<TripDTO> page = new PageImpl<>(List.of());
-        when(tripService.getTripsForUserWithVisibility(eq(targetUserId), eq(USER_ID), any(Pageable.class)))
+        when(tripService.getTripsForUserWithVisibility(
+                        eq(targetUserId), eq(USER_ID), any(Pageable.class)))
                 .thenReturn(page);
 
         // When & Then
-        mockMvc.perform(get(TRIPS_BASE_URL + "/users/{userId}", targetUserId)
-                        .param("page", "2")
-                        .param("size", "15")
-                        .param("sort", "name,asc"))
+        mockMvc.perform(
+                        get(TRIPS_BASE_URL + "/users/{userId}", targetUserId)
+                                .param("page", "2")
+                                .param("size", "15")
+                                .param("sort", "name,asc"))
                 .andExpect(status().isOk());
-        
-        verify(tripService).getTripsForUserWithVisibility(eq(targetUserId), eq(USER_ID), any(Pageable.class));
+
+        verify(tripService)
+                .getTripsForUserWithVisibility(eq(targetUserId), eq(USER_ID), any(Pageable.class));
     }
 
     @Test
@@ -323,7 +330,8 @@ class TripControllerTest {
                         createTripDTO(
                                 UUID.randomUUID(), "Protected Trip", TripVisibility.PROTECTED));
         Page<TripDTO> page = new PageImpl<>(trips);
-        when(tripService.getTripsForUserWithVisibility(eq(otherUserId), any(UUID.class), any(Pageable.class)))
+        when(tripService.getTripsForUserWithVisibility(
+                        eq(otherUserId), any(UUID.class), any(Pageable.class)))
                 .thenReturn(page);
 
         // When & Then
@@ -342,7 +350,8 @@ class TripControllerTest {
         // Given
         UUID otherUserId = UUID.randomUUID();
         Page<TripDTO> page = new PageImpl<>(List.of());
-        when(tripService.getTripsForUserWithVisibility(eq(otherUserId), any(UUID.class), any(Pageable.class)))
+        when(tripService.getTripsForUserWithVisibility(
+                        eq(otherUserId), any(UUID.class), any(Pageable.class)))
                 .thenReturn(page);
 
         // When & Then
@@ -359,7 +368,8 @@ class TripControllerTest {
         List<TripDTO> trips =
                 List.of(createTripDTO(UUID.randomUUID(), "Public Trip", TripVisibility.PUBLIC));
         Page<TripDTO> page = new PageImpl<>(trips);
-        when(tripService.getTripsForUserWithVisibility(eq(otherUserId), any(UUID.class), any(Pageable.class)))
+        when(tripService.getTripsForUserWithVisibility(
+                        eq(otherUserId), any(UUID.class), any(Pageable.class)))
                 .thenReturn(page);
 
         // When & Then

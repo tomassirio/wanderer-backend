@@ -20,7 +20,7 @@ public class WebSocketSessionManager {
 
     // sessionId -> userId (null not allowed in ConcurrentHashMap, so we use Optional)
     private final Map<String, UUID> sessionUsers = new ConcurrentHashMap<>();
-    
+
     // sessionId -> anonymous flag (since ConcurrentHashMap doesn't support null values)
     private final Map<String, Boolean> sessionAnonymousFlags = new ConcurrentHashMap<>();
 
@@ -36,7 +36,7 @@ public class WebSocketSessionManager {
 
     public void registerSession(WebSocketSession session, UUID userId) {
         sessions.put(session.getId(), session);
-        
+
         // ConcurrentHashMap doesn't allow null values, so track anonymous status separately
         boolean isAnonymous = (userId == null);
         if (!isAnonymous) {
@@ -44,7 +44,7 @@ public class WebSocketSessionManager {
         }
         sessionAnonymousFlags.put(session.getId(), isAnonymous);
         sessionSubscriptionCounts.put(session.getId(), 0);
-        
+
         log.info(
                 "Registered session: {} for user: {} (anonymous: {})",
                 session.getId(),
@@ -86,10 +86,7 @@ public class WebSocketSessionManager {
 
         topicSubscriptions.computeIfAbsent(topic, k -> new CopyOnWriteArraySet<>()).add(sessionId);
         log.debug(
-                "Session {} subscribed to topic {} (anonymous: {})",
-                sessionId,
-                topic,
-                isAnonymous);
+                "Session {} subscribed to topic {} (anonymous: {})", sessionId, topic, isAnonymous);
     }
 
     public void unsubscribe(WebSocketSession session, String topic) {
@@ -111,9 +108,9 @@ public class WebSocketSessionManager {
     }
 
     /**
-     * Broadcasts a message to LOCAL sessions subscribed to the topic.
-     * This method is called by the Redis listener when a message is received from Redis.
-     * 
+     * Broadcasts a message to LOCAL sessions subscribed to the topic. This method is called by the
+     * Redis listener when a message is received from Redis.
+     *
      * @param topic the WebSocket topic
      * @param message the message to broadcast
      */
@@ -143,8 +140,8 @@ public class WebSocketSessionManager {
     }
 
     /**
-     * @deprecated Use broadcastToLocalSessions instead. This method is kept for backward compatibility
-     * but will be removed once all callers are updated to use Redis broadcasting.
+     * @deprecated Use broadcastToLocalSessions instead. This method is kept for backward
+     *     compatibility but will be removed once all callers are updated to use Redis broadcasting.
      */
     @Deprecated
     public void broadcast(String topic, String message) {

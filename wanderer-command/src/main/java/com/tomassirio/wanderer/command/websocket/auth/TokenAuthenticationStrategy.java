@@ -1,7 +1,5 @@
 package com.tomassirio.wanderer.command.websocket.auth;
 
-import com.tomassirio.wanderer.command.websocket.auth.AuthenticationResult;
-import com.tomassirio.wanderer.command.websocket.auth.WebSocketAuthenticationStrategy;
 import com.tomassirio.wanderer.commons.security.JwtUtils;
 import java.util.HashMap;
 import java.util.Map;
@@ -29,7 +27,7 @@ public class TokenAuthenticationStrategy implements WebSocketAuthenticationStrat
         if (session.getUri() == null) {
             return false;
         }
-        
+
         String query = session.getUri().getQuery();
         if (query == null || query.isEmpty()) {
             return false;

@@ -41,14 +41,17 @@ public class UserFollowQueryController {
     @PreAuthorize("hasAnyRole('ADMIN','USER')")
     @Operation(
             summary = "Get my following list",
-            description = "Retrieve the list of users that the current user is following with pagination. "
-                    + "Use query parameters: page, size, sort (e.g., sort=createdAt,desc)")
+            description =
+                    "Retrieve the list of users that the current user is following with pagination. "
+                            + "Use query parameters: page, size, sort (e.g., sort=createdAt,desc)")
     public ResponseEntity<Page<UserFollowResponse>> getMyFollowing(
             @Parameter(hidden = true) @CurrentUserId UUID userId,
             @Parameter(description = "Pagination and sorting parameters")
                     @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC)
                     Pageable pageable) {
-        log.info("Received request to get following list for current user: {} with pagination", userId);
+        log.info(
+                "Received request to get following list for current user: {} with pagination",
+                userId);
         Page<UserFollowResponse> following = userFollowService.getFollowing(userId, pageable);
         log.info(
                 "Successfully retrieved {} users that user {} is following (page {} of {})",
@@ -63,8 +66,9 @@ public class UserFollowQueryController {
     @PreAuthorize("hasAnyRole('ADMIN','USER')")
     @Operation(
             summary = "Get user's following list",
-            description = "Retrieve the list of users that a specific user is following with pagination. "
-                    + "Use query parameters: page, size, sort (e.g., sort=createdAt,desc)")
+            description =
+                    "Retrieve the list of users that a specific user is following with pagination. "
+                            + "Use query parameters: page, size, sort (e.g., sort=createdAt,desc)")
     public ResponseEntity<Page<UserFollowResponse>> getFollowingByUserId(
             @Parameter(description = "User ID") @PathVariable UUID userId,
             @Parameter(description = "Pagination and sorting parameters")
@@ -85,17 +89,24 @@ public class UserFollowQueryController {
     @PreAuthorize("hasAnyRole('ADMIN','USER')")
     @Operation(
             summary = "Get my followers list",
-            description = "Retrieve the list of users that are following the current user with pagination. "
-                    + "Use query parameters: page, size, sort (e.g., sort=createdAt,desc)")
+            description =
+                    "Retrieve the list of users that are following the current user with pagination. "
+                            + "Use query parameters: page, size, sort (e.g., sort=createdAt,desc)")
     public ResponseEntity<Page<UserFollowResponse>> getMyFollowers(
             @Parameter(hidden = true) @CurrentUserId UUID userId,
             @Parameter(description = "Pagination and sorting parameters")
                     @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC)
                     Pageable pageable) {
-        log.info("Received request to get followers list for current user: {} with pagination", userId);
+        log.info(
+                "Received request to get followers list for current user: {} with pagination",
+                userId);
         Page<UserFollowResponse> followers = userFollowService.getFollowers(userId, pageable);
-        log.info("Successfully retrieved {} followers for user {} (page {} of {})", 
-                followers.getNumberOfElements(), userId, followers.getNumber() + 1, followers.getTotalPages());
+        log.info(
+                "Successfully retrieved {} followers for user {} (page {} of {})",
+                followers.getNumberOfElements(),
+                userId,
+                followers.getNumber() + 1,
+                followers.getTotalPages());
         return ResponseEntity.ok(followers);
     }
 
@@ -103,8 +114,9 @@ public class UserFollowQueryController {
     @PreAuthorize("hasAnyRole('ADMIN','USER')")
     @Operation(
             summary = "Get user's followers list",
-            description = "Retrieve the list of users that are following a specific user with pagination. "
-                    + "Use query parameters: page, size, sort (e.g., sort=createdAt,desc)")
+            description =
+                    "Retrieve the list of users that are following a specific user with pagination. "
+                            + "Use query parameters: page, size, sort (e.g., sort=createdAt,desc)")
     public ResponseEntity<Page<UserFollowResponse>> getFollowersByUserId(
             @Parameter(description = "User ID") @PathVariable UUID userId,
             @Parameter(description = "Pagination and sorting parameters")
@@ -112,8 +124,12 @@ public class UserFollowQueryController {
                     Pageable pageable) {
         log.info("Received request to get followers list for user: {} with pagination", userId);
         Page<UserFollowResponse> followers = userFollowService.getFollowers(userId, pageable);
-        log.info("Successfully retrieved {} followers for user {} (page {} of {})", 
-                followers.getNumberOfElements(), userId, followers.getNumber() + 1, followers.getTotalPages());
+        log.info(
+                "Successfully retrieved {} followers for user {} (page {} of {})",
+                followers.getNumberOfElements(),
+                userId,
+                followers.getNumber() + 1,
+                followers.getTotalPages());
         return ResponseEntity.ok(followers);
     }
 }

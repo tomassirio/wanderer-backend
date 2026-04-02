@@ -36,9 +36,7 @@ public interface TripRepository extends JpaRepository<Trip, UUID> {
     @EntityGraph(attributePaths = {"tripDays"})
     List<Trip> findByUserId(UUID userId);
 
-    /**
-     * Find trips by user ID with trip days eagerly loaded (pageable).
-     */
+    /** Find trips by user ID with trip days eagerly loaded (pageable). */
     @EntityGraph(attributePaths = {"tripDays"})
     Page<Trip> findByUserId(UUID userId, Pageable pageable);
 
@@ -54,15 +52,15 @@ public interface TripRepository extends JpaRepository<Trip, UUID> {
     List<Trip> findByUserIdAndVisibilityIn(
             @Param("userId") UUID userId, @Param("visibilities") List<TripVisibility> visibilities);
 
-    /**
-     * Find trips by user ID that are visible to the requester (pageable).
-     */
+    /** Find trips by user ID that are visible to the requester (pageable). */
     @Query(
             "SELECT t FROM Trip t WHERE t.userId = :userId AND t.tripSettings.visibility IN :visibilities "
                     + "AND (t.tripSettings.tripStatus != com.tomassirio.wanderer.commons.domain.TripStatus.CREATED OR "
                     + "EXISTS (SELECT 1 FROM PromotedTrip p WHERE p.tripId = t.id AND p.preAnnounced = true))")
     Page<Trip> findByUserIdAndVisibilityIn(
-            @Param("userId") UUID userId, @Param("visibilities") List<TripVisibility> visibilities, Pageable pageable);
+            @Param("userId") UUID userId,
+            @Param("visibilities") List<TripVisibility> visibilities,
+            Pageable pageable);
 
     /** Find all public trips that are currently in progress. */
     @Query(
@@ -176,8 +174,8 @@ public interface TripRepository extends JpaRepository<Trip, UUID> {
 
     /**
      * Search trips by name or owner username matching the search term. Returns public ongoing trips
-     * (active statuses) that match the search criteria by trip name or by the trip owner's username,
-     * similar to the /public endpoint but filtered by search term.
+     * (active statuses) that match the search criteria by trip name or by the trip owner's
+     * username, similar to the /public endpoint but filtered by search term.
      */
     @Query(
             value =

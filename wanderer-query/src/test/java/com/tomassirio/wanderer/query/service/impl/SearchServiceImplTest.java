@@ -231,8 +231,7 @@ class SearchServiceImplTest {
         when(tripEnrichmentHelper.enrichTripsToSummaries(List.of(trip)))
                 .thenReturn(List.of(tripSummary));
 
-        SearchResultsResponse result =
-                searchService.search(searchTerm, userPageable, tripPageable);
+        SearchResultsResponse result = searchService.search(searchTerm, userPageable, tripPageable);
 
         assertNotNull(result);
         // Users: page size 1, total 3 → has next
@@ -277,8 +276,7 @@ class SearchServiceImplTest {
         when(tripEnrichmentHelper.enrichTripsToSummaries(List.of(trip)))
                 .thenReturn(List.of(summary));
 
-        SearchResultsResponse result =
-                searchService.search(searchTerm, userPageable, tripPageable);
+        SearchResultsResponse result = searchService.search(searchTerm, userPageable, tripPageable);
 
         // User page 2 is empty but trips page 0 has results
         assertTrue(result.users().getContent().isEmpty());
@@ -377,8 +375,7 @@ class SearchServiceImplTest {
         UserSummaryDto user1 = createUserSummary(userId1, "user123", "User 123");
         UserSummaryDto user2 = createUserSummary(userId2, "user12345", "User 12345");
         when(userRepository.searchUserSummaries(eq(searchTerm), eq(DEFAULT_USER_PAGEABLE)))
-                .thenReturn(
-                        new PageImpl<>(List.of(user1, user2), DEFAULT_USER_PAGEABLE, 2));
+                .thenReturn(new PageImpl<>(List.of(user1, user2), DEFAULT_USER_PAGEABLE, 2));
 
         Trip trip1 = createTrip(tripId1, userId1, "My Awesome Trip");
         Trip trip2 = createTrip(tripId2, userId2, "Another Great Journey");
@@ -391,8 +388,7 @@ class SearchServiceImplTest {
                 .thenReturn(new PageImpl<>(trips, DEFAULT_TRIP_PAGEABLE, 2));
 
         TripSummaryDTO summary1 = createTripSummaryDTO(tripId1, userId1, "My Awesome Trip");
-        TripSummaryDTO summary2 =
-                createTripSummaryDTO(tripId2, userId2, "Another Great Journey");
+        TripSummaryDTO summary2 = createTripSummaryDTO(tripId2, userId2, "Another Great Journey");
         when(tripEnrichmentHelper.enrichTripsToSummaries(trips))
                 .thenReturn(List.of(summary1, summary2));
 
@@ -429,15 +425,12 @@ class SearchServiceImplTest {
                         eq(tripPageable)))
                 .thenReturn(new PageImpl<>(trips, tripPageable, 2));
 
-        TripSummaryDTO summary1 =
-                createTripSummaryDTO(trip1.getId(), userId, "Popular Trip 1");
-        TripSummaryDTO summary2 =
-                createTripSummaryDTO(trip2.getId(), userId, "Popular Trip 2");
+        TripSummaryDTO summary1 = createTripSummaryDTO(trip1.getId(), userId, "Popular Trip 1");
+        TripSummaryDTO summary2 = createTripSummaryDTO(trip2.getId(), userId, "Popular Trip 2");
         when(tripEnrichmentHelper.enrichTripsToSummaries(trips))
                 .thenReturn(List.of(summary1, summary2));
 
-        SearchResultsResponse result =
-                searchService.search(searchTerm, userPageable, tripPageable);
+        SearchResultsResponse result = searchService.search(searchTerm, userPageable, tripPageable);
 
         // Verify user pagination metadata
         assertEquals(1, result.users().getNumber());
@@ -547,4 +540,3 @@ class SearchServiceImplTest {
         };
     }
 }
-

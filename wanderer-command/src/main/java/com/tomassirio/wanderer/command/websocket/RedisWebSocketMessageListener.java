@@ -7,10 +7,12 @@ import org.springframework.data.redis.connection.MessageListener;
 import org.springframework.stereotype.Component;
 
 /**
- * Listens for WebSocket messages published to Redis and broadcasts them to local WebSocket sessions.
+ * Listens for WebSocket messages published to Redis and broadcasts them to local WebSocket
+ * sessions.
  *
- * <p>This listener receives messages from all pods (including the same pod that published).
- * When a message arrives, it extracts the WebSocket topic and broadcasts to local sessions subscribed to that topic.
+ * <p>This listener receives messages from all pods (including the same pod that published). When a
+ * message arrives, it extracts the WebSocket topic and broadcasts to local sessions subscribed to
+ * that topic.
  */
 @Slf4j
 @Component

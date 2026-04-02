@@ -28,15 +28,13 @@ class RedisWebSocketMessageListenerTest {
         // Given
         String channel = "websocket:/topic/trips/123";
         String messageBody = "{\"eventType\":\"TRIP_UPDATED\",\"payload\":{}}";
-        Message message =
-                new DefaultMessage(channel.getBytes(), messageBody.getBytes());
+        Message message = new DefaultMessage(channel.getBytes(), messageBody.getBytes());
 
         // When
         listener.onMessage(message, null);
 
         // Then
-        verify(sessionManager)
-                .broadcastToLocalSessions(eq("/topic/trips/123"), eq(messageBody));
+        verify(sessionManager).broadcastToLocalSessions(eq("/topic/trips/123"), eq(messageBody));
     }
 
     @Test
@@ -44,14 +42,12 @@ class RedisWebSocketMessageListenerTest {
         // Given
         String channel = "websocket:/topic/users/456";
         String messageBody = "{\"eventType\":\"FRIEND_REQUEST\",\"payload\":{}}";
-        Message message =
-                new DefaultMessage(channel.getBytes(), messageBody.getBytes());
+        Message message = new DefaultMessage(channel.getBytes(), messageBody.getBytes());
 
         // When
         listener.onMessage(message, null);
 
         // Then
-        verify(sessionManager)
-                .broadcastToLocalSessions(eq("/topic/users/456"), eq(messageBody));
+        verify(sessionManager).broadcastToLocalSessions(eq("/topic/users/456"), eq(messageBody));
     }
 }
