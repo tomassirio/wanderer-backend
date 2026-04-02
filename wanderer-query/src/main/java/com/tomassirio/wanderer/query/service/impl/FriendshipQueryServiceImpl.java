@@ -32,10 +32,19 @@ public class FriendshipQueryServiceImpl implements FriendshipQueryService {
     @Override
     public Page<FriendshipResponse> getFriends(UUID userId, Pageable pageable) {
         log.info("Getting friends for user {} with pagination", userId);
-        Page<FriendshipResponse> friends = friendshipRepository.findByUserIdPageable(userId, pageable)
-                .map(friendship -> new FriendshipResponse(friendship.getUserId(), friendship.getFriendId()));
-        log.info("Found {} friends for user {} (page {} of {})", 
-                friends.getNumberOfElements(), userId, friends.getNumber() + 1, friends.getTotalPages());
+        Page<FriendshipResponse> friends =
+                friendshipRepository
+                        .findByUserIdPageable(userId, pageable)
+                        .map(
+                                friendship ->
+                                        new FriendshipResponse(
+                                                friendship.getUserId(), friendship.getFriendId()));
+        log.info(
+                "Found {} friends for user {} (page {} of {})",
+                friends.getNumberOfElements(),
+                userId,
+                friends.getNumber() + 1,
+                friends.getTotalPages());
         return friends;
     }
 }

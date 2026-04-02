@@ -215,7 +215,8 @@ class UserFollowQueryControllerTest {
                 new UserFollowResponse(followId2, targetUserId, followedUserId2, now);
 
         Page<UserFollowResponse> page = new PageImpl<>(List.of(follow1, follow2));
-        when(userFollowService.getFollowing(eq(targetUserId), any(Pageable.class))).thenReturn(page);
+        when(userFollowService.getFollowing(eq(targetUserId), any(Pageable.class)))
+                .thenReturn(page);
 
         // When & Then
         mockMvc.perform(get(USER_FOLLOWING_URL, targetUserId))
@@ -238,7 +239,8 @@ class UserFollowQueryControllerTest {
         UUID targetUserId = UUID.randomUUID();
 
         Page<UserFollowResponse> page = new PageImpl<>(Collections.emptyList());
-        when(userFollowService.getFollowing(eq(targetUserId), any(Pageable.class))).thenReturn(page);
+        when(userFollowService.getFollowing(eq(targetUserId), any(Pageable.class)))
+                .thenReturn(page);
 
         // When & Then
         mockMvc.perform(get(USER_FOLLOWING_URL, targetUserId))
@@ -267,7 +269,8 @@ class UserFollowQueryControllerTest {
                 new UserFollowResponse(followId2, followerUserId2, targetUserId, now);
 
         Page<UserFollowResponse> page = new PageImpl<>(List.of(follow1, follow2));
-        when(userFollowService.getFollowers(eq(targetUserId), any(Pageable.class))).thenReturn(page);
+        when(userFollowService.getFollowers(eq(targetUserId), any(Pageable.class)))
+                .thenReturn(page);
 
         // When & Then
         mockMvc.perform(get(USER_FOLLOWERS_URL, targetUserId))
@@ -290,7 +293,8 @@ class UserFollowQueryControllerTest {
         UUID targetUserId = UUID.randomUUID();
 
         Page<UserFollowResponse> page = new PageImpl<>(Collections.emptyList());
-        when(userFollowService.getFollowers(eq(targetUserId), any(Pageable.class))).thenReturn(page);
+        when(userFollowService.getFollowers(eq(targetUserId), any(Pageable.class)))
+                .thenReturn(page);
 
         // When & Then
         mockMvc.perform(get(USER_FOLLOWERS_URL, targetUserId))
@@ -350,7 +354,8 @@ class UserFollowQueryControllerTest {
     // ============ PAGINATED FOLLOWING TESTS ============
 
     @Test
-    void getMyFollowing_paginated_whenUserHasFollowing_shouldReturnPageOfFollowing() throws Exception {
+    void getMyFollowing_paginated_whenUserHasFollowing_shouldReturnPageOfFollowing()
+            throws Exception {
         // Given
         UUID followedUserId1 = UUID.randomUUID();
         UUID followedUserId2 = UUID.randomUUID();
@@ -358,8 +363,10 @@ class UserFollowQueryControllerTest {
         UUID followId2 = UUID.randomUUID();
         Instant now = Instant.now();
 
-        UserFollowResponse follow1 = new UserFollowResponse(followId1, USER_ID, followedUserId1, now);
-        UserFollowResponse follow2 = new UserFollowResponse(followId2, USER_ID, followedUserId2, now);
+        UserFollowResponse follow1 =
+                new UserFollowResponse(followId1, USER_ID, followedUserId1, now);
+        UserFollowResponse follow2 =
+                new UserFollowResponse(followId2, USER_ID, followedUserId2, now);
 
         Page<UserFollowResponse> page = new PageImpl<>(List.of(follow1, follow2));
         when(userFollowService.getFollowing(eq(USER_ID), any(Pageable.class))).thenReturn(page);
@@ -393,16 +400,18 @@ class UserFollowQueryControllerTest {
     }
 
     @Test
-    void getMyFollowing_paginated_withPaginationParams_shouldPassPageableToService() throws Exception {
+    void getMyFollowing_paginated_withPaginationParams_shouldPassPageableToService()
+            throws Exception {
         // Given
         Page<UserFollowResponse> page = new PageImpl<>(Collections.emptyList());
         when(userFollowService.getFollowing(eq(USER_ID), any(Pageable.class))).thenReturn(page);
 
         // When & Then
-        mockMvc.perform(get(MY_FOLLOWING_URL)
-                        .param("page", "1")
-                        .param("size", "10")
-                        .param("sort", "createdAt,desc"))
+        mockMvc.perform(
+                        get(MY_FOLLOWING_URL)
+                                .param("page", "1")
+                                .param("size", "10")
+                                .param("sort", "createdAt,desc"))
                 .andExpect(status().isOk());
 
         verify(userFollowService).getFollowing(eq(USER_ID), any(Pageable.class));
@@ -411,7 +420,8 @@ class UserFollowQueryControllerTest {
     // ============ PAGINATED FOLLOWERS TESTS ============
 
     @Test
-    void getMyFollowers_paginated_whenUserHasFollowers_shouldReturnPageOfFollowers() throws Exception {
+    void getMyFollowers_paginated_whenUserHasFollowers_shouldReturnPageOfFollowers()
+            throws Exception {
         // Given
         UUID followerUserId1 = UUID.randomUUID();
         UUID followerUserId2 = UUID.randomUUID();
@@ -419,8 +429,10 @@ class UserFollowQueryControllerTest {
         UUID followId2 = UUID.randomUUID();
         Instant now = Instant.now();
 
-        UserFollowResponse follow1 = new UserFollowResponse(followId1, followerUserId1, USER_ID, now);
-        UserFollowResponse follow2 = new UserFollowResponse(followId2, followerUserId2, USER_ID, now);
+        UserFollowResponse follow1 =
+                new UserFollowResponse(followId1, followerUserId1, USER_ID, now);
+        UserFollowResponse follow2 =
+                new UserFollowResponse(followId2, followerUserId2, USER_ID, now);
 
         Page<UserFollowResponse> page = new PageImpl<>(List.of(follow1, follow2));
         when(userFollowService.getFollowers(eq(USER_ID), any(Pageable.class))).thenReturn(page);
@@ -454,16 +466,18 @@ class UserFollowQueryControllerTest {
     }
 
     @Test
-    void getMyFollowers_paginated_withPaginationParams_shouldPassPageableToService() throws Exception {
+    void getMyFollowers_paginated_withPaginationParams_shouldPassPageableToService()
+            throws Exception {
         // Given
         Page<UserFollowResponse> page = new PageImpl<>(Collections.emptyList());
         when(userFollowService.getFollowers(eq(USER_ID), any(Pageable.class))).thenReturn(page);
 
         // When & Then
-        mockMvc.perform(get(MY_FOLLOWERS_URL)
-                        .param("page", "2")
-                        .param("size", "15")
-                        .param("sort", "createdAt,asc"))
+        mockMvc.perform(
+                        get(MY_FOLLOWERS_URL)
+                                .param("page", "2")
+                                .param("size", "15")
+                                .param("sort", "createdAt,asc"))
                 .andExpect(status().isOk());
 
         verify(userFollowService).getFollowers(eq(USER_ID), any(Pageable.class));
@@ -472,17 +486,20 @@ class UserFollowQueryControllerTest {
     // ============ PAGINATED FOLLOWING BY USER ID TESTS ============
 
     @Test
-    void getFollowingByUserId_paginated_whenUserHasFollowing_shouldReturnPageOfFollowing() throws Exception {
+    void getFollowingByUserId_paginated_whenUserHasFollowing_shouldReturnPageOfFollowing()
+            throws Exception {
         // Given
         UUID targetUserId = UUID.randomUUID();
         UUID followedUserId1 = UUID.randomUUID();
         UUID followId1 = UUID.randomUUID();
         Instant now = Instant.now();
 
-        UserFollowResponse follow1 = new UserFollowResponse(followId1, targetUserId, followedUserId1, now);
+        UserFollowResponse follow1 =
+                new UserFollowResponse(followId1, targetUserId, followedUserId1, now);
 
         Page<UserFollowResponse> page = new PageImpl<>(List.of(follow1));
-        when(userFollowService.getFollowing(eq(targetUserId), any(Pageable.class))).thenReturn(page);
+        when(userFollowService.getFollowing(eq(targetUserId), any(Pageable.class)))
+                .thenReturn(page);
 
         // When & Then
         mockMvc.perform(get(USER_FOLLOWING_URL, targetUserId))
@@ -496,11 +513,13 @@ class UserFollowQueryControllerTest {
     }
 
     @Test
-    void getFollowingByUserId_paginated_whenUserHasNoFollowing_shouldReturnEmptyPage() throws Exception {
+    void getFollowingByUserId_paginated_whenUserHasNoFollowing_shouldReturnEmptyPage()
+            throws Exception {
         // Given
         UUID targetUserId = UUID.randomUUID();
         Page<UserFollowResponse> page = new PageImpl<>(Collections.emptyList());
-        when(userFollowService.getFollowing(eq(targetUserId), any(Pageable.class))).thenReturn(page);
+        when(userFollowService.getFollowing(eq(targetUserId), any(Pageable.class)))
+                .thenReturn(page);
 
         // When & Then
         mockMvc.perform(get(USER_FOLLOWING_URL, targetUserId))
@@ -514,17 +533,20 @@ class UserFollowQueryControllerTest {
     // ============ PAGINATED FOLLOWERS BY USER ID TESTS ============
 
     @Test
-    void getFollowersByUserId_paginated_whenUserHasFollowers_shouldReturnPageOfFollowers() throws Exception {
+    void getFollowersByUserId_paginated_whenUserHasFollowers_shouldReturnPageOfFollowers()
+            throws Exception {
         // Given
         UUID targetUserId = UUID.randomUUID();
         UUID followerUserId1 = UUID.randomUUID();
         UUID followId1 = UUID.randomUUID();
         Instant now = Instant.now();
 
-        UserFollowResponse follow1 = new UserFollowResponse(followId1, followerUserId1, targetUserId, now);
+        UserFollowResponse follow1 =
+                new UserFollowResponse(followId1, followerUserId1, targetUserId, now);
 
         Page<UserFollowResponse> page = new PageImpl<>(List.of(follow1));
-        when(userFollowService.getFollowers(eq(targetUserId), any(Pageable.class))).thenReturn(page);
+        when(userFollowService.getFollowers(eq(targetUserId), any(Pageable.class)))
+                .thenReturn(page);
 
         // When & Then
         mockMvc.perform(get(USER_FOLLOWERS_URL, targetUserId))
@@ -538,11 +560,13 @@ class UserFollowQueryControllerTest {
     }
 
     @Test
-    void getFollowersByUserId_paginated_whenUserHasNoFollowers_shouldReturnEmptyPage() throws Exception {
+    void getFollowersByUserId_paginated_whenUserHasNoFollowers_shouldReturnEmptyPage()
+            throws Exception {
         // Given
         UUID targetUserId = UUID.randomUUID();
         Page<UserFollowResponse> page = new PageImpl<>(Collections.emptyList());
-        when(userFollowService.getFollowers(eq(targetUserId), any(Pageable.class))).thenReturn(page);
+        when(userFollowService.getFollowers(eq(targetUserId), any(Pageable.class)))
+                .thenReturn(page);
 
         // When & Then
         mockMvc.perform(get(USER_FOLLOWERS_URL, targetUserId))

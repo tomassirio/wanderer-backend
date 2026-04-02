@@ -83,7 +83,8 @@ public interface TripService {
      * @param pageable pagination and sorting parameters
      * @return a page of {@link TripDTO} objects representing visible trips owned by the user
      */
-    Page<TripDTO> getTripsForUserWithVisibility(UUID userId, UUID requestingUserId, Pageable pageable);
+    Page<TripDTO> getTripsForUserWithVisibility(
+            UUID userId, UUID requestingUserId, Pageable pageable);
 
     /**
      * Retrieves all ongoing public trips with pagination. If a requesting user ID is provided,

@@ -26,6 +26,6 @@ public interface TripSummary {
     Instant getCreationTimestamp();
 
     Double getCachedDistanceKm();
-    
+
     Integer getUpdateCount(); // Number of trip updates/locations
 }

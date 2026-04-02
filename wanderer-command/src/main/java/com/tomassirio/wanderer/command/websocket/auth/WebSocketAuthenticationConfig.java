@@ -1,9 +1,8 @@
 package com.tomassirio.wanderer.command.websocket.auth;
 
+import java.util.List;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-
-import java.util.List;
 
 /**
  * Configuration for WebSocket authentication strategies.

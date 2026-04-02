@@ -23,14 +23,14 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class WebSocketEventServiceTest {
 
-    @Mock private WebSocketSessionManager sessionManager;
+    @Mock private RedisWebSocketBroadcaster redisBroadcaster;
 
     private WebSocketEventService service;
 
     @BeforeEach
     void setUp() {
         ObjectMapper objectMapper = new ObjectMapper();
-        service = new WebSocketEventService(sessionManager, objectMapper);
+        service = new WebSocketEventService(redisBroadcaster, objectMapper);
     }
 
     @Test
@@ -54,7 +54,7 @@ class WebSocketEventServiceTest {
         service.broadcast(event);
 
         // Then
-        verify(sessionManager).broadcast(eq("/topic/trips/" + tripId), anyString());
+        verify(redisBroadcaster).publishToRedis(eq("/topic/trips/" + tripId), anyString());
     }
 
     @Test
@@ -78,7 +78,7 @@ class WebSocketEventServiceTest {
         service.broadcast(event);
 
         // Then
-        verify(sessionManager).broadcast(eq("/topic/trips/" + tripId), anyString());
+        verify(redisBroadcaster).publishToRedis(eq("/topic/trips/" + tripId), anyString());
     }
 
     @Test
@@ -101,7 +101,7 @@ class WebSocketEventServiceTest {
         service.broadcast(event);
 
         // Then
-        verify(sessionManager).broadcast(eq("/topic/trips/" + tripId), anyString());
+        verify(redisBroadcaster).publishToRedis(eq("/topic/trips/" + tripId), anyString());
     }
 
     @Test
@@ -124,7 +124,7 @@ class WebSocketEventServiceTest {
         service.broadcast(event);
 
         // Then
-        verify(sessionManager).broadcast(eq("/topic/trips/" + tripId), anyString());
+        verify(redisBroadcaster).publishToRedis(eq("/topic/trips/" + tripId), anyString());
     }
 
     @Test
@@ -147,7 +147,7 @@ class WebSocketEventServiceTest {
         service.broadcast(event);
 
         // Then
-        verify(sessionManager).broadcast(eq("/topic/users/" + receiverId), anyString());
+        verify(redisBroadcaster).publishToRedis(eq("/topic/users/" + receiverId), anyString());
     }
 
     @Test
@@ -169,7 +169,7 @@ class WebSocketEventServiceTest {
         service.broadcast(event);
 
         // Then
-        verify(sessionManager).broadcast(eq("/topic/users/" + followedId), anyString());
+        verify(redisBroadcaster).publishToRedis(eq("/topic/users/" + followedId), anyString());
     }
 
     @Test
@@ -187,6 +187,6 @@ class WebSocketEventServiceTest {
         service.broadcast(event);
 
         // Then
-        verify(sessionManager).broadcast(eq("/topic/trips/" + tripId), anyString());
+        verify(redisBroadcaster).publishToRedis(eq("/topic/trips/" + tripId), anyString());
     }
 }

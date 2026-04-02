@@ -9,7 +9,4 @@ import org.springframework.data.domain.Page;
  *
  * @since 1.2.0
  */
-public record SearchResultsResponse(
-        Page<UserSearchResult> users,
-        Page<TripSummaryDTO> trips
-) {}
+public record SearchResultsResponse(Page<UserSearchResult> users, Page<TripSummaryDTO> trips) {}

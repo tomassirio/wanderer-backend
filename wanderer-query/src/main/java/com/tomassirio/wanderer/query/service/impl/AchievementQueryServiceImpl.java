@@ -1,6 +1,5 @@
 package com.tomassirio.wanderer.query.service.impl;
 
-import com.tomassirio.wanderer.commons.config.RedisCacheConfig;
 import com.tomassirio.wanderer.commons.dto.AchievementDTO;
 import com.tomassirio.wanderer.commons.dto.UserAchievementDTO;
 import com.tomassirio.wanderer.commons.mapper.AchievementMapper;
@@ -11,7 +10,6 @@ import com.tomassirio.wanderer.query.service.AchievementQueryService;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 /**

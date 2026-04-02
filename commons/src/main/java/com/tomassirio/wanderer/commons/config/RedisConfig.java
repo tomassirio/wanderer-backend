@@ -1,10 +1,13 @@
 package com.tomassirio.wanderer.commons.config;
 
+import io.lettuce.core.resource.ClientResources;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.connection.RedisStandaloneConfiguration;
+import org.springframework.data.redis.connection.lettuce.LettuceClientConfiguration;
 import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
 import org.springframework.data.redis.core.StringRedisTemplate;
 
@@ -18,11 +21,22 @@ public class RedisConfig {
     @Value("${spring.data.redis.port:6379}")
     private int redisPort;
 
+    @Autowired(required = false)
+    private ClientResources clientResources;
+
     @Bean
     public RedisConnectionFactory redisConnectionFactory() {
         RedisStandaloneConfiguration config =
                 new RedisStandaloneConfiguration(redisHost, redisPort);
-        return new LettuceConnectionFactory(config);
+
+        LettuceClientConfiguration.LettuceClientConfigurationBuilder clientConfigBuilder =
+                LettuceClientConfiguration.builder();
+
+        if (clientResources != null) {
+            clientConfigBuilder.clientResources(clientResources);
+        }
+
+        return new LettuceConnectionFactory(config, clientConfigBuilder.build());
     }
 
     @Bean

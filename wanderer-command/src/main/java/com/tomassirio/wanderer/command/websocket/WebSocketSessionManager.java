@@ -20,7 +20,7 @@ public class WebSocketSessionManager {
 
     // sessionId -> userId (null not allowed in ConcurrentHashMap, so we use Optional)
     private final Map<String, UUID> sessionUsers = new ConcurrentHashMap<>();
-    
+
     // sessionId -> anonymous flag (since ConcurrentHashMap doesn't support null values)
     private final Map<String, Boolean> sessionAnonymousFlags = new ConcurrentHashMap<>();
 
@@ -36,7 +36,7 @@ public class WebSocketSessionManager {
 
     public void registerSession(WebSocketSession session, UUID userId) {
         sessions.put(session.getId(), session);
-        
+
         // ConcurrentHashMap doesn't allow null values, so track anonymous status separately
         boolean isAnonymous = (userId == null);
         if (!isAnonymous) {
@@ -44,7 +44,7 @@ public class WebSocketSessionManager {
         }
         sessionAnonymousFlags.put(session.getId(), isAnonymous);
         sessionSubscriptionCounts.put(session.getId(), 0);
-        
+
         log.info(
                 "Registered session: {} for user: {} (anonymous: {})",
                 session.getId(),
@@ -86,10 +86,7 @@ public class WebSocketSessionManager {
 
         topicSubscriptions.computeIfAbsent(topic, k -> new CopyOnWriteArraySet<>()).add(sessionId);
         log.debug(
-                "Session {} subscribed to topic {} (anonymous: {})",
-                sessionId,
-                topic,
-                isAnonymous);
+                "Session {} subscribed to topic {} (anonymous: {})", sessionId, topic, isAnonymous);
     }
 
     public void unsubscribe(WebSocketSession session, String topic) {
@@ -110,29 +107,45 @@ public class WebSocketSessionManager {
         }
     }
 
-    public void broadcast(String topic, String message) {
+    /**
+     * Broadcasts a message to LOCAL sessions subscribed to the topic. This method is called by the
+     * Redis listener when a message is received from Redis.
+     *
+     * @param topic the WebSocket topic
+     * @param message the message to broadcast
+     */
+    public void broadcastToLocalSessions(String topic, String message) {
         Set<String> subscribers = topicSubscriptions.get(topic);
         if (subscribers == null || subscribers.isEmpty()) {
-            log.debug("No subscribers for topic: {}", topic);
+            log.debug("No local subscribers for topic: {}", topic);
             return;
         }
 
-        log.debug("Broadcasting to {} subscribers on topic: {}", subscribers.size(), topic);
+        log.debug("Broadcasting to {} local subscribers on topic: {}", subscribers.size(), topic);
 
         for (String sessionId : subscribers) {
             WebSocketSession session = sessions.get(sessionId);
             if (session != null && session.isOpen()) {
                 try {
                     session.sendMessage(new TextMessage(message));
-                    log.debug("Sent message to session: {}", sessionId);
+                    log.debug("Sent message to local session: {}", sessionId);
                 } catch (IOException e) {
-                    log.error("Error sending message to session: {}", sessionId, e);
+                    log.error("Error sending message to local session: {}", sessionId, e);
                 }
             } else {
                 log.warn("Session {} is not open, removing from subscriptions", sessionId);
                 subscribers.remove(sessionId);
             }
         }
+    }
+
+    /**
+     * @deprecated Use broadcastToLocalSessions instead. This method is kept for backward
+     *     compatibility but will be removed once all callers are updated to use Redis broadcasting.
+     */
+    @Deprecated
+    public void broadcast(String topic, String message) {
+        broadcastToLocalSessions(topic, message);
     }
 
     public UUID getUserId(WebSocketSession session) {

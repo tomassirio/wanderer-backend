@@ -1,7 +1,5 @@
 package com.tomassirio.wanderer.command.websocket.auth;
 
-import com.tomassirio.wanderer.command.websocket.auth.AuthenticationResult;
-import com.tomassirio.wanderer.command.websocket.auth.WebSocketAuthenticationStrategy;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.WebSocketSession;

@@ -8,7 +8,6 @@ import com.tomassirio.wanderer.query.service.TripService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -82,8 +81,9 @@ public class TripController {
     @PreAuthorize("hasAnyRole('ADMIN','USER')")
     @Operation(
             summary = "Get trips for current authenticated user",
-            description = "Retrieves all trips belonging to the authenticated user with pagination. "
-                    + "Use query parameters: page, size, sort (e.g., sort=creationTimestamp,desc)")
+            description =
+                    "Retrieves all trips belonging to the authenticated user with pagination. "
+                            + "Use query parameters: page, size, sort (e.g., sort=creationTimestamp,desc)")
     public ResponseEntity<Page<TripDTO>> getMyTrips(
             @Parameter(hidden = true) @CurrentUserId UUID userId,
             @Parameter(description = "Pagination and sorting parameters")
@@ -96,8 +96,12 @@ public class TripController {
 
         Page<TripDTO> trips = tripService.getTripsForUser(userId, pageable);
 
-        log.info("Successfully retrieved {} trips for user {} (page {} of {})", 
-                trips.getNumberOfElements(), userId, trips.getNumber() + 1, trips.getTotalPages());
+        log.info(
+                "Successfully retrieved {} trips for user {} (page {} of {})",
+                trips.getNumberOfElements(),
+                userId,
+                trips.getNumber() + 1,
+                trips.getTotalPages());
         return ResponseEntity.ok(trips);
     }
 
@@ -142,7 +146,7 @@ public class TripController {
             summary = "Get trips by another user",
             description =
                     "Retrieves trips by another user with pagination, respecting visibility (PUBLIC and PROTECTED if friends). "
-                    + "Use query parameters: page, size, sort (e.g., sort=creationTimestamp,desc)")
+                            + "Use query parameters: page, size, sort (e.g., sort=creationTimestamp,desc)")
     public ResponseEntity<Page<TripDTO>> getTripsByUser(
             @Parameter(hidden = true) @CurrentUserId UUID requestingUserId,
             @PathVariable UUID userId,
@@ -157,10 +161,15 @@ public class TripController {
                 userId,
                 requestingUserId);
 
-        Page<TripDTO> trips = tripService.getTripsForUserWithVisibility(userId, requestingUserId, pageable);
+        Page<TripDTO> trips =
+                tripService.getTripsForUserWithVisibility(userId, requestingUserId, pageable);
 
-        log.info("Successfully retrieved {} trips for user {} (page {} of {})", 
-                trips.getNumberOfElements(), userId, trips.getNumber() + 1, trips.getTotalPages());
+        log.info(
+                "Successfully retrieved {} trips for user {} (page {} of {})",
+                trips.getNumberOfElements(),
+                userId,
+                trips.getNumber() + 1,
+                trips.getTotalPages());
         return ResponseEntity.ok(trips);
     }
 
@@ -185,7 +194,8 @@ public class TripController {
                 pageable.getPageNumber(),
                 pageable.getPageSize());
 
-        Page<TripSummaryDTO> trips = tripService.getOngoingPublicTripSummaries(requestingUserId, pageable);
+        Page<TripSummaryDTO> trips =
+                tripService.getOngoingPublicTripSummaries(requestingUserId, pageable);
 
         log.info(
                 "Successfully retrieved {} ongoing public trip summaries (page {} of {})",

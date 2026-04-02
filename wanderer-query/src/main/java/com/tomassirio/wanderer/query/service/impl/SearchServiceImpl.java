@@ -72,9 +72,8 @@ public class SearchServiceImpl implements SearchService {
                                                 user.getId(),
                                                 user.getUsername(),
                                                 user.getDisplayName(),
-                                                ThumbnailUrlService
-                                                        .generateUserProfileThumbnailUrl(
-                                                                user.getId())))
+                                                ThumbnailUrlService.generateUserProfileThumbnailUrl(
+                                                        user.getId())))
                         .toList();
 
         return new PageImpl<>(userResults, pageable, userPage.getTotalElements());

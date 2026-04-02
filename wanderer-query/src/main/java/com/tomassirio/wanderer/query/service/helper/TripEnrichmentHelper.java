@@ -75,10 +75,7 @@ public class TripEnrichmentHelper {
      * @return set of trip UUIDs
      */
     public Set<UUID> collectTripIds(List<Trip> trips) {
-        return trips.stream()
-                .map(Trip::getId)
-                .filter(Objects::nonNull)
-                .collect(Collectors.toSet());
+        return trips.stream().map(Trip::getId).filter(Objects::nonNull).collect(Collectors.toSet());
     }
 
     /**
@@ -173,9 +170,7 @@ public class TripEnrichmentHelper {
                 trip.getUserId() != null ? userIdToUsername.get(trip.getUserId()) : null,
                 TripSettingsMapper.INSTANCE.toDTO(trip.getTripSettings()),
                 trip.getCreationTimestamp(),
-                trip.getId() != null
-                        ? commentCounts.getOrDefault(trip.getId(), 0L).intValue()
-                        : 0,
+                trip.getId() != null ? commentCounts.getOrDefault(trip.getId(), 0L).intValue() : 0,
                 trip.getTripDetails() != null ? trip.getTripDetails().getCurrentDay() : null,
                 trip.getTripPlanId() != null ? trip.getTripPlanId().toString() : null,
                 trip.getUpdateCount(), // Include update count for thumbnail logic
@@ -209,8 +204,7 @@ public class TripEnrichmentHelper {
                 trips.stream()
                         .map(
                                 trip -> {
-                                    PromotedTrip promotedInfo =
-                                            promotedTripsMap.get(trip.getId());
+                                    PromotedTrip promotedInfo = promotedTripsMap.get(trip.getId());
                                     boolean isPromoted = promotedInfo != null;
                                     Integer commentCount =
                                             trip.getId() != null
@@ -220,9 +214,7 @@ public class TripEnrichmentHelper {
                                                     : 0;
 
                                     return new TripDTO(
-                                            trip.getId() != null
-                                                    ? trip.getId().toString()
-                                                    : null,
+                                            trip.getId() != null ? trip.getId().toString() : null,
                                             trip.getName(),
                                             trip.getUserId() != null
                                                     ? trip.getUserId().toString()
@@ -232,8 +224,7 @@ public class TripEnrichmentHelper {
                                                     : null,
                                             TripSettingsMapper.INSTANCE.toDTO(
                                                     trip.getTripSettings()),
-                                            TripDetailsMapper.INSTANCE.toDTO(
-                                                    trip.getTripDetails()),
+                                            TripDetailsMapper.INSTANCE.toDTO(trip.getTripDetails()),
                                             trip.getTripPlanId() != null
                                                     ? trip.getTripPlanId().toString()
                                                     : null,
@@ -341,14 +332,15 @@ public class TripEnrichmentHelper {
         }
 
         UUID tripId = UUID.fromString(trip.id());
-        
+
         // Get username
         String username = null;
         if (trip.userId() != null) {
-            username = userRepository
-                    .findById(UUID.fromString(trip.userId()))
-                    .map(User::getUsername)
-                    .orElse(null);
+            username =
+                    userRepository
+                            .findById(UUID.fromString(trip.userId()))
+                            .map(User::getUsername)
+                            .orElse(null);
         }
 
         // Get promoted status
@@ -357,7 +349,7 @@ public class TripEnrichmentHelper {
 
         // Determine if the trip should be marked as pre-announced
         boolean isPreAnnounced = promotedInfo != null && promotedInfo.isPreAnnounced();
-        
+
         return new TripDTO(
                 trip.id(),
                 trip.name(),
@@ -423,9 +415,7 @@ public class TripEnrichmentHelper {
                 trip.id(),
                 trip.name(),
                 trip.userId(),
-                trip.userId() != null
-                        ? userIdToUsername.get(UUID.fromString(trip.userId()))
-                        : null,
+                trip.userId() != null ? userIdToUsername.get(UUID.fromString(trip.userId())) : null,
                 trip.tripSettings(),
                 trip.tripDetails(),
                 trip.tripPlanId(),
@@ -461,9 +451,7 @@ public class TripEnrichmentHelper {
                 trip.id(),
                 trip.name(),
                 trip.userId(),
-                trip.userId() != null
-                        ? userIdToUsername.get(UUID.fromString(trip.userId()))
-                        : null,
+                trip.userId() != null ? userIdToUsername.get(UUID.fromString(trip.userId())) : null,
                 trip.tripSettings(),
                 trip.tripDetails(),
                 trip.tripPlanId(),
@@ -484,5 +472,3 @@ public class TripEnrichmentHelper {
                 trip.updateCount());
     }
 }
-
-

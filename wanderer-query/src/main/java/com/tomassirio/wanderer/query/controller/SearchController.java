@@ -74,8 +74,7 @@ public class SearchController {
 
         if (q == null || q.trim().isEmpty()) {
             log.warn("Empty search query received");
-            return ResponseEntity.ok(
-                    new SearchResultsResponse(Page.empty(), Page.empty()));
+            return ResponseEntity.ok(new SearchResultsResponse(Page.empty(), Page.empty()));
         }
 
         SearchResultsResponse results =

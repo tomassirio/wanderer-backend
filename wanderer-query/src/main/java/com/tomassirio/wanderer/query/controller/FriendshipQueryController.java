@@ -40,9 +40,10 @@ public class FriendshipQueryController {
     @GetMapping(ApiConstants.FRIENDS_ME_ENDPOINT)
     @PreAuthorize("hasAnyRole('ADMIN','USER')")
     @Operation(
-            summary = "Get my friends", 
-            description = "Get all friends of the current user with pagination. "
-                    + "Use query parameters: page, size, sort (e.g., sort=createdAt,desc)")
+            summary = "Get my friends",
+            description =
+                    "Get all friends of the current user with pagination. "
+                            + "Use query parameters: page, size, sort (e.g., sort=createdAt,desc)")
     public ResponseEntity<Page<FriendshipResponse>> getMyFriends(
             @Parameter(hidden = true) @CurrentUserId UUID userId,
             @Parameter(description = "Pagination and sorting parameters")
@@ -50,8 +51,12 @@ public class FriendshipQueryController {
                     Pageable pageable) {
         log.info("Received request to get friends for current user {} with pagination", userId);
         Page<FriendshipResponse> friends = friendshipQueryService.getFriends(userId, pageable);
-        log.info("Found {} friends for user {} (page {} of {})", 
-                friends.getNumberOfElements(), userId, friends.getNumber() + 1, friends.getTotalPages());
+        log.info(
+                "Found {} friends for user {} (page {} of {})",
+                friends.getNumberOfElements(),
+                userId,
+                friends.getNumber() + 1,
+                friends.getTotalPages());
         return ResponseEntity.ok(friends);
     }
 
@@ -59,8 +64,9 @@ public class FriendshipQueryController {
     @PreAuthorize("hasAnyRole('ADMIN','USER')")
     @Operation(
             summary = "Get user's friends",
-            description = "Get all friends of a specific user by user ID with pagination. "
-                    + "Use query parameters: page, size, sort (e.g., sort=createdAt,desc)")
+            description =
+                    "Get all friends of a specific user by user ID with pagination. "
+                            + "Use query parameters: page, size, sort (e.g., sort=createdAt,desc)")
     public ResponseEntity<Page<FriendshipResponse>> getFriendsByUserId(
             @Parameter(description = "User ID") @PathVariable UUID userId,
             @Parameter(description = "Pagination and sorting parameters")
@@ -68,8 +74,12 @@ public class FriendshipQueryController {
                     Pageable pageable) {
         log.info("Received request to get friends for user {} with pagination", userId);
         Page<FriendshipResponse> friends = friendshipQueryService.getFriends(userId, pageable);
-        log.info("Found {} friends for user {} (page {} of {})", 
-                friends.getNumberOfElements(), userId, friends.getNumber() + 1, friends.getTotalPages());
+        log.info(
+                "Found {} friends for user {} (page {} of {})",
+                friends.getNumberOfElements(),
+                userId,
+                friends.getNumber() + 1,
+                friends.getTotalPages());
         return ResponseEntity.ok(friends);
     }
 }

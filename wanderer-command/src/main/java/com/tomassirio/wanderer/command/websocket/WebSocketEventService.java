@@ -9,21 +9,24 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 /**
- * Service for broadcasting WebSocket events to subscribers.
+ * Service for broadcasting WebSocket events to subscribers across all pods.
  *
  * <p>This service provides a simple interface for broadcasting events that implement {@link
  * Broadcastable}. The event itself knows its topic, event type, and payload.
+ *
+ * <p>Messages are broadcast to all pods via Redis Pub/Sub, ensuring that all connected clients
+ * receive updates regardless of which pod they're connected to.
  */
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class WebSocketEventService {
 
-    private final WebSocketSessionManager sessionManager;
+    private final RedisWebSocketBroadcaster redisBroadcaster;
     private final ObjectMapper objectMapper;
 
     /**
-     * Broadcasts a Broadcastable event to its designated topic.
+     * Broadcasts a Broadcastable event to its designated topic across all pods.
      *
      * @param event the event to broadcast (must implement {@link Broadcastable})
      */
@@ -35,12 +38,12 @@ public class WebSocketEventService {
 
         try {
             String message = objectMapper.writeValueAsString(wsEvent);
-            sessionManager.broadcast(topic, message);
-            log.info(
-                    "Broadcast {} event to {} ({} subscribers)",
-                    event.getEventType(),
-                    topic,
-                    sessionManager.getSubscribersCount(topic));
+
+            // Publish to Redis - all pods (including this one) will receive and broadcast to their
+            // local sessions
+            redisBroadcaster.publishToRedis(topic, message);
+
+            log.info("Published {} event to Redis for topic {}", event.getEventType(), topic);
         } catch (JsonProcessingException e) {
             log.error("Error serializing WebSocket event: {}", event.getEventType(), e);
         }

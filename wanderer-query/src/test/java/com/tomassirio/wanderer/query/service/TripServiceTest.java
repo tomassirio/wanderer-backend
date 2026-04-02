@@ -3,14 +3,12 @@ package com.tomassirio.wanderer.query.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.tomassirio.wanderer.commons.domain.Friendship;
-import com.tomassirio.wanderer.commons.domain.PromotedTrip;
 import com.tomassirio.wanderer.commons.domain.Trip;
 import com.tomassirio.wanderer.commons.domain.TripStatus;
 import com.tomassirio.wanderer.commons.domain.TripUpdate;
@@ -18,6 +16,7 @@ import com.tomassirio.wanderer.commons.domain.TripVisibility;
 import com.tomassirio.wanderer.commons.domain.UserFollow;
 import com.tomassirio.wanderer.commons.dto.TripDTO;
 import com.tomassirio.wanderer.commons.dto.TripMaintenanceStatsDTO;
+import com.tomassirio.wanderer.commons.mapper.TripMapper;
 import com.tomassirio.wanderer.query.repository.FriendshipRepository;
 import com.tomassirio.wanderer.query.repository.PromotedTripRepository;
 import com.tomassirio.wanderer.query.repository.TripRepository;
@@ -25,13 +24,11 @@ import com.tomassirio.wanderer.query.repository.TripUpdateRepository;
 import com.tomassirio.wanderer.query.repository.UserFollowRepository;
 import com.tomassirio.wanderer.query.repository.UserRepository;
 import com.tomassirio.wanderer.query.service.helper.TripEnrichmentHelper;
-import com.tomassirio.wanderer.commons.mapper.TripMapper;
 import com.tomassirio.wanderer.query.service.impl.TripServiceImpl;
 import com.tomassirio.wanderer.query.utils.TestEntityFactory;
 import jakarta.persistence.EntityNotFoundException;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -60,127 +57,157 @@ class TripServiceTest {
     @Mock private PromotedTripRepository promotedTripRepository;
 
     @Mock private TripEnrichmentHelper tripEnrichmentHelper;
-    
+
     @Mock private TripUpdateRepository tripUpdateRepository;
 
     @InjectMocks private TripServiceImpl tripService;
-    
+
     private final TripMapper tripMapper = TripMapper.INSTANCE;
-    
+
     @BeforeEach
     void setUp() {
         // Configure enrichment helper to return enriched DTOs
         // Use lenient() to avoid UnnecessaryStubbingException for tests that don't use all stubs
-        
+
         // enrichWithUsernameAndPromotedStatus
-        lenient().when(tripEnrichmentHelper.enrichWithUsernameAndPromotedStatus(any(TripDTO.class)))
-                .thenAnswer(invocation -> {
-                    TripDTO input = invocation.getArgument(0);
-                    // Ensure Boolean fields are non-null
-                    return new TripDTO(
-                            input.id(),
-                            input.name(),
-                            input.userId(),
-                            input.username(),
-                            input.tripSettings(),
-                            input.tripDetails(),
-                            input.tripPlanId(),
-                            input.comments(),
-                            input.tripUpdates(),
-                            input.tripDays(),
-                            input.encodedPolyline(),
-                            input.plannedPolyline(),
-                            input.polylineUpdatedAt(),
-                            input.accruedDistanceKm(),
-                            input.creationTimestamp(),
-                            input.enabled(),
-                            input.isPromoted() != null ? input.isPromoted() : Boolean.FALSE,
-                            input.promotedAt(),
-                            input.isPreAnnounced() != null ? input.isPreAnnounced() : Boolean.FALSE,
-                            input.countdownStartDate(),
-                            input.commentsCount(),
-                            input.updateCount()
-                    );
-                });
-        
+        lenient()
+                .when(tripEnrichmentHelper.enrichWithUsernameAndPromotedStatus(any(TripDTO.class)))
+                .thenAnswer(
+                        invocation -> {
+                            TripDTO input = invocation.getArgument(0);
+                            // Ensure Boolean fields are non-null
+                            return new TripDTO(
+                                    input.id(),
+                                    input.name(),
+                                    input.userId(),
+                                    input.username(),
+                                    input.tripSettings(),
+                                    input.tripDetails(),
+                                    input.tripPlanId(),
+                                    input.comments(),
+                                    input.tripUpdates(),
+                                    input.tripDays(),
+                                    input.encodedPolyline(),
+                                    input.plannedPolyline(),
+                                    input.polylineUpdatedAt(),
+                                    input.accruedDistanceKm(),
+                                    input.creationTimestamp(),
+                                    input.enabled(),
+                                    input.isPromoted() != null ? input.isPromoted() : Boolean.FALSE,
+                                    input.promotedAt(),
+                                    input.isPreAnnounced() != null
+                                            ? input.isPreAnnounced()
+                                            : Boolean.FALSE,
+                                    input.countdownStartDate(),
+                                    input.commentsCount(),
+                                    input.updateCount());
+                        });
+
         // enrichListWithUsernames
-        lenient().when(tripEnrichmentHelper.enrichListWithUsernames(any(List.class)))
+        lenient()
+                .when(tripEnrichmentHelper.enrichListWithUsernames(any(List.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
-        
+
         // enrichListWithUsernamesAndPromotedStatus
-        lenient().when(tripEnrichmentHelper.enrichListWithUsernamesAndPromotedStatus(any(List.class)))
-                .thenAnswer(invocation -> {
-                    List<TripDTO> inputs = invocation.getArgument(0);
-                    // Ensure Boolean fields are non-null
-                    return inputs.stream().map(input -> new TripDTO(
-                            input.id(),
-                            input.name(),
-                            input.userId(),
-                            input.username(),
-                            input.tripSettings(),
-                            input.tripDetails(),
-                            input.tripPlanId(),
-                            input.comments(),
-                            input.tripUpdates(),
-                            input.tripDays(),
-                            input.encodedPolyline(),
-                            input.plannedPolyline(),
-                            input.polylineUpdatedAt(),
-                            input.accruedDistanceKm(),
-                            input.creationTimestamp(),
-                            input.enabled(),
-                            input.isPromoted() != null ? input.isPromoted() : Boolean.FALSE,
-                            input.promotedAt(),
-                            input.isPreAnnounced() != null ? input.isPreAnnounced() : Boolean.FALSE,
-                            input.countdownStartDate(),
-                            input.commentsCount(),
-                            input.updateCount()
-                    )).toList();
-                });
-        
+        lenient()
+                .when(
+                        tripEnrichmentHelper.enrichListWithUsernamesAndPromotedStatus(
+                                any(List.class)))
+                .thenAnswer(
+                        invocation -> {
+                            List<TripDTO> inputs = invocation.getArgument(0);
+                            // Ensure Boolean fields are non-null
+                            return inputs.stream()
+                                    .map(
+                                            input ->
+                                                    new TripDTO(
+                                                            input.id(),
+                                                            input.name(),
+                                                            input.userId(),
+                                                            input.username(),
+                                                            input.tripSettings(),
+                                                            input.tripDetails(),
+                                                            input.tripPlanId(),
+                                                            input.comments(),
+                                                            input.tripUpdates(),
+                                                            input.tripDays(),
+                                                            input.encodedPolyline(),
+                                                            input.plannedPolyline(),
+                                                            input.polylineUpdatedAt(),
+                                                            input.accruedDistanceKm(),
+                                                            input.creationTimestamp(),
+                                                            input.enabled(),
+                                                            input.isPromoted() != null
+                                                                    ? input.isPromoted()
+                                                                    : Boolean.FALSE,
+                                                            input.promotedAt(),
+                                                            input.isPreAnnounced() != null
+                                                                    ? input.isPreAnnounced()
+                                                                    : Boolean.FALSE,
+                                                            input.countdownStartDate(),
+                                                            input.commentsCount(),
+                                                            input.updateCount()))
+                                    .toList();
+                        });
+
         // enrichTripsToTripDTOs - used for Page<Trip> -> Page<TripDTO>
-        lenient().when(tripEnrichmentHelper.enrichTripsToTripDTOs(any(Page.class), any(Pageable.class)))
-                .thenAnswer(invocation -> {
-                    Page<Trip> tripPage = invocation.getArgument(0);
-                    Pageable pageable = invocation.getArgument(1);
-                    List<TripDTO> dtos = tripPage.getContent().stream()
-                            .map(tripMapper::toDTO)
-                            .map(dto -> new TripDTO(
-                                    dto.id(),
-                                    dto.name(),
-                                    dto.userId(),
-                                    dto.username(),
-                                    dto.tripSettings(),
-                                    dto.tripDetails(),
-                                    dto.tripPlanId(),
-                                    dto.comments(),
-                                    dto.tripUpdates(),
-                                    dto.tripDays(),
-                                    dto.encodedPolyline(),
-                                    dto.plannedPolyline(),
-                                    dto.polylineUpdatedAt(),
-                                    dto.accruedDistanceKm(),
-                                    dto.creationTimestamp(),
-                                    dto.enabled(),
-                                    dto.isPromoted() != null ? dto.isPromoted() : Boolean.FALSE,
-                                    dto.promotedAt(),
-                                    dto.isPreAnnounced() != null ? dto.isPreAnnounced() : Boolean.FALSE,
-                                    dto.countdownStartDate(),
-                                    dto.commentsCount(),
-                                    dto.updateCount()
-                            ))
-                            .toList();
-                    return new PageImpl<>(dtos, pageable, tripPage.getTotalElements());
-                });
-        
+        lenient()
+                .when(
+                        tripEnrichmentHelper.enrichTripsToTripDTOs(
+                                any(Page.class), any(Pageable.class)))
+                .thenAnswer(
+                        invocation -> {
+                            Page<Trip> tripPage = invocation.getArgument(0);
+                            Pageable pageable = invocation.getArgument(1);
+                            List<TripDTO> dtos =
+                                    tripPage.getContent().stream()
+                                            .map(tripMapper::toDTO)
+                                            .map(
+                                                    dto ->
+                                                            new TripDTO(
+                                                                    dto.id(),
+                                                                    dto.name(),
+                                                                    dto.userId(),
+                                                                    dto.username(),
+                                                                    dto.tripSettings(),
+                                                                    dto.tripDetails(),
+                                                                    dto.tripPlanId(),
+                                                                    dto.comments(),
+                                                                    dto.tripUpdates(),
+                                                                    dto.tripDays(),
+                                                                    dto.encodedPolyline(),
+                                                                    dto.plannedPolyline(),
+                                                                    dto.polylineUpdatedAt(),
+                                                                    dto.accruedDistanceKm(),
+                                                                    dto.creationTimestamp(),
+                                                                    dto.enabled(),
+                                                                    dto.isPromoted() != null
+                                                                            ? dto.isPromoted()
+                                                                            : Boolean.FALSE,
+                                                                    dto.promotedAt(),
+                                                                    dto.isPreAnnounced() != null
+                                                                            ? dto.isPreAnnounced()
+                                                                            : Boolean.FALSE,
+                                                                    dto.countdownStartDate(),
+                                                                    dto.commentsCount(),
+                                                                    dto.updateCount()))
+                                            .toList();
+                            return new PageImpl<>(dtos, pageable, tripPage.getTotalElements());
+                        });
+
         // enrichTripsToSummaryPage
-        lenient().when(tripEnrichmentHelper.enrichTripsToSummaryPage(any(Page.class), any(Pageable.class)))
-                .thenAnswer(invocation -> {
-                    Page<Trip> tripPage = invocation.getArgument(0);
-                    Pageable pageable = invocation.getArgument(1);
-                    // For tests, we can return an empty result or mock the summary conversion
-                    return Page.empty(pageable);
-                });
+        lenient()
+                .when(
+                        tripEnrichmentHelper.enrichTripsToSummaryPage(
+                                any(Page.class), any(Pageable.class)))
+                .thenAnswer(
+                        invocation -> {
+                            Page<Trip> tripPage = invocation.getArgument(0);
+                            Pageable pageable = invocation.getArgument(1);
+                            // For tests, we can return an empty result or mock the summary
+                            // conversion
+                            return Page.empty(pageable);
+                        });
     }
 
     @Test
@@ -190,8 +217,7 @@ class TripServiceTest {
         Trip trip = TestEntityFactory.createTrip(tripId, "Test Trip");
 
         when(tripRepository.findWithDetailsById(tripId)).thenReturn(Optional.of(trip));
-        when(tripUpdateRepository.findByTripIdOrderByTimestampAsc(tripId))
-                .thenReturn(List.of());
+        when(tripUpdateRepository.findByTripIdOrderByTimestampAsc(tripId)).thenReturn(List.of());
 
         // When
         TripDTO result = tripService.getTrip(tripId);
@@ -663,41 +689,51 @@ class TripServiceTest {
         when(tripRepository.findByVisibilityAndStatusInWithPromotedFirst(
                         TripVisibility.PUBLIC, TripStatus.getActiveStatuses(), pageable))
                 .thenReturn(new PageImpl<>(trips, pageable, trips.size()));
-        
+
         // Override enrichment for this test to mark the promoted trip
         when(tripEnrichmentHelper.enrichTripsToTripDTOs(any(Page.class), any(Pageable.class)))
-                .thenAnswer(invocation -> {
-                    Page<Trip> tripPage = invocation.getArgument(0);
-                    Pageable page = invocation.getArgument(1);
-                    List<TripDTO> dtos = tripPage.getContent().stream()
-                            .map(tripMapper::toDTO)
-                            .map(dto -> new TripDTO(
-                                    dto.id(),
-                                    dto.name(),
-                                    dto.userId(),
-                                    dto.username(),
-                                    dto.tripSettings(),
-                                    dto.tripDetails(),
-                                    dto.tripPlanId(),
-                                    dto.comments(),
-                                    dto.tripUpdates(),
-                                    dto.tripDays(),
-                                    dto.encodedPolyline(),
-                                    dto.plannedPolyline(),
-                                    dto.polylineUpdatedAt(),
-                                    dto.accruedDistanceKm(),
-                                    dto.creationTimestamp(),
-                                    dto.enabled(),
-                                    dto.id().equals(promotedCreatedTripId.toString()) ? Boolean.TRUE : Boolean.FALSE,
-                                    dto.promotedAt(),
-                                    dto.isPreAnnounced() != null ? dto.isPreAnnounced() : Boolean.FALSE,
-                                    dto.countdownStartDate(),
-                                    dto.commentsCount(),
-                                    dto.updateCount()
-                            ))
-                            .toList();
-                    return new PageImpl<>(dtos, page, tripPage.getTotalElements());
-                });
+                .thenAnswer(
+                        invocation -> {
+                            Page<Trip> tripPage = invocation.getArgument(0);
+                            Pageable page = invocation.getArgument(1);
+                            List<TripDTO> dtos =
+                                    tripPage.getContent().stream()
+                                            .map(tripMapper::toDTO)
+                                            .map(
+                                                    dto ->
+                                                            new TripDTO(
+                                                                    dto.id(),
+                                                                    dto.name(),
+                                                                    dto.userId(),
+                                                                    dto.username(),
+                                                                    dto.tripSettings(),
+                                                                    dto.tripDetails(),
+                                                                    dto.tripPlanId(),
+                                                                    dto.comments(),
+                                                                    dto.tripUpdates(),
+                                                                    dto.tripDays(),
+                                                                    dto.encodedPolyline(),
+                                                                    dto.plannedPolyline(),
+                                                                    dto.polylineUpdatedAt(),
+                                                                    dto.accruedDistanceKm(),
+                                                                    dto.creationTimestamp(),
+                                                                    dto.enabled(),
+                                                                    dto.id()
+                                                                                    .equals(
+                                                                                            promotedCreatedTripId
+                                                                                                    .toString())
+                                                                            ? Boolean.TRUE
+                                                                            : Boolean.FALSE,
+                                                                    dto.promotedAt(),
+                                                                    dto.isPreAnnounced() != null
+                                                                            ? dto.isPreAnnounced()
+                                                                            : Boolean.FALSE,
+                                                                    dto.countdownStartDate(),
+                                                                    dto.commentsCount(),
+                                                                    dto.updateCount()))
+                                            .toList();
+                            return new PageImpl<>(dtos, page, tripPage.getTotalElements());
+                        });
 
         // When
         Page<TripDTO> result = tripService.getOngoingPublicTrips(null, pageable);
@@ -1340,8 +1376,7 @@ class TripServiceTest {
         trip.setEncodedPolyline(null);
 
         when(tripRepository.findAll()).thenReturn(List.of(trip));
-        when(tripUpdateRepository.findByTripIdIn(any()))
-                .thenReturn(List.of(update1, update2));
+        when(tripUpdateRepository.findByTripIdIn(any())).thenReturn(List.of(update1, update2));
 
         // When
         TripMaintenanceStatsDTO stats = tripService.getTripMaintenanceStats();
@@ -1367,8 +1402,7 @@ class TripServiceTest {
         trip.setTripUpdates(List.of(update1, update2));
 
         when(tripRepository.findAll()).thenReturn(List.of(trip));
-        when(tripUpdateRepository.findByTripIdIn(any()))
-                .thenReturn(List.of(update1, update2));
+        when(tripUpdateRepository.findByTripIdIn(any())).thenReturn(List.of(update1, update2));
 
         // When
         TripMaintenanceStatsDTO stats = tripService.getTripMaintenanceStats();

@@ -7,9 +7,4 @@ import java.util.UUID;
  *
  * @since 1.2.0
  */
-public record UserSearchResult(
-        UUID id,
-        String username,
-        String displayName,
-        String avatarUrl
-) {}
+public record UserSearchResult(UUID id, String username, String displayName, String avatarUrl) {}
