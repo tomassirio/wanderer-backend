@@ -4,6 +4,7 @@ import com.tomassirio.wanderer.command.websocket.RedisWebSocketMessageListener;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.listener.ChannelTopic;
@@ -44,8 +45,10 @@ public class RedisWebSocketConfig {
     /**
      * Redis template for publishing WebSocket messages.
      * Uses String serializer for both keys and values since we're sending JSON.
+     * Marked as @Primary to be the default RedisTemplate<String, String> bean.
      */
     @Bean
+    @Primary
     public RedisTemplate<String, String> webSocketRedisTemplate(
             RedisConnectionFactory connectionFactory) {
         
