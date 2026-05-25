@@ -102,7 +102,8 @@ public interface TripRepository extends JpaRepository<Trip, UUID> {
     /**
      * Find all public trips with promoted status. Promoted trips are sorted first. Includes: - All
      * trips in active statuses (IN_PROGRESS, RESTING, PAUSED) - Promoted trips in CREATED status
-     * (for pre-announced trips) This replaces the need for separate promoted trips endpoint.
+     * (for pre-announced trips) - Promoted trips in FINISHED status (completed/finished promoted
+     * trips) This replaces the need for separate promoted trips endpoint.
      */
     @Query(
             value =
@@ -110,7 +111,7 @@ public interface TripRepository extends JpaRepository<Trip, UUID> {
                             + "LEFT JOIN PromotedTrip pt ON t.id = pt.tripId "
                             + "WHERE t.tripSettings.visibility = :visibility "
                             + "AND (t.tripSettings.tripStatus IN :statuses "
-                            + "     OR (pt.id IS NOT NULL AND t.tripSettings.tripStatus = 'CREATED')) "
+                            + "     OR (pt.id IS NOT NULL AND t.tripSettings.tripStatus IN ('CREATED', 'FINISHED'))) "
                             + "ORDER BY CASE WHEN pt.id IS NOT NULL THEN 0 ELSE 1 END, "
                             + "t.creationTimestamp DESC",
             countQuery =
@@ -118,7 +119,7 @@ public interface TripRepository extends JpaRepository<Trip, UUID> {
                             + "LEFT JOIN PromotedTrip pt ON t.id = pt.tripId "
                             + "WHERE t.tripSettings.visibility = :visibility "
                             + "AND (t.tripSettings.tripStatus IN :statuses "
-                            + "     OR (pt.id IS NOT NULL AND t.tripSettings.tripStatus = 'CREATED'))")
+                            + "     OR (pt.id IS NOT NULL AND t.tripSettings.tripStatus IN ('CREATED', 'FINISHED')))")
     Page<Trip> findByVisibilityAndStatusInWithPromotedFirst(
             @Param("visibility") TripVisibility visibility,
             @Param("statuses") List<TripStatus> statuses,
