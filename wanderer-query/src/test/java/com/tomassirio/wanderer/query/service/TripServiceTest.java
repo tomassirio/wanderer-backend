@@ -767,6 +767,103 @@ class TripServiceTest {
     }
 
     @Test
+    void getOngoingPublicTrips_whenPromotedFinishedTripExists_shouldReturnIt() {
+        // Given
+        Pageable pageable =
+                PageRequest.of(0, 20, Sort.by(Sort.Direction.DESC, "creationTimestamp"));
+
+        UUID promotedFinishedTripId = UUID.randomUUID();
+        Trip promotedFinishedTrip =
+                TestEntityFactory.createTrip(
+                        promotedFinishedTripId, "Promoted Completed Trip", TripVisibility.PUBLIC);
+        promotedFinishedTrip.getTripSettings().setTripStatus(TripStatus.FINISHED);
+
+        Trip activeTrip =
+                TestEntityFactory.createTrip(
+                        UUID.randomUUID(), "Active Trip", TripVisibility.PUBLIC);
+        activeTrip.getTripSettings().setTripStatus(TripStatus.IN_PROGRESS);
+
+        // Promoted FINISHED trip should be included in results
+        List<Trip> trips = List.of(promotedFinishedTrip, activeTrip);
+        when(tripRepository.findByVisibilityAndStatusInWithPromotedFirst(
+                        TripVisibility.PUBLIC, TripStatus.getActiveStatuses(), pageable))
+                .thenReturn(new PageImpl<>(trips, pageable, trips.size()));
+
+        // Override enrichment for this test to mark the promoted trip
+        when(tripEnrichmentHelper.enrichTripsToTripDTOs(any(Page.class), any(Pageable.class)))
+                .thenAnswer(
+                        invocation -> {
+                            Page<Trip> tripPage = invocation.getArgument(0);
+                            Pageable page = invocation.getArgument(1);
+                            List<TripDTO> dtos =
+                                    tripPage.getContent().stream()
+                                            .map(tripMapper::toDTO)
+                                            .map(
+                                                    dto ->
+                                                            new TripDTO(
+                                                                    dto.id(),
+                                                                    dto.name(),
+                                                                    dto.userId(),
+                                                                    dto.username(),
+                                                                    dto.tripSettings(),
+                                                                    dto.tripDetails(),
+                                                                    dto.tripPlanId(),
+                                                                    dto.comments(),
+                                                                    dto.tripUpdates(),
+                                                                    dto.tripDays(),
+                                                                    dto.encodedPolyline(),
+                                                                    dto.plannedPolyline(),
+                                                                    dto.polylineUpdatedAt(),
+                                                                    dto.accruedDistanceKm(),
+                                                                    dto.creationTimestamp(),
+                                                                    dto.enabled(),
+                                                                    dto.id()
+                                                                                    .equals(
+                                                                                            promotedFinishedTripId
+                                                                                                    .toString())
+                                                                            ? Boolean.TRUE
+                                                                            : Boolean.FALSE,
+                                                                    dto.promotedAt(),
+                                                                    Boolean.FALSE,
+                                                                    dto.countdownStartDate(),
+                                                                    dto.commentsCount(),
+                                                                    dto.updateCount()))
+                                            .toList();
+                            return new PageImpl<>(dtos, page, tripPage.getTotalElements());
+                        });
+
+        // When
+        Page<TripDTO> result = tripService.getOngoingPublicTrips(null, pageable);
+
+        // Then
+        assertThat(result).isNotNull();
+        assertThat(result.getContent()).hasSize(2);
+        // Promoted FINISHED trip should be included
+        assertThat(
+                        result.getContent().stream()
+                                .anyMatch(
+                                        t ->
+                                                t.id().equals(promotedFinishedTripId.toString())
+                                                        && t.tripSettings().tripStatus()
+                                                                == TripStatus.FINISHED
+                                                        && t.isPromoted()))
+                .isTrue();
+        // Regular active trip should also be there
+        assertThat(
+                        result.getContent().stream()
+                                .anyMatch(
+                                        t ->
+                                                t.name().equals("Active Trip")
+                                                        && t.tripSettings().tripStatus()
+                                                                == TripStatus.IN_PROGRESS))
+                .isTrue();
+
+        verify(tripRepository)
+                .findByVisibilityAndStatusInWithPromotedFirst(
+                        TripVisibility.PUBLIC, TripStatus.getActiveStatuses(), pageable);
+    }
+
+    @Test
     void
             getOngoingPublicTrips_withRequestingUserId_whenUserFollowsSomeUsers_shouldPrioritizeFollowedUsers() {
         // Given
