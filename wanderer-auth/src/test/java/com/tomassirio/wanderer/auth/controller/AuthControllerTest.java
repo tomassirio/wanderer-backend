@@ -314,7 +314,18 @@ class AuthControllerTest {
                         content()
                                 .string(
                                         org.hamcrest.Matchers.containsString(
-                                                "/login?username=testuser")));
+                                                "/login?username=testuser")))
+                .andExpect(
+                        content()
+                                .string(
+                                        org.hamcrest.Matchers.containsString(
+                                                "Go back to the Wanderer app")))
+                .andExpect(
+                        content()
+                                .string(
+                                        org.hamcrest.Matchers.not(
+                                                org.hamcrest.Matchers.containsString(
+                                                        "Redirecting to login"))));
     }
 
     @Test
