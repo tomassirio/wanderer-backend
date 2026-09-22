@@ -3,7 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="refresh" content="5;url={{loginUrl}}">
     <title>Email Verified – Wanderer</title>
     <style>
         body, table, td, a { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
@@ -164,7 +163,7 @@
                 </div>
                 <h2>Email Verified!</h2>
                 <p>Your email has been verified successfully. You can now log in to your account and start tracking your adventures.</p>
-                <p class="redirect-text">Redirecting to login in <span id="countdown">5</span> seconds&hellip; or <a href="{{loginUrl}}">click here</a></p>
+                <p class="redirect-text">Go back to the Wanderer app on your phone and log in &mdash; or <a href="{{loginUrl}}">log in on the web</a> instead.</p>
             </div>
 
             <!-- FOOTER -->
@@ -174,13 +173,5 @@
 
         </div>
     </div>
-    <script>
-        var seconds = 5;
-        var el = document.getElementById('countdown');
-        setInterval(function() {
-            seconds--;
-            if (el) el.textContent = seconds;
-        }, 1000);
-    </script>
 </body>
 </html>
