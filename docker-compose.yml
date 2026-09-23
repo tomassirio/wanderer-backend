@@ -44,10 +44,23 @@ services:
       timeout: 5s
       retries: 5
 
+  redis:
+    image: ${REDIS_IMAGE:-redis:7-alpine}
+    container_name: wanderer-redis
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   wanderer-command:
     <<: *service-common
     depends_on:
       postgres-cqrs:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     image: ${WANDERER_COMMAND_IMAGE:-ghcr.io/tomassirio/wanderer-command:latest}
     container_name: wanderer-command
@@ -58,11 +71,17 @@ services:
       # Allow overriding the CORS allowed origins via env var APP_CORS_ALLOWED_ORIGINS
       # Defaults to http://localhost:51538 when the variable is not provided.
       APP_CORS_ALLOWED_ORIGINS: ${APP_CORS_ALLOWED_ORIGINS:-http://localhost:51538}
+      REDIS_HOST: ${REDIS_HOST:-redis}
+      # Required for the app context to boot at all (GeoApiContextConfig fails without it) —
+      # set in a local .env file (gitignored), never commit a real key here.
+      GOOGLE_MAPS_API_KEY: ${GOOGLE_MAPS_API_KEY:-}
 
   wanderer-query:
     <<: *service-common
     depends_on:
       postgres-cqrs:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     image: ${WANDERER_QUERY_IMAGE:-ghcr.io/tomassirio/wanderer-query:latest}
     container_name: wanderer-query
@@ -73,11 +92,14 @@ services:
       # Allow overriding the CORS allowed origins via env var APP_CORS_ALLOWED_ORIGINS
       # Defaults to http://localhost:51538 when the variable is not provided.
       APP_CORS_ALLOWED_ORIGINS: ${APP_CORS_ALLOWED_ORIGINS:-http://localhost:51538}
+      REDIS_HOST: ${REDIS_HOST:-redis}
 
   wanderer-auth:
     <<: *service-common
     depends_on:
       postgres-auth:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     image: ${WANDERER_AUTH_IMAGE:-ghcr.io/tomassirio/wanderer-auth:latest}
     container_name: wanderer-auth
@@ -88,6 +110,9 @@ services:
       DB_USERNAME: ${AUTH_DB_USER:-wanderer_auth}
       DB_PASSWORD: ${AUTH_DB_PASSWORD:-password}
       DB_DRIVERCLASSNAME: org.postgresql.Driver
+      # Auth has no REDIS_HOST bridge property of its own (unlike command/query) —
+      # it picks up Spring Boot's standard property name directly.
+      SPRING_DATA_REDIS_HOST: ${REDIS_HOST:-redis}
       JWT_SECRET: ${JWT_SECRET:-0123456789ABCDEF0123456789ABCDEF}
       JWT_EXPIRATION_MS: ${JWT_EXPIRATION_MS:-3600000}
       WANDERER_QUERY_URL: ${WANDERER_QUERY_URL:-http://wanderer-query:8082}
