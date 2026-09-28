@@ -49,6 +49,9 @@ public final class ApiConstants {
     public static final String PASSWORD_RESET_ENDPOINT = "/password/reset";
     public static final String PASSWORD_RESET_FORM_ENDPOINT = "/password/reset-form";
     public static final String PASSWORD_CHANGE_ENDPOINT = "/password/change";
+    public static final String SSO_EXCHANGE_ENDPOINT = "/sso/exchange";
+    public static final String SSO_AUTHORIZATION_BASE_URI = AUTH_PATH + "/oauth2/authorization";
+    public static final String SSO_CALLBACK_BASE_URI = AUTH_PATH + "/oauth2/callback";
 
     // ============================================================
     // Admin endpoints
