@@ -54,7 +54,7 @@ public class SsoServiceImpl implements SsoService {
         }
         Credential credential =
                 credentialRepository
-                        .findByEmail(identity.email())
+                        .findByEmailIgnoreCase(identity.email())
                         .orElseGet(() -> provision(identity));
 
         userIdentityRepository.save(

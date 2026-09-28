@@ -1,5 +1,6 @@
 package com.tomassirio.wanderer.auth.repository;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -73,6 +74,20 @@ class SsoSchemaIT extends BaseIntegrationTest {
                 () ->
                         userIdentityRepository.saveAndFlush(
                                 identity(userId, "google", "sub-" + userId)));
+    }
+
+    @Test
+    void findByEmailIgnoreCase_matchesDifferentlyCasedEmail() {
+        UUID userId = UUID.randomUUID();
+        credentialRepository.saveAndFlush(
+                Credential.withPassword(userId, "Ana." + userId + "@Gmail.com", "$2a$hash"));
+
+        assertEquals(
+                userId,
+                credentialRepository
+                        .findByEmailIgnoreCase("ana." + userId + "@gmail.com")
+                        .orElseThrow()
+                        .getUserId());
     }
 
     @Test
