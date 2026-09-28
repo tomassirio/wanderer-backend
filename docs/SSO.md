@@ -25,6 +25,8 @@
 
 Startup fails if the client id is empty. Set the variables before deploying.
 
+In the deployed pod, `GOOGLE_CLIENT_SECRET` (along with `JWT_SECRET`, `DB_PASSWORD`, `EMAIL_PASSWORD`) is delivered via the `wanderer-auth<suffix>-secrets` Kubernetes `Secret` and injected as an env var — it is never written into the `ConfigMap`.
+
 ## Adding a provider
 1. `spring.security.oauth2.client.registration.<id>.*` (+ `provider.<id>.*` if not built into Spring).
 2. A `@Component` implementing `SsoIdentityMapper` with `provider()` = `<id>`.

@@ -14,15 +14,16 @@ data:
     # CORS Configuration
     app.cors.allowed-origins={{ .Values.application.cors.allowedOrigins }}
 
-    # JWT secret - override in production via env var or external config
-    jwt.secret={{ .Values.application.jwt.secret }}
+    # JWT secret - delivered via the {{ .Chart.Name }}{{ .Values.environment.suffix }}-secrets Secret (JWT_SECRET env var)
+    jwt.secret=${JWT_SECRET}
     jwt.expiration-ms={{ .Values.application.jwt.expirationMs }}
 
     # PostgreSQL Database Connection
     # TODO: Change back to spring.datasource.* after rebuilding Docker images with updated code
     db.url={{ .Values.application.database.url }}
     db.username={{ .Values.application.database.username }}
-    db.password={{ .Values.application.database.password }}
+    # db.password - delivered via the {{ .Chart.Name }}{{ .Values.environment.suffix }}-secrets Secret (DB_PASSWORD env var)
+    db.password=${DB_PASSWORD}
     db.driver-class-name={{ .Values.application.database.driverClassName }}
 
     # Let Liquibase run migrations against the auth DB
@@ -60,7 +61,8 @@ data:
     app.email.host={{ .Values.application.email.host }}
     app.email.port={{ .Values.application.email.port }}
     app.email.username={{ .Values.application.email.username }}
-    app.email.password={{ .Values.application.email.password }}
+    # app.email.password - delivered via the {{ .Chart.Name }}{{ .Values.environment.suffix }}-secrets Secret (EMAIL_PASSWORD env var)
+    app.email.password=${EMAIL_PASSWORD}
     app.email.from={{ .Values.application.email.from }}
     app.email.from-name={{ .Values.application.email.fromName }}
     app.email.base-url={{ .Values.application.email.baseUrl }}
@@ -75,7 +77,8 @@ data:
 
     # SSO (Google via oauth2Login)
     spring.security.oauth2.client.registration.google.client-id={{ .Values.application.sso.google.clientId }}
-    spring.security.oauth2.client.registration.google.client-secret={{ .Values.application.sso.google.clientSecret }}
+    # client-secret - delivered via the {{ .Chart.Name }}{{ .Values.environment.suffix }}-secrets Secret (GOOGLE_CLIENT_SECRET env var)
+    spring.security.oauth2.client.registration.google.client-secret=${GOOGLE_CLIENT_SECRET}
     spring.security.oauth2.client.registration.google.scope=openid,email,profile
     spring.security.oauth2.client.registration.google.redirect-uri={baseUrl}/api/1/auth/oauth2/callback/{registrationId}
     app.sso.allowed-return-uris={{ .Values.application.sso.allowedReturnUris }}
