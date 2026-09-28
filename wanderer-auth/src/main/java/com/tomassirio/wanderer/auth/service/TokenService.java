@@ -1,6 +1,10 @@
 package com.tomassirio.wanderer.auth.service;
 
+import com.tomassirio.wanderer.auth.dto.LoginResponse;
 import com.tomassirio.wanderer.auth.dto.RefreshTokenResponse;
+import com.tomassirio.wanderer.commons.domain.User;
+import com.tomassirio.wanderer.commons.security.Role;
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -85,4 +89,13 @@ public interface TokenService {
      * @param token the email verification token
      */
     void markEmailVerificationTokenAsVerified(String token);
+
+    /**
+     * Issues a fresh access token (with JTI) and refresh token for a user.
+     *
+     * @param user the authenticated user (id and username required)
+     * @param roles roles to embed in the access token
+     * @return a Bearer LoginResponse
+     */
+    LoginResponse issueLoginTokens(User user, Set<Role> roles);
 }

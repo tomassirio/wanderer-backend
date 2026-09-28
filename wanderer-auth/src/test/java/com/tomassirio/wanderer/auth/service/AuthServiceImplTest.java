@@ -10,7 +10,6 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.tomassirio.wanderer.auth.client.WandererCommandClient;
 import com.tomassirio.wanderer.auth.client.WandererQueryClient;
 import com.tomassirio.wanderer.auth.domain.Credential;
 import com.tomassirio.wanderer.auth.dto.LoginResponse;
@@ -38,7 +37,6 @@ import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -56,7 +54,7 @@ class AuthServiceImplTest {
 
     @Mock private EmailService emailService;
 
-    @Mock private WandererCommandClient wandererCommandClient;
+    @Mock private UserProvisioningService userProvisioningService;
 
     @Mock private WandererQueryClient wandererQueryClient;
 
@@ -97,7 +95,7 @@ class AuthServiceImplTest {
                         jwtService,
                         tokenService,
                         emailService,
-                        wandererCommandClient,
+                        userProvisioningService,
                         wandererQueryClient,
                         strategies,
                         revokedTokenCache,
@@ -336,7 +334,6 @@ class AuthServiceImplTest {
                 "Registration pending. Please check your email to verify your account.",
                 result.message());
         verify(emailService).sendVerificationEmail(request.email(), "testuser", verificationToken);
-        verify(wandererCommandClient, never()).createUser(any());
     }
 
     @Test
@@ -402,63 +399,27 @@ class AuthServiceImplTest {
     }
 
     @Test
-    void verifyEmail_whenValidToken_shouldCreateUserAndReturnLoginResponse() {
+    void verifyEmail_whenValidToken_shouldProvisionWithPasswordAndReturnLoginResponse() {
         String verificationToken = "verification.token";
-        String[] verificationData = new String[] {"test@example.com", "testuser", "hashedPassword"};
-        String accessToken = "jwt.access.token";
-        String refreshToken = "refresh.token";
-        long expiresIn = 3600000L;
+        String[] verificationData = new String[] {"test@example.com", "TestUser", "hashedPassword"};
+        User created = toUser(testUserInfo);
+        LoginResponse expected =
+                new LoginResponse(
+                        "jwt.access.token", "refresh.token", "Bearer", 3600000L, "testuser");
 
         when(tokenService.validateEmailVerificationToken(verificationToken))
                 .thenReturn(verificationData);
-        when(credentialRepository.findByEmail(verificationData[0])).thenReturn(Optional.empty());
-        when(wandererCommandClient.createUser(any())).thenReturn(testUserInfo.id());
-        when(wandererQueryClient.getUserById(testUserInfo.id(), "basic")).thenReturn(testUserInfo);
-        when(credentialRepository.findById(testUserInfo.id())).thenReturn(Optional.empty());
-        when(jwtService.generateTokenWithJti(any(), any(), any())).thenReturn(accessToken);
-        when(tokenService.createRefreshToken(testUserInfo.id())).thenReturn(refreshToken);
-        when(jwtService.getExpirationMs()).thenReturn(expiresIn);
+        when(credentialRepository.findByEmail("test@example.com")).thenReturn(Optional.empty());
+        when(userProvisioningService.provisionWithPassword(
+                        "testuser", "test@example.com", "TestUser", "hashedPassword"))
+                .thenReturn(created);
+        when(tokenService.issueLoginTokens(created, Set.of(Role.USER))).thenReturn(expected);
 
         LoginResponse result = authService.verifyEmail(verificationToken);
 
-        assertEquals(accessToken, result.accessToken());
-        assertEquals(refreshToken, result.refreshToken());
-        assertEquals("Bearer", result.tokenType());
-        assertEquals(expiresIn, result.expiresIn());
-        assertEquals(testUserInfo.username(), result.username());
-        verify(credentialRepository).save(any(Credential.class));
+        assertEquals(expected, result);
         verify(tokenService).markEmailVerificationTokenAsVerified(verificationToken);
-        verify(wandererCommandClient, never()).deleteUser(any());
-    }
-
-    @Test
-    void verifyEmail_whenMixedCaseUsername_shouldPassDisplayNameToCommandService() {
-        String verificationToken = "verification.token";
-        // Token stores the original-cased username from registration
-        String[] verificationData = new String[] {"test@example.com", "TestUser", "hashedPassword"};
-        String accessToken = "jwt.access.token";
-        String refreshToken = "refresh.token";
-        long expiresIn = 3600000L;
-
-        when(tokenService.validateEmailVerificationToken(verificationToken))
-                .thenReturn(verificationData);
-        when(credentialRepository.findByEmail(verificationData[0])).thenReturn(Optional.empty());
-        @SuppressWarnings("unchecked")
-        ArgumentCaptor<Map<String, String>> payloadCaptor = ArgumentCaptor.forClass(Map.class);
-        when(wandererCommandClient.createUser(payloadCaptor.capture()))
-                .thenReturn(testUserInfo.id());
-        when(wandererQueryClient.getUserById(testUserInfo.id(), "basic")).thenReturn(testUserInfo);
-        when(credentialRepository.findById(testUserInfo.id())).thenReturn(Optional.empty());
-        when(jwtService.generateTokenWithJti(any(), any(), any())).thenReturn(accessToken);
-        when(tokenService.createRefreshToken(testUserInfo.id())).thenReturn(refreshToken);
-        when(jwtService.getExpirationMs()).thenReturn(expiresIn);
-
-        authService.verifyEmail(verificationToken);
-
-        // Verify the payload sent to the command service
-        Map<String, String> payload = payloadCaptor.getValue();
-        assertEquals("testuser", payload.get("username"));
-        assertEquals("TestUser", payload.get("displayName"));
+        verify(userProvisioningService, never()).provisionWithoutPassword(any(), any(), any());
     }
 
     @Test
@@ -469,47 +430,26 @@ class AuthServiceImplTest {
 
         when(tokenService.validateEmailVerificationToken(verificationToken))
                 .thenReturn(verificationData);
-        when(credentialRepository.findByEmail(verificationData[0]))
+        when(credentialRepository.findByEmail("existing@example.com"))
                 .thenReturn(Optional.of(testCredential));
 
         assertThrows(IllegalStateException.class, () -> authService.verifyEmail(verificationToken));
-        verify(wandererCommandClient, never()).createUser(any());
+        verify(userProvisioningService, never()).provisionWithPassword(any(), any(), any(), any());
     }
 
     @Test
-    void verifyEmail_whenUserCreationFails_shouldThrowIllegalStateException() {
+    void verifyEmail_whenProvisioningFails_shouldNotMarkTokenVerified() {
         String verificationToken = "verification.token";
         String[] verificationData = new String[] {"test@example.com", "testuser", "hashedPassword"};
 
         when(tokenService.validateEmailVerificationToken(verificationToken))
                 .thenReturn(verificationData);
-        when(credentialRepository.findByEmail(verificationData[0])).thenReturn(Optional.empty());
-        when(wandererCommandClient.createUser(any())).thenThrow(FeignException.class);
+        when(credentialRepository.findByEmail("test@example.com")).thenReturn(Optional.empty());
+        when(userProvisioningService.provisionWithPassword(any(), any(), any(), any()))
+                .thenThrow(new IllegalStateException("boom"));
 
         assertThrows(IllegalStateException.class, () -> authService.verifyEmail(verificationToken));
-        verify(credentialRepository, never()).save(any());
-    }
-
-    @Test
-    void verifyEmail_whenFetchUserFails_shouldRollbackAndThrowIllegalStateException() {
-        String verificationToken = "verification.token";
-        String[] verificationData = new String[] {"test@example.com", "testuser", "hashedPassword"};
-
-        when(tokenService.validateEmailVerificationToken(verificationToken))
-                .thenReturn(verificationData);
-        when(credentialRepository.findByEmail(verificationData[0])).thenReturn(Optional.empty());
-        when(wandererCommandClient.createUser(any())).thenReturn(testUserInfo.id());
-        when(wandererQueryClient.getUserById(testUserInfo.id(), "basic"))
-                .thenThrow(FeignException.class);
-
-        IllegalStateException exception =
-                assertThrows(
-                        IllegalStateException.class,
-                        () -> authService.verifyEmail(verificationToken));
-
-        assertEquals("Failed to fetch created user from query service", exception.getMessage());
-        verify(wandererCommandClient).deleteUser(testUserInfo.id());
-        verify(credentialRepository, never()).save(any());
+        verify(tokenService, never()).markEmailVerificationTokenAsVerified(any());
     }
 
     @Test

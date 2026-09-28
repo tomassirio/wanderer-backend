@@ -1,6 +1,5 @@
 package com.tomassirio.wanderer.auth.service.impl;
 
-import com.tomassirio.wanderer.auth.client.WandererCommandClient;
 import com.tomassirio.wanderer.auth.client.WandererQueryClient;
 import com.tomassirio.wanderer.auth.domain.Credential;
 import com.tomassirio.wanderer.auth.dto.LoginResponse;
@@ -12,6 +11,7 @@ import com.tomassirio.wanderer.auth.service.EmailService;
 import com.tomassirio.wanderer.auth.service.JwtService;
 import com.tomassirio.wanderer.auth.service.LoginAttemptService;
 import com.tomassirio.wanderer.auth.service.TokenService;
+import com.tomassirio.wanderer.auth.service.UserProvisioningService;
 import com.tomassirio.wanderer.auth.strategy.UserLookupStrategy;
 import com.tomassirio.wanderer.commons.domain.User;
 import com.tomassirio.wanderer.commons.dto.UserBasicInfo;
@@ -22,7 +22,6 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -43,7 +42,7 @@ public class AuthServiceImpl implements AuthService {
     private final JwtService jwtService;
     private final TokenService tokenService;
     private final EmailService emailService;
-    private final WandererCommandClient wandererCommandClient;
+    private final UserProvisioningService userProvisioningService;
     private final WandererQueryClient wandererQueryClient;
     private final List<UserLookupStrategy> userLookupStrategies;
     private final RevokedTokenCache revokedTokenCache;
@@ -159,11 +158,10 @@ public class AuthServiceImpl implements AuthService {
     }
 
     /**
-     * Verify email and complete user registration. Validates the verification token, creates the
-     * user in the domain, creates credentials, and returns login tokens.
+     * Verify email and complete user registration. Validates the verification token, provisions the
+     * user with the password chosen at registration, and returns login tokens.
      */
     public LoginResponse verifyEmail(String token) {
-        // Validate the verification token and get registration data
         String[] verificationData = tokenService.validateEmailVerificationToken(token);
         String email = verificationData[0];
         String originalUsername = verificationData[1];
@@ -172,82 +170,16 @@ public class AuthServiceImpl implements AuthService {
         // Normalize username to lowercase; keep original casing as displayName
         String username = originalUsername.toLowerCase(Locale.ROOT);
 
-        // Double-check that email is still available
         if (credentialRepository.findByEmail(email).isPresent()) {
             throw new IllegalStateException("Email already in use: " + email);
         }
 
-        // 1) Create the domain user via the command service (returns UUID)
-        var payload = Map.of("username", username, "email", email, "displayName", originalUsername);
-        UUID createdUserId;
-        try {
-            createdUserId = wandererCommandClient.createUser(payload);
-        } catch (FeignException e) {
-            throw new IllegalStateException("Failed to create user in command service", e);
-        }
+        User createdUser =
+                userProvisioningService.provisionWithPassword(
+                        username, email, originalUsername, passwordHash);
 
-        // 2) Fetch the created user from query service to get full User object
-        User createdUser;
-        try {
-            UserBasicInfo userInfo = wandererQueryClient.getUserById(createdUserId, "basic");
-            createdUser = new User();
-            createdUser.setId(userInfo.id());
-            createdUser.setUsername(userInfo.username());
-        } catch (FeignException e) {
-            // Attempt to delete the created user since we can't proceed
-            try {
-                wandererCommandClient.deleteUser(createdUserId);
-            } catch (FeignException ex) {
-                throw new IllegalStateException(
-                        "Failed to fetch created user and failed to rollback: " + ex.getMessage(),
-                        e);
-            }
-            throw new IllegalStateException("Failed to fetch created user from query service", e);
-        }
-
-        // 3) Create credential in auth DB — wrap in try/catch and compensate on failure
-        try {
-            if (credentialRepository.findById(createdUser.getId()).isPresent()) {
-                throw new IllegalArgumentException(
-                        "Credentials already exist for user: " + createdUser.getId());
-            }
-
-            Credential credential =
-                    Credential.builder()
-                            .userId(createdUser.getId())
-                            .passwordHash(passwordHash)
-                            .enabled(true)
-                            .email(email)
-                            .roles(Set.of(Role.USER))
-                            .build();
-            credentialRepository.save(credential);
-        } catch (Exception e) {
-            // Attempt to delete the created domain user as compensation
-            try {
-                wandererCommandClient.deleteUser(createdUserId);
-            } catch (FeignException ex) {
-                throw new IllegalStateException(
-                        "Failed to create credentials and failed to rollback user creation: "
-                                + ex.getMessage(),
-                        e);
-            }
-            throw new IllegalStateException(
-                    "Failed to create credentials, rolled back user creation", e);
-        }
-
-        // Mark the verification token as verified
         tokenService.markEmailVerificationTokenAsVerified(token);
-
-        // 4) Issue JWT and refresh token
-        String jti = UUID.randomUUID().toString();
-        String accessToken = jwtService.generateTokenWithJti(createdUser, jti, Set.of(Role.USER));
-        String refreshToken = tokenService.createRefreshToken(createdUser.getId());
-        return new LoginResponse(
-                accessToken,
-                refreshToken,
-                "Bearer",
-                jwtService.getExpirationMs(),
-                createdUser.getUsername());
+        return tokenService.issueLoginTokens(createdUser, Set.of(Role.USER));
     }
 
     @Override

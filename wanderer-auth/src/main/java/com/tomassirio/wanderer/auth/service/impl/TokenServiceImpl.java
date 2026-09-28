@@ -5,6 +5,7 @@ import com.tomassirio.wanderer.auth.domain.Credential;
 import com.tomassirio.wanderer.auth.domain.EmailVerificationToken;
 import com.tomassirio.wanderer.auth.domain.PasswordResetToken;
 import com.tomassirio.wanderer.auth.domain.RefreshToken;
+import com.tomassirio.wanderer.auth.dto.LoginResponse;
 import com.tomassirio.wanderer.auth.dto.RefreshTokenResponse;
 import com.tomassirio.wanderer.auth.repository.CredentialRepository;
 import com.tomassirio.wanderer.auth.repository.EmailVerificationTokenRepository;
@@ -278,6 +279,20 @@ public class TokenServiceImpl implements TokenService {
             verificationToken.setVerified(true);
             emailVerificationTokenRepository.save(verificationToken);
         }
+    }
+
+    @Override
+    @Transactional
+    public LoginResponse issueLoginTokens(User user, Set<Role> roles) {
+        String accessToken =
+                jwtService.generateTokenWithJti(user, UUID.randomUUID().toString(), roles);
+        String refreshToken = createRefreshToken(user.getId());
+        return new LoginResponse(
+                accessToken,
+                refreshToken,
+                "Bearer",
+                jwtService.getExpirationMs(),
+                user.getUsername());
     }
 
     private String hashToken(String token) {
