@@ -372,6 +372,40 @@ class AuthServiceImplTest {
     }
 
     @Test
+    void register_whenMixedCaseEmail_shouldNormalizeToLowercase() {
+        RegisterRequest request =
+                new RegisterRequest("testuser", "Test@Example.COM", "SecurePass1!");
+        String verificationToken = "verification.token";
+        Request dummyRequest =
+                Request.create(
+                        Request.HttpMethod.GET,
+                        "http://dummy",
+                        Map.of(),
+                        null,
+                        StandardCharsets.UTF_8,
+                        null);
+
+        when(credentialRepository.findByEmail("test@example.com")).thenReturn(Optional.empty());
+        when(wandererQueryClient.getUserByUsername("testuser", "basic"))
+                .thenThrow(new NotFound("User not found", dummyRequest, null, null));
+        when(passwordEncoder.encode(request.password())).thenReturn("hashedPassword");
+        when(tokenService.createEmailVerificationToken(
+                        "test@example.com", "testuser", "hashedPassword"))
+                .thenReturn(verificationToken);
+
+        RegisterPendingResponse result = authService.register(request);
+
+        assertEquals(
+                "Registration pending. Please check your email to verify your account.",
+                result.message());
+        verify(credentialRepository).findByEmail("test@example.com");
+        verify(tokenService)
+                .createEmailVerificationToken("test@example.com", "testuser", "hashedPassword");
+        verify(emailService)
+                .sendVerificationEmail("test@example.com", "testuser", verificationToken);
+    }
+
+    @Test
     void register_whenEmailAlreadyExists_shouldThrowException() {
         RegisterRequest request =
                 new RegisterRequest("testuser", "existing@example.com", "SecurePass1!");
@@ -435,6 +469,32 @@ class AuthServiceImplTest {
 
         assertThrows(IllegalStateException.class, () -> authService.verifyEmail(verificationToken));
         verify(userProvisioningService, never()).provisionWithPassword(any(), any(), any(), any());
+    }
+
+    @Test
+    void verifyEmail_whenTokenEmailMixedCase_shouldNormalizeBeforeProvisioning() {
+        String verificationToken = "verification.token";
+        String[] verificationData = new String[] {"Test@Example.COM", "TestUser", "hashedPassword"};
+        User created = toUser(testUserInfo);
+        LoginResponse expected =
+                new LoginResponse(
+                        "jwt.access.token", "refresh.token", "Bearer", 3600000L, "testuser");
+
+        when(tokenService.validateEmailVerificationToken(verificationToken))
+                .thenReturn(verificationData);
+        when(credentialRepository.findByEmail("test@example.com")).thenReturn(Optional.empty());
+        when(userProvisioningService.provisionWithPassword(
+                        "testuser", "test@example.com", "TestUser", "hashedPassword"))
+                .thenReturn(created);
+        when(tokenService.issueLoginTokens(created, Set.of(Role.USER))).thenReturn(expected);
+
+        LoginResponse result = authService.verifyEmail(verificationToken);
+
+        assertEquals(expected, result);
+        verify(credentialRepository).findByEmail("test@example.com");
+        verify(userProvisioningService)
+                .provisionWithPassword(
+                        "testuser", "test@example.com", "TestUser", "hashedPassword");
     }
 
     @Test
@@ -505,6 +565,25 @@ class AuthServiceImplTest {
 
         assertEquals(resetToken, result);
         verify(emailService).sendPasswordResetEmail(email, email, resetToken);
+    }
+
+    @Test
+    void initiatePasswordReset_whenEmailMixedCase_shouldNormalizeBeforeLookup() {
+        String resetToken = "reset.token";
+
+        when(credentialRepository.findByEmail("user@email.com"))
+                .thenReturn(Optional.of(testCredential));
+        when(tokenService.createPasswordResetToken(testCredential.getUserId()))
+                .thenReturn(resetToken);
+        when(wandererQueryClient.getUserById(testCredential.getUserId(), "basic"))
+                .thenReturn(testUserInfo);
+
+        String result = authService.initiatePasswordReset("User@Email.COM");
+
+        assertEquals(resetToken, result);
+        verify(credentialRepository).findByEmail("user@email.com");
+        verify(emailService)
+                .sendPasswordResetEmail("user@email.com", testUserInfo.username(), resetToken);
     }
 
     @Test

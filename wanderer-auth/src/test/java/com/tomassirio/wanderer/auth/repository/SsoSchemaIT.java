@@ -1,6 +1,5 @@
 package com.tomassirio.wanderer.auth.repository;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -15,6 +14,7 @@ import com.tomassirio.wanderer.commons.BaseIntegrationTest;
 import com.tomassirio.wanderer.commons.config.TestConfig;
 import com.tomassirio.wanderer.commons.security.Role;
 import java.time.Instant;
+import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -77,17 +77,25 @@ class SsoSchemaIT extends BaseIntegrationTest {
     }
 
     @Test
-    void findByEmailIgnoreCase_matchesDifferentlyCasedEmail() {
-        UUID userId = UUID.randomUUID();
-        credentialRepository.saveAndFlush(
-                Credential.withPassword(userId, "Ana." + userId + "@Gmail.com", "$2a$hash"));
+    void uniqueEmailIndex_rejectsCredentialThatDiffersOnlyByCase() {
+        UUID first = UUID.randomUUID();
+        UUID second = UUID.randomUUID();
+        String email = "dup." + first + "@gmail.com";
+        credentialRepository.saveAndFlush(Credential.withPassword(first, email, "$2a$hash"));
 
-        assertEquals(
-                userId,
-                credentialRepository
-                        .findByEmailIgnoreCase("ana." + userId + "@gmail.com")
-                        .orElseThrow()
-                        .getUserId());
+        // Bypasses the normalizing factory to simulate a row whose case differs only in
+        // storage (e.g. written before the normalization migration ran).
+        Credential caseVariant =
+                Credential.builder()
+                        .userId(second)
+                        .email(email.toUpperCase(Locale.ROOT))
+                        .enabled(true)
+                        .roles(Set.of(Role.USER))
+                        .build();
+
+        assertThrows(
+                DataIntegrityViolationException.class,
+                () -> credentialRepository.saveAndFlush(caseVariant));
     }
 
     @Test

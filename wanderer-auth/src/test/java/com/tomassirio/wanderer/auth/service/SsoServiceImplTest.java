@@ -70,8 +70,7 @@ class SsoServiceImplTest {
         Credential existing = Credential.withPassword(userId, "ana@gmail.com", "$2a$hash");
         when(userIdentityRepository.findByProviderAndSubject("google", "sub-1"))
                 .thenReturn(Optional.empty());
-        when(credentialRepository.findByEmailIgnoreCase("ana@gmail.com"))
-                .thenReturn(Optional.of(existing));
+        when(credentialRepository.findByEmail("ana@gmail.com")).thenReturn(Optional.of(existing));
         when(wandererQueryClient.getUserById(userId, "basic"))
                 .thenReturn(new UserBasicInfo(userId, "ana"));
         when(tokenService.issueLoginTokens(any(User.class), eq(Set.of(Role.USER))))
@@ -88,23 +87,24 @@ class SsoServiceImplTest {
     }
 
     @Test
-    void signIn_whenExistingAccountEmailDiffersInCase_linksInsteadOfCreating() {
-        Credential existing = Credential.withPassword(userId, "Ana@Gmail.com", "$2a$hash");
+    void signIn_whenIdentityEmailMixedCase_linksToNormalizedExistingAccount() {
+        ExternalIdentity mixedCase =
+                new ExternalIdentity("google", "sub-1", "Ana@Gmail.com", true, "Ana Maria");
+        Credential existing = Credential.withPassword(userId, "ana@gmail.com", "$2a$hash");
         when(userIdentityRepository.findByProviderAndSubject("google", "sub-1"))
                 .thenReturn(Optional.empty());
-        when(credentialRepository.findByEmailIgnoreCase("ana@gmail.com"))
-                .thenReturn(Optional.of(existing));
+        when(credentialRepository.findByEmail("ana@gmail.com")).thenReturn(Optional.of(existing));
         when(wandererQueryClient.getUserById(userId, "basic"))
                 .thenReturn(new UserBasicInfo(userId, "ana"));
         when(tokenService.issueLoginTokens(any(User.class), eq(Set.of(Role.USER))))
                 .thenReturn(tokens);
 
-        assertSame(tokens, ssoService.signIn(verified));
+        assertSame(tokens, ssoService.signIn(mixedCase));
 
         ArgumentCaptor<UserIdentity> saved = ArgumentCaptor.forClass(UserIdentity.class);
         verify(userIdentityRepository).save(saved.capture());
         assertEquals(userId, saved.getValue().getUserId());
-        verify(credentialRepository, never()).findByEmail(any());
+        assertEquals("ana@gmail.com", saved.getValue().getEmail());
         verify(userProvisioningService, never()).provisionWithoutPassword(any(), any(), any());
     }
 
@@ -116,7 +116,7 @@ class SsoServiceImplTest {
                 .thenReturn(Optional.empty());
 
         assertThrows(IllegalArgumentException.class, () -> ssoService.signIn(unverified));
-        verify(credentialRepository, never()).findByEmailIgnoreCase(any());
+        verify(credentialRepository, never()).findByEmail(any());
         verify(userIdentityRepository, never()).save(any());
         verify(userProvisioningService, never()).provisionWithoutPassword(any(), any(), any());
     }
@@ -128,8 +128,7 @@ class SsoServiceImplTest {
         created.setUsername("ana");
         when(userIdentityRepository.findByProviderAndSubject("google", "sub-1"))
                 .thenReturn(Optional.empty());
-        when(credentialRepository.findByEmailIgnoreCase("ana@gmail.com"))
-                .thenReturn(Optional.empty());
+        when(credentialRepository.findByEmail("ana@gmail.com")).thenReturn(Optional.empty());
         when(usernameGenerator.generate("ana@gmail.com")).thenReturn("ana");
         when(userProvisioningService.provisionWithoutPassword("ana", "ana@gmail.com", "Ana Maria"))
                 .thenReturn(created);
@@ -154,8 +153,7 @@ class SsoServiceImplTest {
         created.setUsername("ana");
         when(userIdentityRepository.findByProviderAndSubject("google", "sub-1"))
                 .thenReturn(Optional.empty());
-        when(credentialRepository.findByEmailIgnoreCase("ana@gmail.com"))
-                .thenReturn(Optional.empty());
+        when(credentialRepository.findByEmail("ana@gmail.com")).thenReturn(Optional.empty());
         when(usernameGenerator.generate("ana@gmail.com")).thenReturn("ana");
         when(userProvisioningService.provisionWithoutPassword("ana", "ana@gmail.com", "ana"))
                 .thenReturn(created);

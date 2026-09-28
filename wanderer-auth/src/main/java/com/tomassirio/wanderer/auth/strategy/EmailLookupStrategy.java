@@ -1,6 +1,7 @@
 package com.tomassirio.wanderer.auth.strategy;
 
 import com.tomassirio.wanderer.auth.client.WandererQueryClient;
+import com.tomassirio.wanderer.auth.domain.EmailAddresses;
 import com.tomassirio.wanderer.auth.repository.CredentialRepository;
 import com.tomassirio.wanderer.commons.domain.User;
 import com.tomassirio.wanderer.commons.dto.UserBasicInfo;
@@ -31,7 +32,7 @@ public class EmailLookupStrategy implements UserLookupStrategy {
     @Override
     public Optional<User> lookupUser(String identifier) {
         return credentialRepository
-                .findByEmail(identifier)
+                .findByEmail(EmailAddresses.normalize(identifier))
                 .flatMap(
                         credential -> {
                             UUID userId = credential.getUserId();

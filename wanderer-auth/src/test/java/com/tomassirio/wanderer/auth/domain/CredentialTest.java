@@ -48,4 +48,18 @@ class CredentialTest {
         assertTrue(credential.isEnabled());
         assertEquals(Set.of(Role.USER), credential.getRoles());
     }
+
+    @Test
+    void withPassword_normalizesEmailToLowercase() {
+        Credential credential = Credential.withPassword(userId, "Ana@Gmail.COM", "$2a$hash");
+
+        assertEquals("ana@gmail.com", credential.getEmail());
+    }
+
+    @Test
+    void ssoOnly_normalizesEmailToLowercase() {
+        Credential credential = Credential.ssoOnly(userId, "Ana@Gmail.COM");
+
+        assertEquals("ana@gmail.com", credential.getEmail());
+    }
 }

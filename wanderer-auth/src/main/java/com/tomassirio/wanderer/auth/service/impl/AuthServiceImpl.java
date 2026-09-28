@@ -2,6 +2,7 @@ package com.tomassirio.wanderer.auth.service.impl;
 
 import com.tomassirio.wanderer.auth.client.WandererQueryClient;
 import com.tomassirio.wanderer.auth.domain.Credential;
+import com.tomassirio.wanderer.auth.domain.EmailAddresses;
 import com.tomassirio.wanderer.auth.dto.LoginResponse;
 import com.tomassirio.wanderer.auth.dto.RegisterPendingResponse;
 import com.tomassirio.wanderer.auth.dto.RegisterRequest;
@@ -122,10 +123,11 @@ public class AuthServiceImpl implements AuthService {
     public RegisterPendingResponse register(RegisterRequest request) {
         // Normalize username to lowercase for case-insensitive uniqueness
         String normalizedUsername = request.username().toLowerCase(Locale.ROOT);
+        String normalizedEmail = EmailAddresses.normalize(request.email());
 
         // Check if email is already in use
-        if (credentialRepository.findByEmail(request.email()).isPresent()) {
-            throw new IllegalArgumentException("Email already in use: " + request.email());
+        if (credentialRepository.findByEmail(normalizedEmail).isPresent()) {
+            throw new IllegalArgumentException("Email already in use: " + normalizedEmail);
         }
 
         // Check if username is already taken by querying the read side
@@ -148,10 +150,10 @@ public class AuthServiceImpl implements AuthService {
         // Create email verification token with original username preserved
         String verificationToken =
                 tokenService.createEmailVerificationToken(
-                        request.email(), request.username(), passwordHash);
+                        normalizedEmail, request.username(), passwordHash);
 
         // Send verification email with original-cased username
-        emailService.sendVerificationEmail(request.email(), request.username(), verificationToken);
+        emailService.sendVerificationEmail(normalizedEmail, request.username(), verificationToken);
 
         return new RegisterPendingResponse(
                 "Registration pending. Please check your email to verify your account.");
@@ -163,7 +165,9 @@ public class AuthServiceImpl implements AuthService {
      */
     public LoginResponse verifyEmail(String token) {
         String[] verificationData = tokenService.validateEmailVerificationToken(token);
-        String email = verificationData[0];
+        // Normalize even though the write path already does; covers tokens created before this
+        // change.
+        String email = EmailAddresses.normalize(verificationData[0]);
         String originalUsername = verificationData[1];
         String passwordHash = verificationData[2];
 
@@ -199,7 +203,8 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public String initiatePasswordReset(String email) {
         // Find credential by email
-        Optional<Credential> maybeCred = credentialRepository.findByEmail(email);
+        String normalizedEmail = EmailAddresses.normalize(email);
+        Optional<Credential> maybeCred = credentialRepository.findByEmail(normalizedEmail);
         if (maybeCred.isEmpty()) {
             throw new IllegalArgumentException("No user found with the provided email");
         }
@@ -214,11 +219,11 @@ public class AuthServiceImpl implements AuthService {
             username = userInfo.username();
         } catch (FeignException e) {
             // Fall back to email as the greeting name if user lookup fails
-            username = email;
+            username = normalizedEmail;
         }
 
         // Send password reset email
-        emailService.sendPasswordResetEmail(email, username, resetToken);
+        emailService.sendPasswordResetEmail(normalizedEmail, username, resetToken);
 
         return resetToken;
     }

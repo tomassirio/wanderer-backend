@@ -12,9 +12,6 @@ import org.springframework.stereotype.Repository;
 public interface CredentialRepository extends JpaRepository<Credential, UUID> {
     Optional<Credential> findByEmail(String email);
 
-    /** SSO linking only: providers normalise case, registration stores email as typed. */
-    Optional<Credential> findByEmailIgnoreCase(String email);
-
     /**
      * Checks if any credentials exist with roles containing the specified role string. Uses a
      * native query because the roles field is stored as a comma-separated String via a JPA

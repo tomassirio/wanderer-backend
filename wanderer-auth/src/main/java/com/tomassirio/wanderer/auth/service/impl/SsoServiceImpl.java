@@ -2,6 +2,7 @@ package com.tomassirio.wanderer.auth.service.impl;
 
 import com.tomassirio.wanderer.auth.client.WandererQueryClient;
 import com.tomassirio.wanderer.auth.domain.Credential;
+import com.tomassirio.wanderer.auth.domain.EmailAddresses;
 import com.tomassirio.wanderer.auth.domain.UserIdentity;
 import com.tomassirio.wanderer.auth.dto.LoginResponse;
 import com.tomassirio.wanderer.auth.repository.CredentialRepository;
@@ -52,10 +53,11 @@ public class SsoServiceImpl implements SsoService {
         if (identity.email() == null || !identity.emailVerified()) {
             throw new IllegalArgumentException("SSO provider did not return a verified email");
         }
+        String normalizedEmail = EmailAddresses.normalize(identity.email());
         Credential credential =
                 credentialRepository
-                        .findByEmailIgnoreCase(identity.email())
-                        .orElseGet(() -> provision(identity));
+                        .findByEmail(normalizedEmail)
+                        .orElseGet(() -> provision(identity, normalizedEmail));
 
         userIdentityRepository.save(
                 UserIdentity.builder()
@@ -63,17 +65,17 @@ public class SsoServiceImpl implements SsoService {
                         .userId(credential.getUserId())
                         .provider(identity.provider())
                         .subject(identity.subject())
-                        .email(identity.email())
+                        .email(normalizedEmail)
                         .build());
         log.info("Linked {} identity to user {}", identity.provider(), credential.getUserId());
         return credential;
     }
 
-    private Credential provision(ExternalIdentity identity) {
-        String username = usernameGenerator.generate(identity.email());
+    private Credential provision(ExternalIdentity identity, String normalizedEmail) {
+        String username = usernameGenerator.generate(normalizedEmail);
         User user =
                 userProvisioningService.provisionWithoutPassword(
-                        username, identity.email(), displayName(identity, username));
+                        username, normalizedEmail, displayName(identity, username));
         return credentialRepository
                 .findById(user.getId())
                 .orElseThrow(

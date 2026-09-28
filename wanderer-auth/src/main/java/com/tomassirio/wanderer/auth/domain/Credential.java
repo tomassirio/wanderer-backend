@@ -47,7 +47,7 @@ public class Credential {
         }
         return Credential.builder()
                 .userId(userId)
-                .email(email)
+                .email(EmailAddresses.normalize(email))
                 .passwordHash(passwordHash)
                 .enabled(true)
                 .roles(Set.of(Role.USER))
@@ -58,7 +58,7 @@ public class Credential {
     public static Credential ssoOnly(UUID userId, String email) {
         return Credential.builder()
                 .userId(userId)
-                .email(email)
+                .email(EmailAddresses.normalize(email))
                 .enabled(true)
                 .roles(Set.of(Role.USER))
                 .build();
