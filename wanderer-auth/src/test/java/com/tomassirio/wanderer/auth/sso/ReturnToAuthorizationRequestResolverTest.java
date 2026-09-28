@@ -1,6 +1,7 @@
 package com.tomassirio.wanderer.auth.sso;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -35,6 +36,8 @@ class ReturnToAuthorizationRequestResolverTest {
     void resolve_authorizationRequest_addsPkceAndRemembersReturnTo() {
         MockHttpServletRequest request = request("/api/1/auth/oauth2/authorization/google");
         request.setParameter(ReturnToAuthorizationRequestResolver.RETURN_TO_PARAMETER, MOBILE);
+        request.setParameter(PkceParameterNames.CODE_CHALLENGE, SsoPkceTest.CHALLENGE);
+        request.setParameter(PkceParameterNames.CODE_CHALLENGE_METHOD, "S256");
 
         OAuth2AuthorizationRequest authorizationRequest = resolver.resolve(request);
 
@@ -45,6 +48,30 @@ class ReturnToAuthorizationRequestResolverTest {
                         .containsKey(PkceParameterNames.CODE_CHALLENGE));
         assertEquals(
                 MOBILE, request.getSession(false).getAttribute(SsoReturnUris.SESSION_ATTRIBUTE));
+        assertEquals(
+                SsoPkceTest.CHALLENGE,
+                request.getSession(false).getAttribute(SsoReturnUris.CODE_CHALLENGE_ATTRIBUTE));
+        // Google gets Spring's own PKCE pair, never the client's challenge.
+        assertNotEquals(
+                SsoPkceTest.CHALLENGE,
+                authorizationRequest
+                        .getAdditionalParameters()
+                        .get(PkceParameterNames.CODE_CHALLENGE));
+    }
+
+    @Test
+    void resolve_withNonS256OrMalformedChallenge_doesNotStoreIt() {
+        MockHttpServletRequest plain = request("/api/1/auth/oauth2/authorization/google");
+        plain.setParameter(PkceParameterNames.CODE_CHALLENGE, SsoPkceTest.CHALLENGE);
+        plain.setParameter(PkceParameterNames.CODE_CHALLENGE_METHOD, "plain");
+        MockHttpServletRequest malformed = request("/api/1/auth/oauth2/authorization/google");
+        malformed.setParameter(PkceParameterNames.CODE_CHALLENGE, "short");
+
+        assertNotNull(resolver.resolve(plain));
+        assertNotNull(resolver.resolve(malformed));
+        assertNull(plain.getSession(false).getAttribute(SsoReturnUris.CODE_CHALLENGE_ATTRIBUTE));
+        assertNull(
+                malformed.getSession(false).getAttribute(SsoReturnUris.CODE_CHALLENGE_ATTRIBUTE));
     }
 
     @Test

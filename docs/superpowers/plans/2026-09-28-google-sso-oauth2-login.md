@@ -29,14 +29,15 @@
 ## Target Flow
 
 ```
-Client ──GET /api/auth/oauth2/authorization/google?return_to=wanderer://auth/sso-callback──▶ auth
-auth: validates return_to, stores it + OAuth state/nonce/PKCE in Redis session, 302 → accounts.google.com
+Client: fresh code_verifier (32 random bytes, base64url) → code_challenge = BASE64URL(SHA-256(verifier)), S256 only
+Client ──GET /api/1/auth/oauth2/authorization/google?return_to=wanderer://auth/sso-callback&code_challenge=<c>&code_challenge_method=S256──▶ auth
+auth: validates return_to + code_challenge, stores them + OAuth state/nonce/PKCE in Redis session, 302 → accounts.google.com
 Google ──302 /api/1/auth/oauth2/callback/google?code&state──▶ auth
 auth: Spring swaps the code for tokens (client secret) and checks the ID token (sig/iss/aud/nonce) → OidcUser
-      SsoAuthenticationSuccessHandler → GoogleSsoIdentityMapper → ExternalIdentity
-      SsoService.signIn → find/link/create → LoginResponse → SsoLoginCodeStore (Redis, 60s, single use)
+      SsoAuthenticationSuccessHandler (no valid code_challenge → error, no sign-in) → GoogleSsoIdentityMapper → ExternalIdentity
+      SsoService.signIn → find/link/create → LoginResponse → SsoLoginCodeStore ({codeChallenge, login} in Redis, 60s, single use)
       session invalidated, 302 → return_to?code=<one-time code>   (on failure: return_to?error=sso_failed)
-Client ──POST /api/auth/sso/exchange {code}──▶ auth → LoginResponse (same shape as /login)
+Client ──POST /api/1/auth/sso/exchange {code, codeVerifier}──▶ auth: GETDEL, S256(verifier) == challenge → LoginResponse (same shape as /login)
 ```
 
 ## File Map

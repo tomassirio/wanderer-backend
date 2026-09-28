@@ -18,7 +18,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 /**
  * SSO completion endpoint. Starting a login is a browser navigation to {@code
- * /api/1/auth/oauth2/authorization/{provider}?return_to=...}, handled by Spring Security.
+ * /api/1/auth/oauth2/authorization/{provider}?return_to=...&code_challenge=...}, handled by Spring
+ * Security.
  */
 @RestController
 @RequestMapping(value = ApiConstants.AUTH_PATH, produces = MediaType.APPLICATION_JSON_VALUE)
@@ -35,12 +36,14 @@ public class SsoController {
     @Operation(
             summary = "Exchange SSO login code",
             description =
-                    "Exchanges the one-time code from the SSO redirect for access and refresh"
-                            + " tokens. Each code works once and expires quickly.")
+                    "Exchanges the one-time code from the SSO redirect, plus the PKCE code"
+                            + " verifier (S256) whose challenge started the login, for access and"
+                            + " refresh tokens. Each code works once (a wrong verifier burns it)"
+                            + " and expires quickly.")
     public ResponseEntity<LoginResponse> exchange(@Valid @RequestBody SsoExchangeRequest request) {
         LoginResponse response =
                 ssoLoginCodeStore
-                        .consume(request.code())
+                        .consume(request.code(), request.codeVerifier())
                         .orElseThrow(
                                 () -> new IllegalArgumentException("Invalid or expired SSO code"));
         log.info("SSO code exchanged");

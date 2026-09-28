@@ -9,6 +9,7 @@ import static org.mockito.Mockito.when;
 import com.tomassirio.wanderer.auth.config.SsoProperties;
 import com.tomassirio.wanderer.auth.dto.LoginResponse;
 import com.tomassirio.wanderer.auth.service.SsoService;
+import jakarta.servlet.http.HttpSession;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
@@ -51,14 +52,14 @@ class SsoAuthenticationHandlersTest {
         failureHandler = new SsoAuthenticationFailureHandler(returnUris);
         request = new MockHttpServletRequest();
         response = new MockHttpServletResponse();
-        returnUris.remember(request, MOBILE);
+        returnUris.remember(request, MOBILE, SsoPkceTest.CHALLENGE);
     }
 
     @Test
     void success_redirectsToReturnUriWithCode() throws Exception {
         LoginResponse login = new LoginResponse("a", "r", "Bearer", 1L, "ana");
         when(ssoService.signIn(any())).thenReturn(login);
-        when(codeStore.store(login)).thenReturn("abc");
+        when(codeStore.store(SsoPkceTest.CHALLENGE, login)).thenReturn("abc");
 
         successHandler.onAuthenticationSuccess(request, response, token("google"));
 
@@ -72,7 +73,7 @@ class SsoAuthenticationHandlersTest {
         successHandler.onAuthenticationSuccess(request, response, token("google"));
 
         assertEquals(MOBILE + "?error=sso_failed", response.getRedirectedUrl());
-        verify(codeStore, never()).store(any());
+        verify(codeStore, never()).store(any(), any());
     }
 
     @Test
@@ -84,6 +85,36 @@ class SsoAuthenticationHandlersTest {
     }
 
     @Test
+    void success_withoutCodeChallenge_redirectsWithErrorAndNeverSignsIn() throws Exception {
+        request = new MockHttpServletRequest();
+        returnUris.remember(request, MOBILE, null);
+
+        successHandler.onAuthenticationSuccess(request, response, token("google"));
+
+        assertEquals(MOBILE + "?error=sso_failed", response.getRedirectedUrl());
+        verify(ssoService, never()).signIn(any());
+        verify(codeStore, never()).store(any(), any());
+    }
+
+    @Test
+    void success_whenHandshakeSessionStoreFails_redirectsToDefaultWithError() throws Exception {
+        successHandler.onAuthenticationSuccess(brokenSessionRequest(), response, token("google"));
+
+        assertEquals(WEB + "?error=sso_failed", response.getRedirectedUrl());
+        verify(ssoService, never()).signIn(any());
+    }
+
+    @Test
+    void failure_whenHandshakeSessionStoreFails_redirectsToDefaultWithError() throws Exception {
+        failureHandler.onAuthenticationFailure(
+                brokenSessionRequest(),
+                response,
+                new OAuth2AuthenticationException(new OAuth2Error("access_denied")));
+
+        assertEquals(WEB + "?error=sso_failed", response.getRedirectedUrl());
+    }
+
+    @Test
     void failure_redirectsWithError() throws Exception {
         failureHandler.onAuthenticationFailure(
                 request,
@@ -91,6 +122,16 @@ class SsoAuthenticationHandlersTest {
                 new OAuth2AuthenticationException(new OAuth2Error("access_denied")));
 
         assertEquals(MOBILE + "?error=sso_failed", response.getRedirectedUrl());
+    }
+
+    /** Simulates Redis being down: Spring Session throws when the session is read. */
+    private static MockHttpServletRequest brokenSessionRequest() {
+        return new MockHttpServletRequest() {
+            @Override
+            public HttpSession getSession(boolean create) {
+                throw new IllegalStateException("Redis unavailable");
+            }
+        };
     }
 
     private OAuth2AuthenticationToken token(String registrationId) {

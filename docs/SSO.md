@@ -1,12 +1,12 @@
 # SSO (Google)
 
 ## How it works
-1. Client navigates to `/api/1/auth/oauth2/authorization/google?return_to=<allowed uri>`.
-2. `wanderer-auth` stores OAuth state + `return_to` in a Redis-backed session (`WANDERER_SSO_SESSION` cookie, 10 min) and redirects to Google.
+1. Client generates a fresh PKCE pair per login: `code_verifier` = 32 random bytes, base64url without padding (43 chars); `code_challenge` = `BASE64URL-NOPAD(SHA-256(code_verifier))`. Only `S256` is accepted. Then it navigates to `/api/1/auth/oauth2/authorization/google?return_to=<allowed uri>&code_challenge=<challenge>&code_challenge_method=S256` (`code_challenge_method` may be omitted; any value other than `S256` is rejected).
+2. `wanderer-auth` stores OAuth state + `return_to` + the client's `code_challenge` in a Redis-backed session (`WANDERER_SSO_SESSION` cookie, `Path=/api/1/auth/oauth2`, 10 min) and redirects to Google (with its own, separate PKCE pair).
 3. Google redirects to `/api/1/auth/oauth2/callback/google`; Spring validates the ID token.
-4. `SsoIdentityMapper` (strategy per provider) → `SsoService.signIn` → find / link (verified email only) / create.
+4. `SsoIdentityMapper` (strategy per provider) → `SsoService.signIn` → find / link (verified email, case-insensitive) / create. A missing or invalid `code_challenge` fails here, before sign-in.
 5. Redirect to `return_to?code=<one-time code>` (60 s, single use) or `return_to?error=sso_failed`.
-6. Client `POST /api/auth/sso/exchange {"code": "..."}` → same `LoginResponse` as `/login`.
+6. Client `POST /api/1/auth/sso/exchange {"code": "...", "codeVerifier": "..."}` → same `LoginResponse` as `/login`. The code is burned on the first attempt: a wrong verifier returns 400 and the code can no longer be used. This binds the code to the client that started the login, so an app that hijacks the `wanderer://` redirect (or an attacker injecting their own code) cannot redeem it.
 
 ## Google Cloud Console
 - OAuth consent screen: scopes `openid`, `email`, `profile`.

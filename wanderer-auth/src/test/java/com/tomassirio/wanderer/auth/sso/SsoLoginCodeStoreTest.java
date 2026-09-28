@@ -46,8 +46,8 @@ class SsoLoginCodeStoreTest {
     void store_writesJsonWithTtlUnderRandomCode() {
         when(redis.opsForValue()).thenReturn(ops);
 
-        String first = store.store(login);
-        String second = store.store(login);
+        String first = store.store(SsoPkceTest.CHALLENGE, login);
+        String second = store.store(SsoPkceTest.CHALLENGE, login);
 
         assertNotEquals(first, second);
         assertTrue(first.length() >= 43, "256-bit url-safe code expected");
@@ -58,17 +58,24 @@ class SsoLoginCodeStoreTest {
                         json.capture(),
                         eq(Duration.ofSeconds(60)));
         assertTrue(json.getValue().contains("\"accessToken\":\"access\""));
+        assertTrue(json.getValue().contains("\"codeChallenge\":\"" + SsoPkceTest.CHALLENGE));
     }
 
     @Test
-    void consume_returnsResponseAndDeletesAtomically() {
+    void consume_withMatchingVerifier_returnsResponseAndDeletesAtomically() {
         when(redis.opsForValue()).thenReturn(ops);
-        when(ops.getAndDelete(SsoLoginCodeStore.KEY_PREFIX + "abc"))
-                .thenReturn(
-                        "{\"accessToken\":\"access\",\"refreshToken\":\"refresh\","
-                                + "\"tokenType\":\"Bearer\",\"expiresIn\":900000,\"username\":\"ana\"}");
+        when(ops.getAndDelete(SsoLoginCodeStore.KEY_PREFIX + "abc")).thenReturn(STORED);
 
-        assertEquals(login, store.consume("abc").orElseThrow());
+        assertEquals(login, store.consume("abc", SsoPkceTest.VERIFIER).orElseThrow());
+    }
+
+    @Test
+    void consume_withWrongVerifier_isEmptyButStillBurnsTheCode() {
+        when(redis.opsForValue()).thenReturn(ops);
+        when(ops.getAndDelete(SsoLoginCodeStore.KEY_PREFIX + "abc")).thenReturn(STORED);
+
+        assertTrue(store.consume("abc", "x".repeat(43)).isEmpty());
+        verify(ops).getAndDelete(SsoLoginCodeStore.KEY_PREFIX + "abc");
     }
 
     @Test
@@ -76,6 +83,12 @@ class SsoLoginCodeStoreTest {
         when(redis.opsForValue()).thenReturn(ops);
         when(ops.getAndDelete(anyString())).thenReturn(null);
 
-        assertTrue(store.consume("nope").isEmpty());
+        assertTrue(store.consume("nope", SsoPkceTest.VERIFIER).isEmpty());
     }
+
+    private static final String STORED =
+            "{\"codeChallenge\":\""
+                    + SsoPkceTest.CHALLENGE
+                    + "\",\"login\":{\"accessToken\":\"access\",\"refreshToken\":\"refresh\","
+                    + "\"tokenType\":\"Bearer\",\"expiresIn\":900000,\"username\":\"ana\"}}";
 }

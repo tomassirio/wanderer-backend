@@ -1,11 +1,13 @@
 package com.tomassirio.wanderer.auth.sso;
 
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.startsWith;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -36,6 +38,7 @@ import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.ResultActions;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.utility.DockerImageName;
@@ -47,6 +50,10 @@ import org.testcontainers.utility.DockerImageName;
         properties =
                 "jwt.secret=test-secret-that-is-long-enough-for-jwt-hmac-sha-algorithm-256-bits-minimum")
 class SsoLoginFlowIT extends BaseIntegrationTest {
+
+    // RFC 7636 Appendix B
+    private static final String VERIFIER = "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk";
+    private static final String CHALLENGE = "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM";
 
     @Container
     static GenericContainer<?> redis =
@@ -73,19 +80,36 @@ class SsoLoginFlowIT extends BaseIntegrationTest {
     void authorization_redirectsToGoogleWithPkceAndStoresSessionInRedis() throws Exception {
         mockMvc.perform(
                         get("/api/1/auth/oauth2/authorization/google")
-                                .param("return_to", "wanderer://auth/sso-callback"))
+                                .param("return_to", "wanderer://auth/sso-callback")
+                                .param("code_challenge", CHALLENGE)
+                                .param("code_challenge_method", "S256"))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(header().string("Location", startsWith("https://accounts.google.com/")))
                 .andExpect(header().string("Location", containsString("code_challenge=")))
+                // Google receives Spring's own PKCE challenge, not the client's
+                .andExpect(header().string("Location", not(containsString(CHALLENGE))))
                 .andExpect(header().string("Location", containsString("state=")))
                 .andExpect(
                         header().string(
                                         "Location",
                                         containsString(
                                                 "redirect_uri=http://localhost/api/1/auth/oauth2/callback/google")))
-                .andExpect(header().string("Set-Cookie", containsString("WANDERER_SSO_SESSION=")));
+                .andExpect(header().string("Set-Cookie", containsString("WANDERER_SSO_SESSION=")))
+                // Covers /api/1/auth/oauth2/callback/google, nothing else on the API host
+                .andExpect(
+                        header().string("Set-Cookie", containsString("Path=/api/1/auth/oauth2")));
 
         assertFalse(redisTemplate.keys("wanderer:auth:session:sessions:*").isEmpty());
+    }
+
+    @Test
+    void authorization_withoutCodeChallenge_stillRedirectsToGoogle() throws Exception {
+        // Rejected after the callback (success handler) so the user lands on return_to?error=...
+        mockMvc.perform(
+                        get("/api/1/auth/oauth2/authorization/google")
+                                .param("return_to", "wanderer://auth/sso-callback"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(header().string("Location", startsWith("https://accounts.google.com/")));
     }
 
     @Test
@@ -137,21 +161,41 @@ class SsoLoginFlowIT extends BaseIntegrationTest {
 
     @Test
     void exchange_isSingleUseAndApiStaysSessionless() throws Exception {
-        String code = codeStore.store(new LoginResponse("access", "refresh", "Bearer", 1L, "ana"));
-        String body = "{\"code\":\"" + code + "\"}";
+        String code = storeCode();
 
-        mockMvc.perform(
-                        post("/api/1/auth/sso/exchange")
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content(body))
+        exchange(code, VERIFIER)
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.accessToken").value("access"))
                 .andExpect(header().doesNotExist("Set-Cookie"));
 
-        mockMvc.perform(
-                        post("/api/1/auth/sso/exchange")
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content(body))
-                .andExpect(status().isBadRequest());
+        exchange(code, VERIFIER).andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void exchange_withWrongVerifier_failsAndBurnsTheCode() throws Exception {
+        String code = storeCode();
+
+        exchange(code, "x".repeat(43))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().string(containsString("Invalid or expired SSO code")));
+
+        exchange(code, VERIFIER).andExpect(status().isBadRequest());
+    }
+
+    private String storeCode() {
+        return codeStore.store(
+                CHALLENGE, new LoginResponse("access", "refresh", "Bearer", 1L, "ana"));
+    }
+
+    private ResultActions exchange(String code, String verifier) throws Exception {
+        return mockMvc.perform(
+                post("/api/1/auth/sso/exchange")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(
+                                "{\"code\":\""
+                                        + code
+                                        + "\",\"codeVerifier\":\""
+                                        + verifier
+                                        + "\"}"));
     }
 }

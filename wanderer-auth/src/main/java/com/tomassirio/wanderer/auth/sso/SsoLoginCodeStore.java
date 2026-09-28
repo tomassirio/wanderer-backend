@@ -13,7 +13,8 @@ import org.springframework.stereotype.Component;
 
 /**
  * Hands SSO results to the client without putting tokens in a URL: the redirect carries a random
- * single-use code, the client swaps it for the LoginResponse via POST.
+ * single-use code, the client swaps it for the LoginResponse via POST together with the PKCE
+ * verifier matching the code_challenge it sent when starting the login.
  */
 @Component
 @RequiredArgsConstructor
@@ -27,30 +28,40 @@ public class SsoLoginCodeStore {
     private final SsoProperties ssoProperties;
     private final SecureRandom secureRandom = new SecureRandom();
 
-    public String store(LoginResponse response) {
+    /** What sits in Redis under a code. Tokens are stored as issued (short TTL, single use). */
+    record Entry(String codeChallenge, LoginResponse login) {}
+
+    public String store(String codeChallenge, LoginResponse response) {
         byte[] bytes = new byte[CODE_BYTES];
         secureRandom.nextBytes(bytes);
         String code = Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
-        redis.opsForValue().set(KEY_PREFIX + code, write(response), ssoProperties.loginCodeTtl());
+        redis.opsForValue()
+                .set(
+                        KEY_PREFIX + code,
+                        write(new Entry(codeChallenge, response)),
+                        ssoProperties.loginCodeTtl());
         return code;
     }
 
-    public Optional<LoginResponse> consume(String code) {
+    /** GETDEL first, so a wrong verifier burns the code: every code gets exactly one attempt. */
+    public Optional<LoginResponse> consume(String code, String codeVerifier) {
         return Optional.ofNullable(redis.opsForValue().getAndDelete(KEY_PREFIX + code))
-                .map(this::read);
+                .map(this::read)
+                .filter(entry -> SsoPkce.matches(entry.codeChallenge(), codeVerifier))
+                .map(Entry::login);
     }
 
-    private String write(LoginResponse response) {
+    private String write(Entry entry) {
         try {
-            return objectMapper.writeValueAsString(response);
+            return objectMapper.writeValueAsString(entry);
         } catch (JsonProcessingException e) {
             throw new IllegalStateException("Failed to serialize SSO login", e);
         }
     }
 
-    private LoginResponse read(String json) {
+    private Entry read(String json) {
         try {
-            return objectMapper.readValue(json, LoginResponse.class);
+            return objectMapper.readValue(json, Entry.class);
         } catch (JsonProcessingException e) {
             throw new IllegalStateException("Failed to deserialize SSO login", e);
         }

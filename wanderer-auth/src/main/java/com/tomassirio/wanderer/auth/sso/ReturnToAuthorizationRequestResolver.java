@@ -7,8 +7,12 @@ import org.springframework.security.oauth2.client.web.DefaultOAuth2Authorization
 import org.springframework.security.oauth2.client.web.OAuth2AuthorizationRequestCustomizers;
 import org.springframework.security.oauth2.client.web.OAuth2AuthorizationRequestResolver;
 import org.springframework.security.oauth2.core.endpoint.OAuth2AuthorizationRequest;
+import org.springframework.security.oauth2.core.endpoint.PkceParameterNames;
 
-/** Default resolver + PKCE, and remembers the client's return_to in the handshake session. */
+/**
+ * Default resolver + PKCE towards Google, and remembers the client's return_to and its own S256
+ * code_challenge (for the one-time code exchange) in the handshake session.
+ */
 public class ReturnToAuthorizationRequestResolver implements OAuth2AuthorizationRequestResolver {
 
     public static final String RETURN_TO_PARAMETER = "return_to";
@@ -40,7 +44,12 @@ public class ReturnToAuthorizationRequestResolver implements OAuth2Authorization
     private OAuth2AuthorizationRequest remember(
             HttpServletRequest request, OAuth2AuthorizationRequest authorizationRequest) {
         if (authorizationRequest != null) {
-            returnUris.remember(request, request.getParameter(RETURN_TO_PARAMETER));
+            String challenge = request.getParameter(PkceParameterNames.CODE_CHALLENGE);
+            String method = request.getParameter(PkceParameterNames.CODE_CHALLENGE_METHOD);
+            returnUris.remember(
+                    request,
+                    request.getParameter(RETURN_TO_PARAMETER),
+                    SsoPkce.isValidChallenge(challenge, method) ? challenge : null);
         }
         return authorizationRequest;
     }

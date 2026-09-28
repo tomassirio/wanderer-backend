@@ -1,5 +1,6 @@
 package com.tomassirio.wanderer.auth.controller;
 
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -23,6 +24,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 class SsoControllerTest {
 
     private static final String URL = "/api/1/auth/sso/exchange";
+    private static final String VERIFIER = "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk";
 
     @Mock private SsoLoginCodeStore ssoLoginCodeStore;
     @InjectMocks private SsoController ssoController;
@@ -38,7 +40,7 @@ class SsoControllerTest {
 
     @Test
     void exchange_validCode_returnsLoginResponse() throws Exception {
-        when(ssoLoginCodeStore.consume("good"))
+        when(ssoLoginCodeStore.consume("good", VERIFIER))
                 .thenReturn(
                         Optional.of(
                                 new LoginResponse("access", "refresh", "Bearer", 900000L, "ana")));
@@ -46,7 +48,7 @@ class SsoControllerTest {
         mockMvc.perform(
                         post(URL)
                                 .contentType(MediaType.APPLICATION_JSON)
-                                .content("{\"code\":\"good\"}"))
+                                .content(body("good", VERIFIER)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.accessToken").value("access"))
                 .andExpect(jsonPath("$.username").value("ana"));
@@ -54,12 +56,12 @@ class SsoControllerTest {
 
     @Test
     void exchange_unknownCode_returns400() throws Exception {
-        when(ssoLoginCodeStore.consume("bad")).thenReturn(Optional.empty());
+        when(ssoLoginCodeStore.consume("bad", VERIFIER)).thenReturn(Optional.empty());
 
         mockMvc.perform(
                         post(URL)
                                 .contentType(MediaType.APPLICATION_JSON)
-                                .content("{\"code\":\"bad\"}"))
+                                .content(body("bad", VERIFIER)))
                 .andExpect(status().isBadRequest());
     }
 
@@ -68,7 +70,31 @@ class SsoControllerTest {
         mockMvc.perform(
                         post(URL)
                                 .contentType(MediaType.APPLICATION_JSON)
-                                .content("{\"code\":\"\"}"))
+                                .content(body("", VERIFIER)))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void exchange_missingVerifier_returns400() throws Exception {
+        mockMvc.perform(
+                        post(URL)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("{\"code\":\"good\"}"))
+                .andExpect(status().isBadRequest());
+        verifyNoInteractions(ssoLoginCodeStore);
+    }
+
+    @Test
+    void exchange_malformedVerifier_returns400() throws Exception {
+        mockMvc.perform(
+                        post(URL)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(body("good", "too+short")))
+                .andExpect(status().isBadRequest());
+        verifyNoInteractions(ssoLoginCodeStore);
+    }
+
+    private static String body(String code, String verifier) {
+        return "{\"code\":\"" + code + "\",\"codeVerifier\":\"" + verifier + "\"}";
     }
 }

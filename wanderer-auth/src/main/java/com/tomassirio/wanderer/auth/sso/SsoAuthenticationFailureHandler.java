@@ -25,6 +25,7 @@ public class SsoAuthenticationFailureHandler implements AuthenticationFailureHan
             throws IOException {
         log.warn("SSO authentication failed: {}", exception.getMessage());
         response.sendRedirect(
-                SsoReturnUris.withParam(returnUris.consume(request), "error", "sso_failed"));
+                SsoReturnUris.withParam(
+                        returnUris.consume(request).returnTo(), "error", "sso_failed"));
     }
 }

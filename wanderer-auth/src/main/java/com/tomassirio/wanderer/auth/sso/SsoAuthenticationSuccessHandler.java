@@ -42,15 +42,22 @@ public class SsoAuthenticationSuccessHandler implements AuthenticationSuccessHan
     public void onAuthenticationSuccess(
             HttpServletRequest request, HttpServletResponse response, Authentication authentication)
             throws IOException {
-        String returnTo = returnUris.consume(request);
+        SsoReturnUris.Handshake handshake = returnUris.consume(request);
+        String returnTo = handshake.returnTo();
         OAuth2AuthenticationToken token = (OAuth2AuthenticationToken) authentication;
         String provider = token.getAuthorizedClientRegistrationId();
         try {
+            if (handshake.codeChallenge() == null) {
+                throw new IllegalArgumentException("Missing or invalid code_challenge");
+            }
             SsoIdentityMapper mapper = mappers.get(provider);
             if (mapper == null) {
                 throw new IllegalArgumentException("Unsupported SSO provider: " + provider);
             }
-            String code = codeStore.store(ssoService.signIn(mapper.map(token.getPrincipal())));
+            String code =
+                    codeStore.store(
+                            handshake.codeChallenge(),
+                            ssoService.signIn(mapper.map(token.getPrincipal())));
             log.info("SSO login succeeded via {}", provider);
             response.sendRedirect(SsoReturnUris.withParam(returnTo, "code", code));
         } catch (RuntimeException e) {

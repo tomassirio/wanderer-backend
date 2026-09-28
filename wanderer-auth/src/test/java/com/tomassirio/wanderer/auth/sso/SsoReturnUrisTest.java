@@ -34,19 +34,44 @@ class SsoReturnUrisTest {
     @Test
     void rememberThenConsume_roundTripsAndInvalidatesSession() {
         MockHttpServletRequest request = new MockHttpServletRequest();
-        returnUris.remember(request, MOBILE);
+        returnUris.remember(request, MOBILE, SsoPkceTest.CHALLENGE);
         MockHttpSession session = (MockHttpSession) request.getSession(false);
 
-        assertEquals(MOBILE, returnUris.consume(request));
+        assertEquals(
+                new SsoReturnUris.Handshake(MOBILE, SsoPkceTest.CHALLENGE),
+                returnUris.consume(request));
         assertTrue(session.isInvalid());
+    }
+
+    @Test
+    void consume_withoutChallenge_returnsNullChallenge() {
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        returnUris.remember(request, MOBILE, null);
+
+        assertEquals(new SsoReturnUris.Handshake(MOBILE, null), returnUris.consume(request));
     }
 
     @Test
     void consume_withoutSession_returnsDefault() {
         MockHttpServletRequest request = new MockHttpServletRequest();
 
-        assertEquals(WEB, returnUris.consume(request));
+        assertEquals(new SsoReturnUris.Handshake(WEB, null), returnUris.consume(request));
         assertNull(request.getSession(false));
+    }
+
+    @Test
+    void consume_whenSessionStoreFails_returnsDefault() {
+        MockHttpSession session =
+                new MockHttpSession() {
+                    @Override
+                    public Object getAttribute(String name) {
+                        throw new IllegalStateException("Redis unavailable");
+                    }
+                };
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setSession(session);
+
+        assertEquals(new SsoReturnUris.Handshake(WEB, null), returnUris.consume(request));
     }
 
     @Test
