@@ -94,7 +94,7 @@ public class AuthServiceImpl implements AuthService {
             throw new IllegalArgumentException("Account disabled");
         }
 
-        if (!passwordEncoder.matches(password, cred.getPasswordHash())) {
+        if (!cred.hasPassword() || !passwordEncoder.matches(password, cred.getPasswordHash())) {
             loginAttemptService.recordFailedLogin(identifier, ipAddress);
             throw new IllegalArgumentException("Invalid credentials");
         }
@@ -333,6 +333,11 @@ public class AuthServiceImpl implements AuthService {
         }
 
         Credential cred = maybeCred.get();
+
+        if (!cred.hasPassword()) {
+            throw new IllegalArgumentException(
+                    "No password set for this account. Use password reset to set one.");
+        }
 
         // Verify current password
         if (!passwordEncoder.matches(currentPassword, cred.getPasswordHash())) {

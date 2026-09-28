@@ -200,6 +200,42 @@ class AuthServiceImplTest {
     }
 
     @Test
+    void login_whenCredentialHasNoPassword_shouldRejectWithoutCallingEncoder() {
+        Credential ssoOnly = Credential.ssoOnly(testUserInfo.id(), "user@email.com");
+        when(wandererQueryClient.getUserByUsername(testUserInfo.username(), "basic"))
+                .thenReturn(testUserInfo);
+        when(credentialRepository.findById(testUserInfo.id())).thenReturn(Optional.of(ssoOnly));
+
+        IllegalArgumentException ex =
+                assertThrows(
+                        IllegalArgumentException.class,
+                        () -> authService.login(testUserInfo.username(), "anything", "127.0.0.1"));
+
+        assertEquals("Invalid credentials", ex.getMessage());
+        verify(passwordEncoder, never()).matches(any(), any());
+        verify(loginAttemptService).recordFailedLogin(testUserInfo.username(), "127.0.0.1");
+    }
+
+    @Test
+    void changePassword_whenCredentialHasNoPassword_shouldThrowWithHint() {
+        Credential ssoOnly = Credential.ssoOnly(testUserInfo.id(), "user@email.com");
+        when(credentialRepository.findById(testUserInfo.id())).thenReturn(Optional.of(ssoOnly));
+
+        IllegalArgumentException ex =
+                assertThrows(
+                        IllegalArgumentException.class,
+                        () ->
+                                authService.changePassword(
+                                        testUserInfo.id(), "whatever", "NewPass123!"));
+
+        assertEquals(
+                "No password set for this account. Use password reset to set one.",
+                ex.getMessage());
+        verify(passwordEncoder, never()).matches(any(), any());
+        verify(credentialRepository, never()).save(any());
+    }
+
+    @Test
     void login_whenValidEmailProvided_shouldReturnLoginResponse() {
         String email = "user@email.com";
         String password = "SecurePass1!";

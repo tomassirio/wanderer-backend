@@ -39,4 +39,32 @@ public class Credential {
     @Column(name = "roles", length = 1000)
     @Convert(converter = RolesConverter.class)
     private Set<Role> roles = new HashSet<>();
+
+    /** Credential for password registration. A password hash is mandatory on this path. */
+    public static Credential withPassword(UUID userId, String email, String passwordHash) {
+        if (passwordHash == null || passwordHash.isBlank()) {
+            throw new IllegalArgumentException("Password hash is required");
+        }
+        return Credential.builder()
+                .userId(userId)
+                .email(email)
+                .passwordHash(passwordHash)
+                .enabled(true)
+                .roles(Set.of(Role.USER))
+                .build();
+    }
+
+    /** Credential for an account created via SSO. It has no password until the user sets one. */
+    public static Credential ssoOnly(UUID userId, String email) {
+        return Credential.builder()
+                .userId(userId)
+                .email(email)
+                .enabled(true)
+                .roles(Set.of(Role.USER))
+                .build();
+    }
+
+    public boolean hasPassword() {
+        return passwordHash != null && !passwordHash.isBlank();
+    }
 }
