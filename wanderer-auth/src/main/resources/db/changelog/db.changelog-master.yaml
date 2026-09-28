@@ -15,3 +15,5 @@ databaseChangeLog:
       file: db/changelog/changesets/007-create-login-attempts.yaml
   - include:
       file: db/changelog/changesets/008-add-performance-indexes.yaml
+  - include:
+      file: db/changelog/changesets/009-create-user-identities.yaml

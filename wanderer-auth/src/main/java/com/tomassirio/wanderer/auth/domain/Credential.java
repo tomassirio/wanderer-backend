@@ -26,7 +26,8 @@ public class Credential {
     @Column(name = "user_id")
     private UUID userId;
 
-    @Column(name = "password_hash", nullable = false)
+    /** Null for SSO-only accounts. Password registration always sets it (see withPassword). */
+    @Column(name = "password_hash")
     private String passwordHash;
 
     @Column(name = "enabled", nullable = false)
