@@ -194,7 +194,7 @@ class SsoSchemaIT extends BaseIntegrationTest {
 
 - [ ] **Step 2: Run the test and confirm it fails**
 
-Run: `mvn -pl wanderer-auth -am verify -Dit.test=SsoSchemaIT -Dtest=none -Dsurefire.failIfNoSpecifiedTests=false -Djacoco.skip=true`
+Run: `mvn -pl wanderer-auth -am verify -Dit.test=SsoSchemaIT -Dtest=none -Dsurefire.failIfNoSpecifiedTests=false -Dfailsafe.failIfNoSpecifiedTests=false -Djacoco.skip=true`
 Expected: compilation FAIL — `cannot find symbol: class UserIdentity`.
 
 - [ ] **Step 3: Write the migration**
@@ -358,7 +358,7 @@ with:
 
 - [ ] **Step 5: Run the test and confirm it passes**
 
-Run: `mvn -pl wanderer-auth -am verify -Dit.test=SsoSchemaIT -Dtest=none -Dsurefire.failIfNoSpecifiedTests=false -Djacoco.skip=true`
+Run: `mvn -pl wanderer-auth -am verify -Dit.test=SsoSchemaIT -Dtest=none -Dsurefire.failIfNoSpecifiedTests=false -Dfailsafe.failIfNoSpecifiedTests=false -Djacoco.skip=true`
 Expected: `Tests run: 3, Failures: 0, Errors: 0`.
 
 - [ ] **Step 6: Commit**
@@ -482,7 +482,7 @@ Add to `AuthServiceImplTest.java`, after `login_whenPasswordIncorrect_shouldThro
 
 - [ ] **Step 2: Run the tests and confirm they fail**
 
-Run: `mvn -pl wanderer-auth -am test -Dtest='CredentialTest,AuthServiceImplTest' -Dsurefire.failIfNoSpecifiedTests=false -Djacoco.skip=true`
+Run: `mvn -pl wanderer-auth -am test -Dtest='CredentialTest,AuthServiceImplTest' -Dsurefire.failIfNoSpecifiedTests=false -Dfailsafe.failIfNoSpecifiedTests=false -Djacoco.skip=true`
 Expected: compilation FAIL — `cannot find symbol: method ssoOnly`.
 
 - [ ] **Step 3: Implement**
@@ -542,7 +542,7 @@ In `AuthServiceImpl.changePassword`, directly after `Credential cred = maybeCred
 
 - [ ] **Step 4: Run the tests and confirm they pass**
 
-Run: `mvn -pl wanderer-auth -am test -Dtest='CredentialTest,AuthServiceImplTest' -Dsurefire.failIfNoSpecifiedTests=false -Djacoco.skip=true`
+Run: `mvn -pl wanderer-auth -am test -Dtest='CredentialTest,AuthServiceImplTest' -Dsurefire.failIfNoSpecifiedTests=false -Dfailsafe.failIfNoSpecifiedTests=false -Djacoco.skip=true`
 Expected: all PASS.
 
 - [ ] **Step 5: Commit**
@@ -805,7 +805,7 @@ Add to `TokenServiceImplTest.java`:
 
 - [ ] **Step 2: Run the tests and confirm they fail**
 
-Run: `mvn -pl wanderer-auth -am test -Dtest='UserProvisioningServiceImplTest,AuthServiceImplTest,TokenServiceImplTest' -Dsurefire.failIfNoSpecifiedTests=false -Djacoco.skip=true`
+Run: `mvn -pl wanderer-auth -am test -Dtest='UserProvisioningServiceImplTest,AuthServiceImplTest,TokenServiceImplTest' -Dsurefire.failIfNoSpecifiedTests=false -Dfailsafe.failIfNoSpecifiedTests=false -Djacoco.skip=true`
 Expected: compilation FAIL — `cannot find symbol: class UserProvisioningService`.
 
 - [ ] **Step 3: Implement**
@@ -1123,7 +1123,7 @@ class GoogleSsoIdentityMapperTest {
 
 - [ ] **Step 3: Run the test and confirm it fails**
 
-Run: `mvn -pl wanderer-auth -am test -Dtest=GoogleSsoIdentityMapperTest -Dsurefire.failIfNoSpecifiedTests=false -Djacoco.skip=true`
+Run: `mvn -pl wanderer-auth -am test -Dtest=GoogleSsoIdentityMapperTest -Dsurefire.failIfNoSpecifiedTests=false -Dfailsafe.failIfNoSpecifiedTests=false -Djacoco.skip=true`
 Expected: compilation FAIL — `cannot find symbol: class GoogleSsoIdentityMapper`.
 
 - [ ] **Step 4: Implement**
@@ -1207,7 +1207,7 @@ public class GoogleSsoIdentityMapper implements SsoIdentityMapper {
 
 - [ ] **Step 5: Run the test and confirm it passes**
 
-Run: `mvn -pl wanderer-auth -am test -Dtest=GoogleSsoIdentityMapperTest -Dsurefire.failIfNoSpecifiedTests=false -Djacoco.skip=true`
+Run: `mvn -pl wanderer-auth -am test -Dtest=GoogleSsoIdentityMapperTest -Dsurefire.failIfNoSpecifiedTests=false -Dfailsafe.failIfNoSpecifiedTests=false -Djacoco.skip=true`
 Expected: `Tests run: 4, Failures: 0`.
 
 - [ ] **Step 6: Commit**
@@ -1334,7 +1334,7 @@ class UsernameGeneratorTest {
 
 - [ ] **Step 2: Run the test and confirm it fails**
 
-Run: `mvn -pl wanderer-auth -am test -Dtest=UsernameGeneratorTest -Dsurefire.failIfNoSpecifiedTests=false -Djacoco.skip=true`
+Run: `mvn -pl wanderer-auth -am test -Dtest=UsernameGeneratorTest -Dsurefire.failIfNoSpecifiedTests=false -Dfailsafe.failIfNoSpecifiedTests=false -Djacoco.skip=true`
 Expected: compilation FAIL — `cannot find symbol: class UsernameGenerator`.
 
 - [ ] **Step 3: Implement**
@@ -1404,7 +1404,7 @@ public class UsernameGenerator {
 
 - [ ] **Step 4: Run the test and confirm it passes**
 
-Run: `mvn -pl wanderer-auth -am test -Dtest=UsernameGeneratorTest -Dsurefire.failIfNoSpecifiedTests=false -Djacoco.skip=true`
+Run: `mvn -pl wanderer-auth -am test -Dtest=UsernameGeneratorTest -Dsurefire.failIfNoSpecifiedTests=false -Dfailsafe.failIfNoSpecifiedTests=false -Djacoco.skip=true`
 Expected: `Tests run: 8, Failures: 0`.
 
 - [ ] **Step 5: Commit**
@@ -1615,7 +1615,7 @@ class SsoServiceImplTest {
 
 - [ ] **Step 2: Run the test and confirm it fails**
 
-Run: `mvn -pl wanderer-auth -am test -Dtest=SsoServiceImplTest -Dsurefire.failIfNoSpecifiedTests=false -Djacoco.skip=true`
+Run: `mvn -pl wanderer-auth -am test -Dtest=SsoServiceImplTest -Dsurefire.failIfNoSpecifiedTests=false -Dfailsafe.failIfNoSpecifiedTests=false -Djacoco.skip=true`
 Expected: compilation FAIL — `cannot find symbol: class SsoServiceImpl`.
 
 - [ ] **Step 3: Implement**
@@ -1750,7 +1750,7 @@ public class SsoServiceImpl implements SsoService {
 
 - [ ] **Step 4: Run the test and confirm it passes**
 
-Run: `mvn -pl wanderer-auth -am test -Dtest=SsoServiceImplTest -Dsurefire.failIfNoSpecifiedTests=false -Djacoco.skip=true`
+Run: `mvn -pl wanderer-auth -am test -Dtest=SsoServiceImplTest -Dsurefire.failIfNoSpecifiedTests=false -Dfailsafe.failIfNoSpecifiedTests=false -Djacoco.skip=true`
 Expected: `Tests run: 6, Failures: 0`.
 
 - [ ] **Step 5: Commit**
@@ -1946,7 +1946,7 @@ class SsoControllerTest {
 
 - [ ] **Step 2: Run the tests and confirm they fail**
 
-Run: `mvn -pl wanderer-auth -am test -Dtest='SsoLoginCodeStoreTest,SsoControllerTest' -Dsurefire.failIfNoSpecifiedTests=false -Djacoco.skip=true`
+Run: `mvn -pl wanderer-auth -am test -Dtest='SsoLoginCodeStoreTest,SsoControllerTest' -Dsurefire.failIfNoSpecifiedTests=false -Dfailsafe.failIfNoSpecifiedTests=false -Djacoco.skip=true`
 Expected: compilation FAIL — `cannot find symbol: class SsoLoginCodeStore`.
 
 - [ ] **Step 3: Implement**
@@ -2140,7 +2140,7 @@ app.sso.login-code-ttl=60s
 
 - [ ] **Step 4: Run the tests and confirm they pass**
 
-Run: `mvn -pl wanderer-auth -am test -Dtest='SsoLoginCodeStoreTest,SsoControllerTest' -Dsurefire.failIfNoSpecifiedTests=false -Djacoco.skip=true`
+Run: `mvn -pl wanderer-auth -am test -Dtest='SsoLoginCodeStoreTest,SsoControllerTest' -Dsurefire.failIfNoSpecifiedTests=false -Dfailsafe.failIfNoSpecifiedTests=false -Djacoco.skip=true`
 Expected: all PASS.
 
 - [ ] **Step 5: Commit**
@@ -2354,7 +2354,7 @@ class SsoAuthenticationHandlersTest {
 
 - [ ] **Step 2: Run the tests and confirm they fail**
 
-Run: `mvn -pl wanderer-auth -am test -Dtest='SsoReturnUrisTest,SsoAuthenticationHandlersTest' -Dsurefire.failIfNoSpecifiedTests=false -Djacoco.skip=true`
+Run: `mvn -pl wanderer-auth -am test -Dtest='SsoReturnUrisTest,SsoAuthenticationHandlersTest' -Dsurefire.failIfNoSpecifiedTests=false -Dfailsafe.failIfNoSpecifiedTests=false -Djacoco.skip=true`
 Expected: compilation FAIL — `cannot find symbol: class SsoReturnUris`.
 
 - [ ] **Step 3: Implement the return-URI helper, resolver and handlers**
@@ -2561,7 +2561,7 @@ public class SsoAuthenticationFailureHandler implements AuthenticationFailureHan
 
 - [ ] **Step 4: Run the unit tests and confirm they pass**
 
-Run: `mvn -pl wanderer-auth -am test -Dtest='SsoReturnUrisTest,SsoAuthenticationHandlersTest' -Dsurefire.failIfNoSpecifiedTests=false -Djacoco.skip=true`
+Run: `mvn -pl wanderer-auth -am test -Dtest='SsoReturnUrisTest,SsoAuthenticationHandlersTest' -Dsurefire.failIfNoSpecifiedTests=false -Dfailsafe.failIfNoSpecifiedTests=false -Djacoco.skip=true`
 Expected: all PASS.
 
 - [ ] **Step 5: Write the failing integration test (real Redis and Postgres)**
@@ -2686,7 +2686,7 @@ class SsoLoginFlowIT extends BaseIntegrationTest {
 
 - [ ] **Step 6: Run the integration test and confirm it fails**
 
-Run: `mvn -pl wanderer-auth -am verify -Dit.test=SsoLoginFlowIT -Dtest=none -Dsurefire.failIfNoSpecifiedTests=false -Djacoco.skip=true`
+Run: `mvn -pl wanderer-auth -am verify -Dit.test=SsoLoginFlowIT -Dtest=none -Dsurefire.failIfNoSpecifiedTests=false -Dfailsafe.failIfNoSpecifiedTests=false -Djacoco.skip=true`
 Expected: FAIL. `GET /api/1/auth/oauth2/authorization/google` returns 401 or 404 instead of a 302 to Google, because no `oauth2Login` chain exists yet.
 
 - [ ] **Step 7: Wire up the configuration and the security chain**
@@ -2853,7 +2853,7 @@ public class SecurityConfig {
 
 - [ ] **Step 8: Run the integration test and confirm it passes**
 
-Run: `mvn -pl wanderer-auth -am verify -Dit.test=SsoLoginFlowIT -Dtest=none -Dsurefire.failIfNoSpecifiedTests=false -Djacoco.skip=true`
+Run: `mvn -pl wanderer-auth -am verify -Dit.test=SsoLoginFlowIT -Dtest=none -Dsurefire.failIfNoSpecifiedTests=false -Dfailsafe.failIfNoSpecifiedTests=false -Djacoco.skip=true`
 Expected: `Tests run: 3, Failures: 0`.
 
 If `callback_withoutHandshakeSession...` returns 401 or 404 instead of a redirect, check that the callback path matches `redirectionEndpoint.baseUri` exactly (`/api/1/auth/oauth2/callback/*`).
