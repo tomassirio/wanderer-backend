@@ -73,3 +73,20 @@ data:
     management.endpoint.health.show-details=always
     management.metrics.export.prometheus.enabled=true
 
+    # SSO (Google via oauth2Login)
+    spring.security.oauth2.client.registration.google.client-id={{ .Values.application.sso.google.clientId }}
+    spring.security.oauth2.client.registration.google.client-secret={{ .Values.application.sso.google.clientSecret }}
+    spring.security.oauth2.client.registration.google.scope=openid,email,profile
+    spring.security.oauth2.client.registration.google.redirect-uri={baseUrl}/api/1/auth/oauth2/callback/{registrationId}
+    app.sso.allowed-return-uris={{ .Values.application.sso.allowedReturnUris }}
+    app.sso.login-code-ttl={{ .Values.application.sso.loginCodeTtl }}
+
+    # Spring Session (Redis) for the SSO handshake only
+    spring.session.redis.namespace=wanderer:auth:session
+    spring.session.timeout=10m
+    server.servlet.session.cookie.name=WANDERER_SSO_SESSION
+    server.servlet.session.cookie.http-only=true
+    server.servlet.session.cookie.same-site=lax
+    server.servlet.session.cookie.secure={{ .Values.application.session.cookieSecure }}
+    server.forward-headers-strategy=framework
+
