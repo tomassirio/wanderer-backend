@@ -1,6 +1,7 @@
 package com.tomassirio.wanderer.auth.sso;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -10,9 +11,9 @@ import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tomassirio.wanderer.auth.config.SsoProperties;
-import com.tomassirio.wanderer.auth.dto.LoginResponse;
 import java.time.Duration;
 import java.util.List;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -29,8 +30,7 @@ class SsoLoginCodeStoreTest {
     @Mock private ValueOperations<String, String> ops;
 
     private SsoLoginCodeStore store;
-    private final LoginResponse login =
-            new LoginResponse("access", "refresh", "Bearer", 900000L, "ana");
+    private final UUID userId = UUID.fromString("11111111-1111-1111-1111-111111111111");
 
     @BeforeEach
     void setUp() {
@@ -43,11 +43,11 @@ class SsoLoginCodeStoreTest {
     }
 
     @Test
-    void store_writesJsonWithTtlUnderRandomCode() {
+    void store_writesJsonWithTtlUnderRandomCodeAndNoTokens() {
         when(redis.opsForValue()).thenReturn(ops);
 
-        String first = store.store(SsoPkceTest.CHALLENGE, login);
-        String second = store.store(SsoPkceTest.CHALLENGE, login);
+        String first = store.store(userId, SsoPkceTest.CHALLENGE);
+        String second = store.store(userId, SsoPkceTest.CHALLENGE);
 
         assertNotEquals(first, second);
         assertTrue(first.length() >= 43, "256-bit url-safe code expected");
@@ -57,16 +57,18 @@ class SsoLoginCodeStoreTest {
                         eq(SsoLoginCodeStore.KEY_PREFIX + first),
                         json.capture(),
                         eq(Duration.ofSeconds(60)));
-        assertTrue(json.getValue().contains("\"accessToken\":\"access\""));
+        assertTrue(json.getValue().contains("\"userId\":\"" + userId));
         assertTrue(json.getValue().contains("\"codeChallenge\":\"" + SsoPkceTest.CHALLENGE));
+        assertFalse(json.getValue().contains("accessToken"));
+        assertFalse(json.getValue().contains("refreshToken"));
     }
 
     @Test
-    void consume_withMatchingVerifier_returnsResponseAndDeletesAtomically() {
+    void consume_withMatchingVerifier_returnsUserIdAndDeletesAtomically() {
         when(redis.opsForValue()).thenReturn(ops);
         when(ops.getAndDelete(SsoLoginCodeStore.KEY_PREFIX + "abc")).thenReturn(STORED);
 
-        assertEquals(login, store.consume("abc", SsoPkceTest.VERIFIER).orElseThrow());
+        assertEquals(userId, store.consume("abc", SsoPkceTest.VERIFIER).orElseThrow());
     }
 
     @Test
@@ -89,6 +91,5 @@ class SsoLoginCodeStoreTest {
     private static final String STORED =
             "{\"codeChallenge\":\""
                     + SsoPkceTest.CHALLENGE
-                    + "\",\"login\":{\"accessToken\":\"access\",\"refreshToken\":\"refresh\","
-                    + "\"tokenType\":\"Bearer\",\"expiresIn\":900000,\"username\":\"ana\"}}";
+                    + "\",\"userId\":\"11111111-1111-1111-1111-111111111111\"}";
 }

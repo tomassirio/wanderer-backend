@@ -35,9 +35,9 @@ auth: validates return_to + code_challenge, stores them + OAuth state/nonce/PKCE
 Google ──302 /api/1/auth/oauth2/callback/google?code&state──▶ auth
 auth: Spring swaps the code for tokens (client secret) and checks the ID token (sig/iss/aud/nonce) → OidcUser
       SsoAuthenticationSuccessHandler (no valid code_challenge → error, no sign-in) → GoogleSsoIdentityMapper → ExternalIdentity
-      SsoService.signIn → find/link/create → LoginResponse → SsoLoginCodeStore ({codeChallenge, login} in Redis, 60s, single use)
+      SsoService.resolveUser → find/link/create → userId → SsoLoginCodeStore ({codeChallenge, userId} in Redis, 60s, single use; no tokens)
       session invalidated, 302 → return_to?code=<one-time code>   (on failure: return_to?error=sso_failed)
-Client ──POST /api/1/auth/sso/exchange {code, codeVerifier}──▶ auth: GETDEL, S256(verifier) == challenge → LoginResponse (same shape as /login)
+Client ──POST /api/1/auth/sso/exchange {code, codeVerifier}──▶ auth: GETDEL, S256(verifier) == challenge → userId → SsoService.issueTokens (fresh roles) → LoginResponse (same shape as /login; tokens minted here)
 ```
 
 ## File Map

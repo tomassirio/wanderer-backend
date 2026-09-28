@@ -49,34 +49,27 @@ class SsoServiceImplTest {
             new LoginResponse("access", "refresh", "Bearer", 900000L, "ana");
 
     @Test
-    void signIn_whenIdentityLinked_issuesTokensWithStoredRoles() {
-        Credential credential = Credential.ssoOnly(userId, "ana@gmail.com");
-        credential.setRoles(Set.of(Role.ADMIN, Role.USER));
+    void resolveUser_whenIdentityLinked_returnsUserIdWithoutIssuingTokens() {
         when(userIdentityRepository.findByProviderAndSubject("google", "sub-1"))
                 .thenReturn(Optional.of(link()));
-        when(credentialRepository.findById(userId)).thenReturn(Optional.of(credential));
-        when(wandererQueryClient.getUserById(userId, "basic"))
-                .thenReturn(new UserBasicInfo(userId, "ana"));
-        when(tokenService.issueLoginTokens(any(User.class), eq(Set.of(Role.ADMIN, Role.USER))))
-                .thenReturn(tokens);
+        when(credentialRepository.findById(userId))
+                .thenReturn(Optional.of(Credential.ssoOnly(userId, "ana@gmail.com")));
 
-        assertSame(tokens, ssoService.signIn(verified));
+        assertEquals(userId, ssoService.resolveUser(verified));
         verify(userIdentityRepository, never()).save(any());
         verify(userProvisioningService, never()).provisionWithoutPassword(any(), any(), any());
+        verify(tokenService, never()).issueLoginTokens(any(), any());
+        verify(wandererQueryClient, never()).getUserById(any(), any());
     }
 
     @Test
-    void signIn_whenEmailMatchesExistingAccount_linksIdentity() {
+    void resolveUser_whenEmailMatchesExistingAccount_linksIdentity() {
         Credential existing = Credential.withPassword(userId, "ana@gmail.com", "$2a$hash");
         when(userIdentityRepository.findByProviderAndSubject("google", "sub-1"))
                 .thenReturn(Optional.empty());
         when(credentialRepository.findByEmail("ana@gmail.com")).thenReturn(Optional.of(existing));
-        when(wandererQueryClient.getUserById(userId, "basic"))
-                .thenReturn(new UserBasicInfo(userId, "ana"));
-        when(tokenService.issueLoginTokens(any(User.class), eq(Set.of(Role.USER))))
-                .thenReturn(tokens);
 
-        ssoService.signIn(verified);
+        assertEquals(userId, ssoService.resolveUser(verified));
 
         ArgumentCaptor<UserIdentity> saved = ArgumentCaptor.forClass(UserIdentity.class);
         verify(userIdentityRepository).save(saved.capture());
@@ -87,19 +80,15 @@ class SsoServiceImplTest {
     }
 
     @Test
-    void signIn_whenIdentityEmailMixedCase_linksToNormalizedExistingAccount() {
+    void resolveUser_whenIdentityEmailMixedCase_linksToNormalizedExistingAccount() {
         ExternalIdentity mixedCase =
                 new ExternalIdentity("google", "sub-1", "Ana@Gmail.com", true, "Ana Maria");
         Credential existing = Credential.withPassword(userId, "ana@gmail.com", "$2a$hash");
         when(userIdentityRepository.findByProviderAndSubject("google", "sub-1"))
                 .thenReturn(Optional.empty());
         when(credentialRepository.findByEmail("ana@gmail.com")).thenReturn(Optional.of(existing));
-        when(wandererQueryClient.getUserById(userId, "basic"))
-                .thenReturn(new UserBasicInfo(userId, "ana"));
-        when(tokenService.issueLoginTokens(any(User.class), eq(Set.of(Role.USER))))
-                .thenReturn(tokens);
 
-        assertSame(tokens, ssoService.signIn(mixedCase));
+        assertEquals(userId, ssoService.resolveUser(mixedCase));
 
         ArgumentCaptor<UserIdentity> saved = ArgumentCaptor.forClass(UserIdentity.class);
         verify(userIdentityRepository).save(saved.capture());
@@ -109,20 +98,20 @@ class SsoServiceImplTest {
     }
 
     @Test
-    void signIn_whenEmailNotVerified_rejectsWithoutLinkingOrCreating() {
+    void resolveUser_whenEmailNotVerified_rejectsWithoutLinkingOrCreating() {
         ExternalIdentity unverified =
                 new ExternalIdentity("google", "sub-1", "ana@gmail.com", false, "Ana");
         when(userIdentityRepository.findByProviderAndSubject("google", "sub-1"))
                 .thenReturn(Optional.empty());
 
-        assertThrows(IllegalArgumentException.class, () -> ssoService.signIn(unverified));
+        assertThrows(IllegalArgumentException.class, () -> ssoService.resolveUser(unverified));
         verify(credentialRepository, never()).findByEmail(any());
         verify(userIdentityRepository, never()).save(any());
         verify(userProvisioningService, never()).provisionWithoutPassword(any(), any(), any());
     }
 
     @Test
-    void signIn_whenNewEmail_provisionsWithoutPasswordAndLinks() {
+    void resolveUser_whenNewEmail_provisionsWithoutPasswordAndLinks() {
         User created = new User();
         created.setId(userId);
         created.setUsername("ana");
@@ -134,18 +123,14 @@ class SsoServiceImplTest {
                 .thenReturn(created);
         when(credentialRepository.findById(userId))
                 .thenReturn(Optional.of(Credential.ssoOnly(userId, "ana@gmail.com")));
-        when(wandererQueryClient.getUserById(userId, "basic"))
-                .thenReturn(new UserBasicInfo(userId, "ana"));
-        when(tokenService.issueLoginTokens(any(User.class), eq(Set.of(Role.USER))))
-                .thenReturn(tokens);
 
-        assertSame(tokens, ssoService.signIn(verified));
+        assertEquals(userId, ssoService.resolveUser(verified));
         verify(userIdentityRepository).save(any(UserIdentity.class));
         verify(userProvisioningService, never()).provisionWithPassword(any(), any(), any(), any());
     }
 
     @Test
-    void signIn_whenProviderHasNoName_usesUsernameAsDisplayName() {
+    void resolveUser_whenProviderHasNoName_usesUsernameAsDisplayName() {
         ExternalIdentity noName =
                 new ExternalIdentity("google", "sub-1", "ana@gmail.com", true, " ");
         User created = new User();
@@ -159,17 +144,14 @@ class SsoServiceImplTest {
                 .thenReturn(created);
         when(credentialRepository.findById(userId))
                 .thenReturn(Optional.of(Credential.ssoOnly(userId, "ana@gmail.com")));
-        when(wandererQueryClient.getUserById(userId, "basic"))
-                .thenReturn(new UserBasicInfo(userId, "ana"));
-        when(tokenService.issueLoginTokens(any(User.class), any())).thenReturn(tokens);
 
-        ssoService.signIn(noName);
+        ssoService.resolveUser(noName);
 
         verify(userProvisioningService).provisionWithoutPassword("ana", "ana@gmail.com", "ana");
     }
 
     @Test
-    void signIn_whenAccountDisabled_rejects() {
+    void resolveUser_whenAccountDisabled_rejects() {
         Credential disabled = Credential.ssoOnly(userId, "ana@gmail.com");
         disabled.setEnabled(false);
         when(userIdentityRepository.findByProviderAndSubject("google", "sub-1"))
@@ -177,8 +159,44 @@ class SsoServiceImplTest {
         when(credentialRepository.findById(userId)).thenReturn(Optional.of(disabled));
 
         IllegalArgumentException ex =
-                assertThrows(IllegalArgumentException.class, () -> ssoService.signIn(verified));
+                assertThrows(
+                        IllegalArgumentException.class, () -> ssoService.resolveUser(verified));
         assertEquals("Account disabled", ex.getMessage());
+        verify(tokenService, never()).issueLoginTokens(any(), any());
+    }
+
+    @Test
+    void issueTokens_happyPath_issuesTokensWithFreshRoles() {
+        Credential credential = Credential.ssoOnly(userId, "ana@gmail.com");
+        credential.setRoles(Set.of(Role.ADMIN, Role.USER));
+        when(credentialRepository.findById(userId)).thenReturn(Optional.of(credential));
+        when(wandererQueryClient.getUserById(userId, "basic"))
+                .thenReturn(new UserBasicInfo(userId, "ana"));
+        when(tokenService.issueLoginTokens(any(User.class), eq(Set.of(Role.ADMIN, Role.USER))))
+                .thenReturn(tokens);
+
+        assertSame(tokens, ssoService.issueTokens(userId));
+    }
+
+    @Test
+    void issueTokens_whenAccountDisabled_rejects() {
+        Credential disabled = Credential.ssoOnly(userId, "ana@gmail.com");
+        disabled.setEnabled(false);
+        when(credentialRepository.findById(userId)).thenReturn(Optional.of(disabled));
+
+        IllegalArgumentException ex =
+                assertThrows(IllegalArgumentException.class, () -> ssoService.issueTokens(userId));
+        assertEquals("Account disabled", ex.getMessage());
+        verify(tokenService, never()).issueLoginTokens(any(), any());
+    }
+
+    @Test
+    void issueTokens_whenCredentialMissing_rejectsWithInvalidCodeMessage() {
+        when(credentialRepository.findById(userId)).thenReturn(Optional.empty());
+
+        IllegalArgumentException ex =
+                assertThrows(IllegalArgumentException.class, () -> ssoService.issueTokens(userId));
+        assertEquals("Invalid or expired SSO code", ex.getMessage());
         verify(tokenService, never()).issueLoginTokens(any(), any());
     }
 

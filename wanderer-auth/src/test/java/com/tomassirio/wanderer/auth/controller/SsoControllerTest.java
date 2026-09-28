@@ -7,9 +7,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.tomassirio.wanderer.auth.dto.LoginResponse;
+import com.tomassirio.wanderer.auth.service.SsoService;
 import com.tomassirio.wanderer.auth.sso.SsoLoginCodeStore;
 import com.tomassirio.wanderer.commons.exception.GlobalExceptionHandler;
 import java.util.Optional;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -27,8 +29,10 @@ class SsoControllerTest {
     private static final String VERIFIER = "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk";
 
     @Mock private SsoLoginCodeStore ssoLoginCodeStore;
+    @Mock private SsoService ssoService;
     @InjectMocks private SsoController ssoController;
     private MockMvc mockMvc;
+    private final UUID userId = UUID.randomUUID();
 
     @BeforeEach
     void setUp() {
@@ -40,10 +44,9 @@ class SsoControllerTest {
 
     @Test
     void exchange_validCode_returnsLoginResponse() throws Exception {
-        when(ssoLoginCodeStore.consume("good", VERIFIER))
-                .thenReturn(
-                        Optional.of(
-                                new LoginResponse("access", "refresh", "Bearer", 900000L, "ana")));
+        when(ssoLoginCodeStore.consume("good", VERIFIER)).thenReturn(Optional.of(userId));
+        when(ssoService.issueTokens(userId))
+                .thenReturn(new LoginResponse("access", "refresh", "Bearer", 900000L, "ana"));
 
         mockMvc.perform(
                         post(URL)
@@ -63,6 +66,20 @@ class SsoControllerTest {
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(body("bad", VERIFIER)))
                 .andExpect(status().isBadRequest());
+        verifyNoInteractions(ssoService);
+    }
+
+    @Test
+    void exchange_whenAccountDisabledAtExchange_returns400() throws Exception {
+        when(ssoLoginCodeStore.consume("good", VERIFIER)).thenReturn(Optional.of(userId));
+        when(ssoService.issueTokens(userId))
+                .thenThrow(new IllegalArgumentException("Account disabled"));
+
+        mockMvc.perform(
+                        post(URL)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(body("good", VERIFIER)))
+                .andExpect(status().isBadRequest());
     }
 
     @Test
@@ -72,6 +89,7 @@ class SsoControllerTest {
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(body("", VERIFIER)))
                 .andExpect(status().isBadRequest());
+        verifyNoInteractions(ssoService);
     }
 
     @Test
@@ -82,6 +100,7 @@ class SsoControllerTest {
                                 .content("{\"code\":\"good\"}"))
                 .andExpect(status().isBadRequest());
         verifyNoInteractions(ssoLoginCodeStore);
+        verifyNoInteractions(ssoService);
     }
 
     @Test
@@ -92,6 +111,7 @@ class SsoControllerTest {
                                 .content(body("good", "too+short")))
                 .andExpect(status().isBadRequest());
         verifyNoInteractions(ssoLoginCodeStore);
+        verifyNoInteractions(ssoService);
     }
 
     private static String body(String code, String verifier) {

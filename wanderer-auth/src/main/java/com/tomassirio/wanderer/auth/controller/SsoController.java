@@ -2,11 +2,13 @@ package com.tomassirio.wanderer.auth.controller;
 
 import com.tomassirio.wanderer.auth.dto.LoginResponse;
 import com.tomassirio.wanderer.auth.dto.SsoExchangeRequest;
+import com.tomassirio.wanderer.auth.service.SsoService;
 import com.tomassirio.wanderer.auth.sso.SsoLoginCodeStore;
 import com.tomassirio.wanderer.commons.constants.ApiConstants;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
@@ -29,6 +31,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class SsoController {
 
     private final SsoLoginCodeStore ssoLoginCodeStore;
+    private final SsoService ssoService;
 
     @PostMapping(
             value = ApiConstants.SSO_EXCHANGE_ENDPOINT,
@@ -41,11 +44,12 @@ public class SsoController {
                             + " refresh tokens. Each code works once (a wrong verifier burns it)"
                             + " and expires quickly.")
     public ResponseEntity<LoginResponse> exchange(@Valid @RequestBody SsoExchangeRequest request) {
-        LoginResponse response =
+        UUID userId =
                 ssoLoginCodeStore
                         .consume(request.code(), request.codeVerifier())
                         .orElseThrow(
                                 () -> new IllegalArgumentException("Invalid or expired SSO code"));
+        LoginResponse response = ssoService.issueTokens(userId);
         log.info("SSO code exchanged");
         return ResponseEntity.ok(response);
     }

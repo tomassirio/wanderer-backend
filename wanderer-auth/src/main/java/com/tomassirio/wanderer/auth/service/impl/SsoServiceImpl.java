@@ -35,7 +35,7 @@ public class SsoServiceImpl implements SsoService {
     private final TokenService tokenService;
 
     @Override
-    public LoginResponse signIn(ExternalIdentity identity) {
+    public UUID resolveUser(ExternalIdentity identity) {
         Credential credential =
                 userIdentityRepository
                         .findByProviderAndSubject(identity.provider(), identity.subject())
@@ -45,8 +45,20 @@ public class SsoServiceImpl implements SsoService {
         if (!credential.isEnabled()) {
             throw new IllegalArgumentException("Account disabled");
         }
-        return tokenService.issueLoginTokens(
-                loadUser(credential.getUserId()), credential.getRoles());
+        return credential.getUserId();
+    }
+
+    @Override
+    public LoginResponse issueTokens(UUID userId) {
+        Credential credential =
+                credentialRepository
+                        .findById(userId)
+                        .orElseThrow(
+                                () -> new IllegalArgumentException("Invalid or expired SSO code"));
+        if (!credential.isEnabled()) {
+            throw new IllegalArgumentException("Account disabled");
+        }
+        return tokenService.issueLoginTokens(loadUser(userId), credential.getRoles());
     }
 
     private Credential linkOrProvision(ExternalIdentity identity) {

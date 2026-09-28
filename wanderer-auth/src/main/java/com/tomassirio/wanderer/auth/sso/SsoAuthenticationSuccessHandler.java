@@ -6,6 +6,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
@@ -54,10 +55,8 @@ public class SsoAuthenticationSuccessHandler implements AuthenticationSuccessHan
             if (mapper == null) {
                 throw new IllegalArgumentException("Unsupported SSO provider: " + provider);
             }
-            String code =
-                    codeStore.store(
-                            handshake.codeChallenge(),
-                            ssoService.signIn(mapper.map(token.getPrincipal())));
+            UUID userId = ssoService.resolveUser(mapper.map(token.getPrincipal()));
+            String code = codeStore.store(userId, handshake.codeChallenge());
             log.info("SSO login succeeded via {}", provider);
             response.sendRedirect(SsoReturnUris.withParam(returnTo, "code", code));
         } catch (RuntimeException e) {

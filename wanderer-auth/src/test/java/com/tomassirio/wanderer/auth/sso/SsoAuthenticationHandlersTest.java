@@ -7,12 +7,12 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.tomassirio.wanderer.auth.config.SsoProperties;
-import com.tomassirio.wanderer.auth.dto.LoginResponse;
 import com.tomassirio.wanderer.auth.service.SsoService;
 import jakarta.servlet.http.HttpSession;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -41,6 +41,7 @@ class SsoAuthenticationHandlersTest {
     private SsoAuthenticationFailureHandler failureHandler;
     private MockHttpServletRequest request;
     private MockHttpServletResponse response;
+    private final UUID userId = UUID.randomUUID();
 
     @BeforeEach
     void setUp() {
@@ -57,9 +58,8 @@ class SsoAuthenticationHandlersTest {
 
     @Test
     void success_redirectsToReturnUriWithCode() throws Exception {
-        LoginResponse login = new LoginResponse("a", "r", "Bearer", 1L, "ana");
-        when(ssoService.signIn(any())).thenReturn(login);
-        when(codeStore.store(SsoPkceTest.CHALLENGE, login)).thenReturn("abc");
+        when(ssoService.resolveUser(any())).thenReturn(userId);
+        when(codeStore.store(userId, SsoPkceTest.CHALLENGE)).thenReturn("abc");
 
         successHandler.onAuthenticationSuccess(request, response, token("google"));
 
@@ -68,7 +68,8 @@ class SsoAuthenticationHandlersTest {
 
     @Test
     void success_whenSignInFails_redirectsWithError() throws Exception {
-        when(ssoService.signIn(any())).thenThrow(new IllegalArgumentException("Account disabled"));
+        when(ssoService.resolveUser(any()))
+                .thenThrow(new IllegalArgumentException("Account disabled"));
 
         successHandler.onAuthenticationSuccess(request, response, token("google"));
 
@@ -81,7 +82,7 @@ class SsoAuthenticationHandlersTest {
         successHandler.onAuthenticationSuccess(request, response, token("github"));
 
         assertEquals(MOBILE + "?error=sso_failed", response.getRedirectedUrl());
-        verify(ssoService, never()).signIn(any());
+        verify(ssoService, never()).resolveUser(any());
     }
 
     @Test
@@ -92,7 +93,7 @@ class SsoAuthenticationHandlersTest {
         successHandler.onAuthenticationSuccess(request, response, token("google"));
 
         assertEquals(MOBILE + "?error=sso_failed", response.getRedirectedUrl());
-        verify(ssoService, never()).signIn(any());
+        verify(ssoService, never()).resolveUser(any());
         verify(codeStore, never()).store(any(), any());
     }
 
@@ -101,7 +102,7 @@ class SsoAuthenticationHandlersTest {
         successHandler.onAuthenticationSuccess(brokenSessionRequest(), response, token("google"));
 
         assertEquals(WEB + "?error=sso_failed", response.getRedirectedUrl());
-        verify(ssoService, never()).signIn(any());
+        verify(ssoService, never()).resolveUser(any());
     }
 
     @Test

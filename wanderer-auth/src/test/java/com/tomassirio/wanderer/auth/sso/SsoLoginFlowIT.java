@@ -5,6 +5,8 @@ import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.startsWith;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -15,12 +17,15 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.tomassirio.wanderer.auth.AuthApplication;
 import com.tomassirio.wanderer.auth.client.WandererCommandClient;
 import com.tomassirio.wanderer.auth.client.WandererQueryClient;
-import com.tomassirio.wanderer.auth.dto.LoginResponse;
+import com.tomassirio.wanderer.auth.domain.Credential;
+import com.tomassirio.wanderer.auth.repository.CredentialRepository;
 import com.tomassirio.wanderer.commons.BaseIntegrationTest;
 import com.tomassirio.wanderer.commons.config.TestConfig;
+import com.tomassirio.wanderer.commons.dto.UserBasicInfo;
 import jakarta.servlet.Filter;
 import java.lang.reflect.Field;
 import java.util.List;
+import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -75,6 +80,7 @@ class SsoLoginFlowIT extends BaseIntegrationTest {
     @Autowired private StringRedisTemplate redisTemplate;
     @Autowired private SsoLoginCodeStore codeStore;
     @Autowired private FilterChainProxy filterChainProxy;
+    @Autowired private CredentialRepository credentialRepository;
 
     @Test
     void authorization_redirectsToGoogleWithPkceAndStoresSessionInRedis() throws Exception {
@@ -161,11 +167,16 @@ class SsoLoginFlowIT extends BaseIntegrationTest {
 
     @Test
     void exchange_isSingleUseAndApiStaysSessionless() throws Exception {
-        String code = storeCode();
+        UUID userId = UUID.randomUUID();
+        credentialRepository.save(Credential.ssoOnly(userId, "ana@gmail.com"));
+        when(wandererQueryClient.getUserById(userId, "basic"))
+                .thenReturn(new UserBasicInfo(userId, "ana"));
+        String code = storeCode(userId);
 
         exchange(code, VERIFIER)
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.accessToken").value("access"))
+                .andExpect(jsonPath("$.accessToken").isNotEmpty())
+                .andExpect(jsonPath("$.username").value("ana"))
                 .andExpect(header().doesNotExist("Set-Cookie"));
 
         exchange(code, VERIFIER).andExpect(status().isBadRequest());
@@ -173,7 +184,7 @@ class SsoLoginFlowIT extends BaseIntegrationTest {
 
     @Test
     void exchange_withWrongVerifier_failsAndBurnsTheCode() throws Exception {
-        String code = storeCode();
+        String code = storeCode(UUID.randomUUID());
 
         exchange(code, "x".repeat(43))
                 .andExpect(status().isBadRequest())
@@ -182,9 +193,20 @@ class SsoLoginFlowIT extends BaseIntegrationTest {
         exchange(code, VERIFIER).andExpect(status().isBadRequest());
     }
 
-    private String storeCode() {
-        return codeStore.store(
-                CHALLENGE, new LoginResponse("access", "refresh", "Bearer", 1L, "ana"));
+    @Test
+    void storedCode_containsNoTokensInRedis() {
+        UUID userId = UUID.randomUUID();
+        String code = storeCode(userId);
+
+        String raw = redisTemplate.opsForValue().get(SsoLoginCodeStore.KEY_PREFIX + code);
+
+        assertNotNull(raw);
+        assertFalse(raw.contains("accessToken"));
+        assertFalse(raw.contains("refreshToken"));
+    }
+
+    private String storeCode(UUID userId) {
+        return codeStore.store(userId, CHALLENGE);
     }
 
     private ResultActions exchange(String code, String verifier) throws Exception {
