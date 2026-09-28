@@ -38,6 +38,8 @@ public class SsoReturnUris {
         session.setAttribute(SESSION_ATTRIBUTE, resolve(requested));
         if (codeChallenge != null) {
             session.setAttribute(CODE_CHALLENGE_ATTRIBUTE, codeChallenge);
+        } else {
+            session.removeAttribute(CODE_CHALLENGE_ATTRIBUTE);
         }
     }
 

@@ -78,4 +78,16 @@ class SsoReturnUrisTest {
     void withParam_appendsQueryParameter() {
         assertEquals(MOBILE + "?code=abc", SsoReturnUris.withParam(MOBILE, "code", "abc"));
     }
+
+    @Test
+    void remember_clearsStaleChallenge() {
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        // First SSO login with a valid challenge
+        returnUris.remember(request, MOBILE, SsoPkceTest.CHALLENGE);
+        // Second SSO login starts without a challenge
+        returnUris.remember(request, MOBILE, null);
+
+        // Consume should return null challenge, not the stale one
+        assertEquals(new SsoReturnUris.Handshake(MOBILE, null), returnUris.consume(request));
+    }
 }
