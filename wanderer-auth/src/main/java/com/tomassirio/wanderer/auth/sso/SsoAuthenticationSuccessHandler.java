@@ -54,7 +54,7 @@ public class SsoAuthenticationSuccessHandler implements AuthenticationSuccessHan
             log.info("SSO login succeeded via {}", provider);
             response.sendRedirect(SsoReturnUris.withParam(returnTo, "code", code));
         } catch (RuntimeException e) {
-            log.warn("SSO login via {} failed: {}", provider, e.getMessage());
+            log.warn("SSO login via {} failed: {}", provider, e.getMessage(), e);
             response.sendRedirect(SsoReturnUris.withParam(returnTo, "error", "sso_failed"));
         }
     }

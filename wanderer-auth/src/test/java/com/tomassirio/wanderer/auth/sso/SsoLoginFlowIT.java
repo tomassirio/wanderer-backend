@@ -3,6 +3,7 @@ package com.tomassirio.wanderer.auth.sso;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.startsWith;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
@@ -15,6 +16,9 @@ import com.tomassirio.wanderer.auth.client.WandererQueryClient;
 import com.tomassirio.wanderer.auth.dto.LoginResponse;
 import com.tomassirio.wanderer.commons.BaseIntegrationTest;
 import com.tomassirio.wanderer.commons.config.TestConfig;
+import jakarta.servlet.Filter;
+import java.lang.reflect.Field;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -22,6 +26,11 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.security.oauth2.client.web.HttpSessionOAuth2AuthorizedClientRepository;
+import org.springframework.security.oauth2.client.web.OAuth2LoginAuthenticationFilter;
+import org.springframework.security.web.FilterChainProxy;
+import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.TestPropertySource;
@@ -58,6 +67,7 @@ class SsoLoginFlowIT extends BaseIntegrationTest {
     @Autowired private MockMvc mockMvc;
     @Autowired private StringRedisTemplate redisTemplate;
     @Autowired private SsoLoginCodeStore codeStore;
+    @Autowired private FilterChainProxy filterChainProxy;
 
     @Test
     void authorization_redirectsToGoogleWithPkceAndStoresSessionInRedis() throws Exception {
@@ -76,6 +86,40 @@ class SsoLoginFlowIT extends BaseIntegrationTest {
                 .andExpect(header().string("Set-Cookie", containsString("WANDERER_SSO_SESSION=")));
 
         assertFalse(redisTemplate.keys("wanderer:auth:session:sessions:*").isEmpty());
+    }
+
+    @Test
+    void ssoFilterChain_authorizedClientRepositoryIsSessionScopedNotInMemory() throws Exception {
+        MockHttpServletRequest authorizationRequest =
+                new MockHttpServletRequest("GET", "/api/1/auth/oauth2/authorization/google");
+
+        SecurityFilterChain ssoChain =
+                filterChainProxy.getFilterChains().stream()
+                        .filter(chain -> chain.matches(authorizationRequest))
+                        .findFirst()
+                        .orElseThrow(() -> new AssertionError("No chain matches the SSO path"));
+
+        List<Filter> filters = ssoChain.getFilters();
+        OAuth2LoginAuthenticationFilter loginFilter =
+                filters.stream()
+                        .filter(OAuth2LoginAuthenticationFilter.class::isInstance)
+                        .map(OAuth2LoginAuthenticationFilter.class::cast)
+                        .findFirst()
+                        .orElseThrow(
+                                () -> new AssertionError("No OAuth2LoginAuthenticationFilter"));
+
+        Field repositoryField =
+                OAuth2LoginAuthenticationFilter.class.getDeclaredField(
+                        "authorizedClientRepository");
+        repositoryField.setAccessible(true);
+
+        // This is what would drift back to Boot's default (an in-process
+        // AuthenticatedPrincipalOAuth2AuthorizedClientRepository backed by
+        // InMemoryOAuth2AuthorizedClientService, which never expires entries) if
+        // ssoFilterChain's .authorizedClientRepository(...) override were ever removed.
+        assertInstanceOf(
+                HttpSessionOAuth2AuthorizedClientRepository.class,
+                repositoryField.get(loginFilter));
     }
 
     @Test

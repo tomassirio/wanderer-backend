@@ -22,6 +22,7 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
+import org.springframework.security.oauth2.client.web.HttpSessionOAuth2AuthorizedClientRepository;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.context.RequestAttributeSecurityContextRepository;
 import org.springframework.web.cors.CorsConfigurationSource;
@@ -69,7 +70,9 @@ public class SecurityConfig {
                 .authorizeHttpRequests(authz -> authz.anyRequest().permitAll())
                 .oauth2Login(
                         oauth2 ->
-                                oauth2.authorizationEndpoint(
+                                oauth2.authorizedClientRepository(
+                                                new HttpSessionOAuth2AuthorizedClientRepository())
+                                        .authorizationEndpoint(
                                                 endpoint ->
                                                         endpoint.baseUri(
                                                                         ApiConstants
