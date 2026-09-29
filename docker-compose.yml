@@ -129,6 +129,11 @@ services:
       EMAIL_BASE_URL: ${EMAIL_BASE_URL:-http://localhost:3000}
       EMAIL_AUTH: ${EMAIL_AUTH:-true}
       EMAIL_START_TLS: ${EMAIL_START_TLS:-true}
+      # SSO (Google). Register http://localhost:8083/api/1/auth/oauth2/callback/google in Google Cloud Console
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-local-google-client-id}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-local-google-client-secret}
+      SSO_ALLOWED_RETURN_URIS: ${SSO_ALLOWED_RETURN_URIS:-http://localhost:51538/auth/sso-callback,wanderer://auth/sso-callback}
+      SESSION_COOKIE_SECURE: "false"
 
 volumes:
   postgres_data:

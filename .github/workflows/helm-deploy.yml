@@ -45,6 +45,9 @@ on:
       EMAIL_PASSWORD:
         description: 'SMTP password for Brevo email service'
         required: false
+      GOOGLE_CLIENT_SECRET:
+        description: 'Google OAuth client secret for SSO (wanderer-auth)'
+        required: false
 
 env:
   ENV_SUFFIX: ${{ inputs.environment == 'dev' && '-dev' || '' }}
@@ -266,6 +269,17 @@ jobs:
             if [ -n "${{ vars.EMAIL_BASE_URL }}" ]; then
               HELM_ARGS+=(
                 "--set" "application.email.baseUrl=${{ vars.EMAIL_BASE_URL }}"
+              )
+            fi
+            # SSO (Google) from GitHub environment variables and secrets
+            SSO_RETURN_URIS="${{ vars.SSO_ALLOWED_RETURN_URIS }}"
+            HELM_ARGS+=(
+              "--set-string" "application.sso.google.clientId=${{ vars.GOOGLE_CLIENT_ID }}"
+              "--set-string" "application.sso.google.clientSecret=${{ secrets.GOOGLE_CLIENT_SECRET }}"
+            )
+            if [ -n "$SSO_RETURN_URIS" ]; then
+              HELM_ARGS+=(
+                "--set-string" "application.sso.allowedReturnUris=${SSO_RETURN_URIS//,/\\,}"
               )
             fi
           fi

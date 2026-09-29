@@ -39,6 +39,8 @@ public class PolylineServiceImpl implements PolylineService {
     private final PolylineComputer polylineComputer;
     private final ApplicationEventPublisher eventPublisher;
 
+    // PolylineUpdatedEvent also drives the trip thumbnail: if this throws, the update gets no
+    // thumbnail refresh (the admin regenerate-missing backfill recovers it).
     @Override
     @Transactional
     public void appendSegment(UUID tripId) {

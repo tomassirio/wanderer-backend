@@ -450,6 +450,65 @@ class TripServiceImplTest {
     }
 
     @Test
+    void adminDeleteTrip_whenTripExists_shouldPublishEventWithTripOwnerIdNotAdminId() {
+        // Given
+        UUID tripId = UUID.randomUUID();
+        UUID adminId = UUID.randomUUID();
+
+        Trip existingTrip =
+                Trip.builder()
+                        .id(tripId)
+                        .name("Trip Name")
+                        .userId(USER_ID)
+                        .tripSettings(
+                                TripSettings.builder()
+                                        .tripStatus(TripStatus.CREATED)
+                                        .visibility(TripVisibility.PUBLIC)
+                                        .build())
+                        .tripDetails(TripDetails.builder().build())
+                        .creationTimestamp(Instant.now())
+                        .enabled(true)
+                        .build();
+
+        when(tripRepository.findById(tripId)).thenReturn(Optional.of(existingTrip));
+
+        // When
+        tripService.adminDeleteTrip(adminId, tripId);
+
+        // Then
+        verify(tripRepository).findById(tripId);
+        verify(ownershipValidator, never())
+                .validateOwnership(
+                        any(), any(UUID.class), any(Function.class), any(Function.class), any());
+
+        ArgumentCaptor<TripDeletedEvent> eventCaptor =
+                ArgumentCaptor.forClass(TripDeletedEvent.class);
+        verify(eventPublisher).publishEvent(eventCaptor.capture());
+
+        TripDeletedEvent publishedEvent = eventCaptor.getValue();
+        assertThat(publishedEvent.getTripId()).isEqualTo(tripId);
+        assertThat(publishedEvent.getOwnerId()).isEqualTo(USER_ID);
+        assertThat(publishedEvent.getOwnerId()).isNotEqualTo(adminId);
+    }
+
+    @Test
+    void adminDeleteTrip_whenTripDoesNotExist_shouldThrowEntityNotFoundException() {
+        // Given
+        UUID tripId = UUID.randomUUID();
+        UUID adminId = UUID.randomUUID();
+
+        when(tripRepository.findById(tripId)).thenReturn(Optional.empty());
+
+        // When & Then
+        assertThatThrownBy(() -> tripService.adminDeleteTrip(adminId, tripId))
+                .isInstanceOf(EntityNotFoundException.class)
+                .hasMessageContaining("Trip not found");
+
+        verify(tripRepository).findById(tripId);
+        verify(eventPublisher, never()).publishEvent(any());
+    }
+
+    @Test
     void changeVisibility_whenUserOwnsTrip_shouldChangeVisibility() {
         // Given
         UUID tripId = UUID.randomUUID();

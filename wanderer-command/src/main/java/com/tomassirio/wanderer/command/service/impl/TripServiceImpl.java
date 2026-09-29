@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -36,6 +37,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 @Transactional
+@Slf4j
 public class TripServiceImpl implements TripService {
 
     private final TripRepository tripRepository;
@@ -106,6 +108,21 @@ public class TripServiceImpl implements TripService {
 
         // Publish event - persistence handler will delete from DB
         eventPublisher.publishEvent(TripDeletedEvent.builder().tripId(id).ownerId(userId).build());
+    }
+
+    @Override
+    public void adminDeleteTrip(UUID adminId, UUID id) {
+        // Validate trip exists (no ownership check - admin can delete any trip)
+        Trip trip =
+                tripRepository
+                        .findById(id)
+                        .orElseThrow(() -> new EntityNotFoundException("Trip not found"));
+
+        log.info("Admin {} deleting trip {} owned by {}", adminId, id, trip.getUserId());
+
+        // Publish the same event the owner-driven delete uses, with the trip's actual owner
+        eventPublisher.publishEvent(
+                TripDeletedEvent.builder().tripId(id).ownerId(trip.getUserId()).build());
     }
 
     @Override

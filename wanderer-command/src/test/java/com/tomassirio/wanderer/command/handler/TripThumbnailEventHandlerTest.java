@@ -6,7 +6,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.tomassirio.wanderer.command.event.TripUpdatedEvent;
+import com.tomassirio.wanderer.command.event.PolylineUpdatedEvent;
 import com.tomassirio.wanderer.command.repository.TripRepository;
 import com.tomassirio.wanderer.command.service.ThumbnailService;
 import com.tomassirio.wanderer.commons.domain.GeoLocation;
@@ -48,8 +48,8 @@ class TripThumbnailEventHandlerTest {
         // Given
         when(tripRepository.findById(tripId)).thenReturn(Optional.of(trip));
 
-        TripUpdatedEvent event =
-                TripUpdatedEvent.builder().tripId(tripId).tripUpdateId(UUID.randomUUID()).build();
+        PolylineUpdatedEvent event =
+                PolylineUpdatedEvent.builder().tripId(tripId).encodedPolyline("abc").build();
 
         // When
         eventHandler.handle(event);
@@ -60,12 +60,23 @@ class TripThumbnailEventHandlerTest {
     }
 
     @Test
+    void handle_whenPolylineCleared_shouldStillGenerateThumbnail() {
+        // A trip with a single location clears its polyline; the thumbnail (markers only)
+        // must still be generated.
+        when(tripRepository.findById(tripId)).thenReturn(Optional.of(trip));
+
+        eventHandler.handle(PolylineUpdatedEvent.builder().tripId(tripId).build());
+
+        verify(thumbnailService).generateAndSaveThumbnail(trip);
+    }
+
+    @Test
     void handle_whenThumbnailGenerated_shouldNotUpdateTrip() {
         // Given
         when(tripRepository.findById(tripId)).thenReturn(Optional.of(trip));
 
-        TripUpdatedEvent event =
-                TripUpdatedEvent.builder().tripId(tripId).tripUpdateId(UUID.randomUUID()).build();
+        PolylineUpdatedEvent event =
+                PolylineUpdatedEvent.builder().tripId(tripId).encodedPolyline("abc").build();
 
         // When
         eventHandler.handle(event);
@@ -81,8 +92,8 @@ class TripThumbnailEventHandlerTest {
         // Given
         when(tripRepository.findById(tripId)).thenReturn(Optional.of(trip));
 
-        TripUpdatedEvent event =
-                TripUpdatedEvent.builder().tripId(tripId).tripUpdateId(UUID.randomUUID()).build();
+        PolylineUpdatedEvent event =
+                PolylineUpdatedEvent.builder().tripId(tripId).encodedPolyline("abc").build();
 
         // When
         eventHandler.handle(event);
@@ -99,8 +110,8 @@ class TripThumbnailEventHandlerTest {
         // Given
         when(tripRepository.findById(tripId)).thenReturn(Optional.empty());
 
-        TripUpdatedEvent event =
-                TripUpdatedEvent.builder().tripId(tripId).tripUpdateId(UUID.randomUUID()).build();
+        PolylineUpdatedEvent event =
+                PolylineUpdatedEvent.builder().tripId(tripId).encodedPolyline("abc").build();
 
         // When - should not throw exception, just log error
         eventHandler.handle(event);
@@ -119,8 +130,8 @@ class TripThumbnailEventHandlerTest {
                 .when(thumbnailService)
                 .generateAndSaveThumbnail(trip);
 
-        TripUpdatedEvent event =
-                TripUpdatedEvent.builder().tripId(tripId).tripUpdateId(UUID.randomUUID()).build();
+        PolylineUpdatedEvent event =
+                PolylineUpdatedEvent.builder().tripId(tripId).encodedPolyline("abc").build();
 
         // When - should not throw since we catch exceptions now
         eventHandler.handle(event);
@@ -136,8 +147,8 @@ class TripThumbnailEventHandlerTest {
         // Given
         when(tripRepository.findById(tripId)).thenThrow(new RuntimeException("Database error"));
 
-        TripUpdatedEvent event =
-                TripUpdatedEvent.builder().tripId(tripId).tripUpdateId(UUID.randomUUID()).build();
+        PolylineUpdatedEvent event =
+                PolylineUpdatedEvent.builder().tripId(tripId).encodedPolyline("abc").build();
 
         // When - should not throw exception, just log error
         eventHandler.handle(event);

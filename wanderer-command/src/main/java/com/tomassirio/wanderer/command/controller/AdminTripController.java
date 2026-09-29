@@ -3,8 +3,11 @@ package com.tomassirio.wanderer.command.controller;
 import com.tomassirio.wanderer.command.controller.request.PromoteTripRequest;
 import com.tomassirio.wanderer.command.service.PolylineService;
 import com.tomassirio.wanderer.command.service.PromotedTripService;
+import com.tomassirio.wanderer.command.service.ThumbnailBackfillService;
+import com.tomassirio.wanderer.command.service.TripService;
 import com.tomassirio.wanderer.command.service.TripUpdateGeocodingService;
 import com.tomassirio.wanderer.commons.constants.ApiConstants;
+import com.tomassirio.wanderer.commons.dto.ThumbnailBackfillResultDTO;
 import com.tomassirio.wanderer.commons.security.CurrentUserId;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -51,6 +54,8 @@ public class AdminTripController {
     private final PolylineService polylineService;
     private final PromotedTripService promotedTripService;
     private final TripUpdateGeocodingService tripUpdateGeocodingService;
+    private final ThumbnailBackfillService thumbnailBackfillService;
+    private final TripService tripService;
 
     /**
      * Recomputes the encoded polyline for a trip from all its trip updates.
@@ -88,6 +93,35 @@ public class AdminTripController {
         log.info("Admin recomputing polyline for trip {}", tripId);
         polylineService.recomputePolyline(tripId);
         return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * Generates the thumbnail of every trip with updates whose thumbnail file is missing.
+     *
+     * <p>Runs synchronously, one trip at a time (each generation calls Google Static Maps), and
+     * only for trips without a file. A failure for one trip does not stop the rest.
+     *
+     * @return 200 OK with checked/missing/regenerated/failed counts
+     */
+    @PostMapping(ApiConstants.ADMIN_TRIP_THUMBNAILS_REGENERATE_MISSING_ENDPOINT)
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(
+            summary = "Regenerate missing trip thumbnails",
+            description =
+                    "Generates thumbnails for all trips with updates that have no thumbnail file."
+                            + " Admin-only maintenance endpoint.")
+    @ApiResponse(responseCode = "200", description = "Backfill finished; summary returned")
+    @ApiResponse(
+            responseCode = "401",
+            description = "Unauthorized - valid JWT required",
+            content = @Content)
+    @ApiResponse(
+            responseCode = "403",
+            description = "Forbidden - ADMIN role required",
+            content = @Content)
+    public ResponseEntity<ThumbnailBackfillResultDTO> regenerateMissingThumbnails() {
+        log.info("Admin regenerating missing trip thumbnails");
+        return ResponseEntity.ok(thumbnailBackfillService.regenerateMissingTripThumbnails());
     }
 
     /**
@@ -258,5 +292,41 @@ public class AdminTripController {
 
         log.info("Accepted donation link update request with ID: {}", promotedTripId);
         return ResponseEntity.status(HttpStatus.ACCEPTED).body(promotedTripId);
+    }
+
+    /**
+     * Deletes any trip regardless of ownership.
+     *
+     * @param adminId the admin user performing the operation
+     * @param tripId the ID of the trip to delete
+     * @return 204 No Content on success
+     */
+    @DeleteMapping(ApiConstants.ADMIN_TRIP_BY_ID_ENDPOINT)
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(
+            summary = "Delete any trip",
+            description =
+                    "Deletes a trip and all associated data, regardless of ownership. "
+                            + "Admin-only maintenance endpoint.")
+    @ApiResponse(responseCode = "204", description = "Trip deleted successfully")
+    @ApiResponse(
+            responseCode = "404",
+            description = "Trip not found",
+            content = @Content(schema = @Schema(implementation = Map.class)))
+    @ApiResponse(
+            responseCode = "401",
+            description = "Unauthorized - valid JWT required",
+            content = @Content)
+    @ApiResponse(
+            responseCode = "403",
+            description = "Forbidden - ADMIN role required",
+            content = @Content)
+    public ResponseEntity<Void> deleteTrip(
+            @Parameter(hidden = true) @CurrentUserId UUID adminId,
+            @Parameter(description = "Trip ID to delete", required = true) @PathVariable
+                    UUID tripId) {
+        log.info("Admin {} deleting trip {}", adminId, tripId);
+        tripService.adminDeleteTrip(adminId, tripId);
+        return ResponseEntity.noContent().build();
     }
 }

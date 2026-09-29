@@ -1,8 +1,8 @@
 package com.tomassirio.wanderer.auth.service.impl;
 
-import com.tomassirio.wanderer.auth.client.WandererCommandClient;
 import com.tomassirio.wanderer.auth.client.WandererQueryClient;
 import com.tomassirio.wanderer.auth.domain.Credential;
+import com.tomassirio.wanderer.auth.domain.EmailAddresses;
 import com.tomassirio.wanderer.auth.dto.LoginResponse;
 import com.tomassirio.wanderer.auth.dto.RegisterPendingResponse;
 import com.tomassirio.wanderer.auth.dto.RegisterRequest;
@@ -12,6 +12,7 @@ import com.tomassirio.wanderer.auth.service.EmailService;
 import com.tomassirio.wanderer.auth.service.JwtService;
 import com.tomassirio.wanderer.auth.service.LoginAttemptService;
 import com.tomassirio.wanderer.auth.service.TokenService;
+import com.tomassirio.wanderer.auth.service.UserProvisioningService;
 import com.tomassirio.wanderer.auth.strategy.UserLookupStrategy;
 import com.tomassirio.wanderer.commons.domain.User;
 import com.tomassirio.wanderer.commons.dto.UserBasicInfo;
@@ -22,7 +23,6 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -43,7 +43,7 @@ public class AuthServiceImpl implements AuthService {
     private final JwtService jwtService;
     private final TokenService tokenService;
     private final EmailService emailService;
-    private final WandererCommandClient wandererCommandClient;
+    private final UserProvisioningService userProvisioningService;
     private final WandererQueryClient wandererQueryClient;
     private final List<UserLookupStrategy> userLookupStrategies;
     private final RevokedTokenCache revokedTokenCache;
@@ -94,7 +94,7 @@ public class AuthServiceImpl implements AuthService {
             throw new IllegalArgumentException("Account disabled");
         }
 
-        if (!passwordEncoder.matches(password, cred.getPasswordHash())) {
+        if (!cred.hasPassword() || !passwordEncoder.matches(password, cred.getPasswordHash())) {
             loginAttemptService.recordFailedLogin(identifier, ipAddress);
             throw new IllegalArgumentException("Invalid credentials");
         }
@@ -123,10 +123,11 @@ public class AuthServiceImpl implements AuthService {
     public RegisterPendingResponse register(RegisterRequest request) {
         // Normalize username to lowercase for case-insensitive uniqueness
         String normalizedUsername = request.username().toLowerCase(Locale.ROOT);
+        String normalizedEmail = EmailAddresses.normalize(request.email());
 
         // Check if email is already in use
-        if (credentialRepository.findByEmail(request.email()).isPresent()) {
-            throw new IllegalArgumentException("Email already in use: " + request.email());
+        if (credentialRepository.findByEmail(normalizedEmail).isPresent()) {
+            throw new IllegalArgumentException("Email already in use: " + normalizedEmail);
         }
 
         // Check if username is already taken by querying the read side
@@ -149,105 +150,40 @@ public class AuthServiceImpl implements AuthService {
         // Create email verification token with original username preserved
         String verificationToken =
                 tokenService.createEmailVerificationToken(
-                        request.email(), request.username(), passwordHash);
+                        normalizedEmail, request.username(), passwordHash);
 
         // Send verification email with original-cased username
-        emailService.sendVerificationEmail(request.email(), request.username(), verificationToken);
+        emailService.sendVerificationEmail(normalizedEmail, request.username(), verificationToken);
 
         return new RegisterPendingResponse(
                 "Registration pending. Please check your email to verify your account.");
     }
 
     /**
-     * Verify email and complete user registration. Validates the verification token, creates the
-     * user in the domain, creates credentials, and returns login tokens.
+     * Verify email and complete user registration. Validates the verification token, provisions the
+     * user with the password chosen at registration, and returns login tokens.
      */
     public LoginResponse verifyEmail(String token) {
-        // Validate the verification token and get registration data
         String[] verificationData = tokenService.validateEmailVerificationToken(token);
-        String email = verificationData[0];
+        // Normalize even though the write path already does; covers tokens created before this
+        // change.
+        String email = EmailAddresses.normalize(verificationData[0]);
         String originalUsername = verificationData[1];
         String passwordHash = verificationData[2];
 
         // Normalize username to lowercase; keep original casing as displayName
         String username = originalUsername.toLowerCase(Locale.ROOT);
 
-        // Double-check that email is still available
         if (credentialRepository.findByEmail(email).isPresent()) {
             throw new IllegalStateException("Email already in use: " + email);
         }
 
-        // 1) Create the domain user via the command service (returns UUID)
-        var payload = Map.of("username", username, "email", email, "displayName", originalUsername);
-        UUID createdUserId;
-        try {
-            createdUserId = wandererCommandClient.createUser(payload);
-        } catch (FeignException e) {
-            throw new IllegalStateException("Failed to create user in command service", e);
-        }
+        User createdUser =
+                userProvisioningService.provisionWithPassword(
+                        username, email, originalUsername, passwordHash);
 
-        // 2) Fetch the created user from query service to get full User object
-        User createdUser;
-        try {
-            UserBasicInfo userInfo = wandererQueryClient.getUserById(createdUserId, "basic");
-            createdUser = new User();
-            createdUser.setId(userInfo.id());
-            createdUser.setUsername(userInfo.username());
-        } catch (FeignException e) {
-            // Attempt to delete the created user since we can't proceed
-            try {
-                wandererCommandClient.deleteUser(createdUserId);
-            } catch (FeignException ex) {
-                throw new IllegalStateException(
-                        "Failed to fetch created user and failed to rollback: " + ex.getMessage(),
-                        e);
-            }
-            throw new IllegalStateException("Failed to fetch created user from query service", e);
-        }
-
-        // 3) Create credential in auth DB — wrap in try/catch and compensate on failure
-        try {
-            if (credentialRepository.findById(createdUser.getId()).isPresent()) {
-                throw new IllegalArgumentException(
-                        "Credentials already exist for user: " + createdUser.getId());
-            }
-
-            Credential credential =
-                    Credential.builder()
-                            .userId(createdUser.getId())
-                            .passwordHash(passwordHash)
-                            .enabled(true)
-                            .email(email)
-                            .roles(Set.of(Role.USER))
-                            .build();
-            credentialRepository.save(credential);
-        } catch (Exception e) {
-            // Attempt to delete the created domain user as compensation
-            try {
-                wandererCommandClient.deleteUser(createdUserId);
-            } catch (FeignException ex) {
-                throw new IllegalStateException(
-                        "Failed to create credentials and failed to rollback user creation: "
-                                + ex.getMessage(),
-                        e);
-            }
-            throw new IllegalStateException(
-                    "Failed to create credentials, rolled back user creation", e);
-        }
-
-        // Mark the verification token as verified
         tokenService.markEmailVerificationTokenAsVerified(token);
-
-        // 4) Issue JWT and refresh token
-        String jti = UUID.randomUUID().toString();
-        String accessToken = jwtService.generateTokenWithJti(createdUser, jti, Set.of(Role.USER));
-        String refreshToken = tokenService.createRefreshToken(createdUser.getId());
-        return new LoginResponse(
-                accessToken,
-                refreshToken,
-                "Bearer",
-                jwtService.getExpirationMs(),
-                createdUser.getUsername());
+        return tokenService.issueLoginTokens(createdUser, Set.of(Role.USER));
     }
 
     @Override
@@ -267,7 +203,8 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public String initiatePasswordReset(String email) {
         // Find credential by email
-        Optional<Credential> maybeCred = credentialRepository.findByEmail(email);
+        String normalizedEmail = EmailAddresses.normalize(email);
+        Optional<Credential> maybeCred = credentialRepository.findByEmail(normalizedEmail);
         if (maybeCred.isEmpty()) {
             throw new IllegalArgumentException("No user found with the provided email");
         }
@@ -282,11 +219,11 @@ public class AuthServiceImpl implements AuthService {
             username = userInfo.username();
         } catch (FeignException e) {
             // Fall back to email as the greeting name if user lookup fails
-            username = email;
+            username = normalizedEmail;
         }
 
         // Send password reset email
-        emailService.sendPasswordResetEmail(email, username, resetToken);
+        emailService.sendPasswordResetEmail(normalizedEmail, username, resetToken);
 
         return resetToken;
     }
@@ -333,6 +270,11 @@ public class AuthServiceImpl implements AuthService {
         }
 
         Credential cred = maybeCred.get();
+
+        if (!cred.hasPassword()) {
+            throw new IllegalArgumentException(
+                    "No password set for this account. Use password reset to set one.");
+        }
 
         // Verify current password
         if (!passwordEncoder.matches(currentPassword, cred.getPasswordHash())) {

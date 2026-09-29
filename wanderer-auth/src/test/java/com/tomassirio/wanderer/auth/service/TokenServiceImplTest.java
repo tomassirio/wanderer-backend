@@ -18,11 +18,13 @@ import com.tomassirio.wanderer.auth.client.WandererQueryClient;
 import com.tomassirio.wanderer.auth.domain.Credential;
 import com.tomassirio.wanderer.auth.domain.PasswordResetToken;
 import com.tomassirio.wanderer.auth.domain.RefreshToken;
+import com.tomassirio.wanderer.auth.dto.LoginResponse;
 import com.tomassirio.wanderer.auth.dto.RefreshTokenResponse;
 import com.tomassirio.wanderer.auth.repository.CredentialRepository;
 import com.tomassirio.wanderer.auth.repository.PasswordResetTokenRepository;
 import com.tomassirio.wanderer.auth.repository.RefreshTokenRepository;
 import com.tomassirio.wanderer.auth.service.impl.TokenServiceImpl;
+import com.tomassirio.wanderer.commons.domain.User;
 import com.tomassirio.wanderer.commons.dto.UserBasicInfo;
 import com.tomassirio.wanderer.commons.security.Role;
 import java.security.MessageDigest;
@@ -350,5 +352,25 @@ class TokenServiceImplTest {
             assertEquals("SHA-256 algorithm not available", exception.getMessage());
             assertInstanceOf(NoSuchAlgorithmException.class, exception.getCause());
         }
+    }
+
+    @Test
+    void issueLoginTokens_shouldReturnBearerResponseWithRolesAndRefreshToken() {
+        User user = new User();
+        user.setId(testUserId);
+        user.setUsername("testuser");
+        when(jwtService.generateTokenWithJti(eq(user), any(), eq(Set.of(Role.ADMIN, Role.USER))))
+                .thenReturn("access.jwt");
+        when(jwtService.getRefreshExpirationMs()).thenReturn(604800000L);
+        when(jwtService.getExpirationMs()).thenReturn(900000L);
+
+        LoginResponse response = tokenService.issueLoginTokens(user, Set.of(Role.ADMIN, Role.USER));
+
+        assertEquals("access.jwt", response.accessToken());
+        assertNotNull(response.refreshToken());
+        assertEquals("Bearer", response.tokenType());
+        assertEquals(900000L, response.expiresIn());
+        assertEquals("testuser", response.username());
+        verify(refreshTokenRepository).save(any(RefreshToken.class));
     }
 }

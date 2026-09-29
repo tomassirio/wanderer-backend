@@ -75,6 +75,19 @@ public interface TripService {
     void deleteTrip(UUID userId, UUID id);
 
     /**
+     * Deletes any trip by its ID, regardless of ownership. Admin-only operation.
+     *
+     * <p>This operation will cascade and delete all associated data including locations and
+     * messages related to this trip. Publishes the same {@code TripDeletedEvent} as the
+     * owner-driven delete, with the trip's actual owner as {@code ownerId}.
+     *
+     * @param adminId the UUID of the admin performing the operation
+     * @param id the UUID of the trip to delete
+     * @throws jakarta.persistence.EntityNotFoundException if no trip exists with the given ID
+     */
+    void adminDeleteTrip(UUID adminId, UUID id);
+
+    /**
      * Changes the visibility of a trip.
      *
      * @param userId the UUID of the user making the request (for ownership validation)

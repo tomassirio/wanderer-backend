@@ -49,6 +49,9 @@ public final class ApiConstants {
     public static final String PASSWORD_RESET_ENDPOINT = "/password/reset";
     public static final String PASSWORD_RESET_FORM_ENDPOINT = "/password/reset-form";
     public static final String PASSWORD_CHANGE_ENDPOINT = "/password/change";
+    public static final String SSO_EXCHANGE_ENDPOINT = "/sso/exchange";
+    public static final String SSO_AUTHORIZATION_BASE_URI = AUTH_PATH + "/oauth2/authorization";
+    public static final String SSO_CALLBACK_BASE_URI = AUTH_PATH + "/oauth2/callback";
 
     // ============================================================
     // Admin endpoints
@@ -66,8 +69,11 @@ public final class ApiConstants {
     public static final String ADMIN_TRIP_RECOMPUTE_GEOCODING_ENDPOINT =
             "/{tripId}/recompute-geocoding";
     public static final String ADMIN_TRIPS_STATS_ENDPOINT = "/stats";
+    public static final String ADMIN_TRIP_THUMBNAILS_REGENERATE_MISSING_ENDPOINT =
+            "/thumbnails/regenerate-missing";
     public static final String ADMIN_TRIP_PROMOTE_ENDPOINT = "/{tripId}/promote";
     public static final String ADMIN_TRIP_DONATION_LINK_ENDPOINT = "/{tripId}/promote";
+    public static final String ADMIN_TRIP_BY_ID_ENDPOINT = "/{tripId}";
     public static final String ADMIN_TRIP_PLANS_PATH = ADMIN_PATH + "/trip-plans";
     public static final String ADMIN_TRIP_PLAN_RECOMPUTE_POLYLINE_ENDPOINT =
             "/{tripPlanId}/recompute-polyline";

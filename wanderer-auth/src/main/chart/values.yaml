@@ -96,6 +96,16 @@ application:
     auth: true
     startTls: true
 
+  # SSO (Google)
+  sso:
+    google:
+      clientId: ""      # Set via GitHub variable GOOGLE_CLIENT_ID (startup fails if empty)
+      clientSecret: ""  # Set via GitHub secret GOOGLE_CLIENT_SECRET
+    allowedReturnUris: "https://wanderer.localwanderer-dev.com/auth/sso-callback,wanderer://auth/sso-callback"
+    loginCodeTtl: "60s"
+  session:
+    cookieSecure: true
+
 # Pod Storage
 volumeClaimTemplates:
   enabled: false

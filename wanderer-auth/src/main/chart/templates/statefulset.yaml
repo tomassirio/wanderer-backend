@@ -14,6 +14,9 @@ spec:
     metadata:
       labels:
         app: {{ .Chart.Name }}{{ .Values.environment.suffix }}
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        checksum/secrets: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
     spec:
       containers:
       - name: {{ .Chart.Name }}
@@ -32,6 +35,26 @@ spec:
         env:
         - name: SPRING_CONFIG_LOCATION
           value: "file:/app/config/application.properties"
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Chart.Name }}{{ .Values.environment.suffix }}-secrets
+              key: JWT_SECRET
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Chart.Name }}{{ .Values.environment.suffix }}-secrets
+              key: DB_PASSWORD
+        - name: EMAIL_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Chart.Name }}{{ .Values.environment.suffix }}-secrets
+              key: EMAIL_PASSWORD
+        - name: GOOGLE_CLIENT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Chart.Name }}{{ .Values.environment.suffix }}-secrets
+              key: GOOGLE_CLIENT_SECRET
       volumes:
       - name: config
         configMap:

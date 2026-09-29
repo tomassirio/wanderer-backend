@@ -1,0 +1,128 @@
+package com.tomassirio.wanderer.auth.repository;
+
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import com.tomassirio.wanderer.auth.AuthApplication;
+import com.tomassirio.wanderer.auth.client.WandererCommandClient;
+import com.tomassirio.wanderer.auth.client.WandererQueryClient;
+import com.tomassirio.wanderer.auth.domain.Credential;
+import com.tomassirio.wanderer.auth.domain.EmailVerificationToken;
+import com.tomassirio.wanderer.auth.domain.UserIdentity;
+import com.tomassirio.wanderer.commons.BaseIntegrationTest;
+import com.tomassirio.wanderer.commons.config.TestConfig;
+import com.tomassirio.wanderer.commons.security.Role;
+import java.time.Instant;
+import java.util.Locale;
+import java.util.Set;
+import java.util.UUID;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.test.context.TestPropertySource;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+
+@SpringBootTest(classes = AuthApplication.class)
+@Import(TestConfig.class)
+@TestPropertySource(
+        properties =
+                "jwt.secret=test-secret-that-is-long-enough-for-jwt-hmac-sha-algorithm-256-bits-minimum")
+class SsoSchemaIT extends BaseIntegrationTest {
+
+    @MockitoBean private WandererCommandClient wandererCommandClient;
+    @MockitoBean private WandererQueryClient wandererQueryClient;
+
+    @Autowired private CredentialRepository credentialRepository;
+    @Autowired private UserIdentityRepository userIdentityRepository;
+    @Autowired private EmailVerificationTokenRepository emailVerificationTokenRepository;
+
+    @Test
+    void credentialWithoutPasswordHash_canBeSaved() {
+        UUID userId = UUID.randomUUID();
+        credentialRepository.saveAndFlush(
+                Credential.builder()
+                        .userId(userId)
+                        .email(userId + "@sso.test")
+                        .enabled(true)
+                        .roles(Set.of(Role.USER))
+                        .build());
+
+        assertNull(credentialRepository.findById(userId).orElseThrow().getPasswordHash());
+    }
+
+    @Test
+    void userIdentity_isUniquePerProviderAndSubject() {
+        UUID userId = UUID.randomUUID();
+        credentialRepository.saveAndFlush(
+                Credential.builder()
+                        .userId(userId)
+                        .email(userId + "@sso.test")
+                        .enabled(true)
+                        .roles(Set.of(Role.USER))
+                        .build());
+        userIdentityRepository.saveAndFlush(identity(userId, "google", "sub-" + userId));
+
+        assertTrue(
+                userIdentityRepository
+                        .findByProviderAndSubject("google", "sub-" + userId)
+                        .isPresent());
+        assertThrows(
+                DataIntegrityViolationException.class,
+                () ->
+                        userIdentityRepository.saveAndFlush(
+                                identity(userId, "google", "sub-" + userId)));
+    }
+
+    @Test
+    void uniqueEmailIndex_rejectsCredentialThatDiffersOnlyByCase() {
+        UUID first = UUID.randomUUID();
+        UUID second = UUID.randomUUID();
+        String email = "dup." + first + "@gmail.com";
+        credentialRepository.saveAndFlush(Credential.withPassword(first, email, "$2a$hash"));
+
+        // Bypasses the normalizing factory to simulate a row whose case differs only in
+        // storage (e.g. written before the normalization migration ran).
+        Credential caseVariant =
+                Credential.builder()
+                        .userId(second)
+                        .email(email.toUpperCase(Locale.ROOT))
+                        .enabled(true)
+                        .roles(Set.of(Role.USER))
+                        .build();
+
+        assertThrows(
+                DataIntegrityViolationException.class,
+                () -> credentialRepository.saveAndFlush(caseVariant));
+    }
+
+    @Test
+    void emailVerificationToken_stillRequiresPasswordHash() {
+        EmailVerificationToken token =
+                EmailVerificationToken.builder()
+                        .tokenId(UUID.randomUUID())
+                        .email("pending@test.com")
+                        .username("pending")
+                        .passwordHash(null)
+                        .tokenHash("hash-" + UUID.randomUUID())
+                        .expiresAt(Instant.now().plusSeconds(3600))
+                        .verified(false)
+                        .build();
+
+        assertThrows(
+                DataIntegrityViolationException.class,
+                () -> emailVerificationTokenRepository.saveAndFlush(token));
+    }
+
+    private UserIdentity identity(UUID userId, String provider, String subject) {
+        return UserIdentity.builder()
+                .id(UUID.randomUUID())
+                .userId(userId)
+                .provider(provider)
+                .subject(subject)
+                .email(userId + "@sso.test")
+                .build();
+    }
+}

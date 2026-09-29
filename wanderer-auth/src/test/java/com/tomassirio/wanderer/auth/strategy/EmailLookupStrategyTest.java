@@ -101,4 +101,17 @@ class EmailLookupStrategyTest {
         verify(credentialRepository).findByEmail(email);
         verify(wandererQueryClient).getUserById(userId, "basic");
     }
+
+    @Test
+    void lookupUser_whenIdentifierMixedCase_shouldNormalizeBeforeLookup() {
+        when(credentialRepository.findByEmail("test@example.com"))
+                .thenReturn(Optional.of(testCredential));
+        when(wandererQueryClient.getUserById(userId, "basic")).thenReturn(testUserInfo);
+
+        Optional<User> result = strategy.lookupUser("TEST@Example.com");
+
+        assertTrue(result.isPresent());
+        assertEquals(userId, result.get().getId());
+        verify(credentialRepository).findByEmail("test@example.com");
+    }
 }

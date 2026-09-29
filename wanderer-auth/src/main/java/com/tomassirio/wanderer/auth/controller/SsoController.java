@@ -1,0 +1,56 @@
+package com.tomassirio.wanderer.auth.controller;
+
+import com.tomassirio.wanderer.auth.dto.LoginResponse;
+import com.tomassirio.wanderer.auth.dto.SsoExchangeRequest;
+import com.tomassirio.wanderer.auth.service.SsoService;
+import com.tomassirio.wanderer.auth.sso.SsoLoginCodeStore;
+import com.tomassirio.wanderer.commons.constants.ApiConstants;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import java.util.UUID;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+/**
+ * SSO completion endpoint. Starting a login is a browser navigation to {@code
+ * /api/1/auth/oauth2/authorization/{provider}?return_to=...&code_challenge=...}, handled by Spring
+ * Security.
+ */
+@RestController
+@RequestMapping(value = ApiConstants.AUTH_PATH, produces = MediaType.APPLICATION_JSON_VALUE)
+@RequiredArgsConstructor
+@Slf4j
+@Tag(name = "SSO", description = "Single sign-on login completion")
+public class SsoController {
+
+    private final SsoLoginCodeStore ssoLoginCodeStore;
+    private final SsoService ssoService;
+
+    @PostMapping(
+            value = ApiConstants.SSO_EXCHANGE_ENDPOINT,
+            consumes = MediaType.APPLICATION_JSON_VALUE)
+    @Operation(
+            summary = "Exchange SSO login code",
+            description =
+                    "Exchanges the one-time code from the SSO redirect, plus the PKCE code"
+                            + " verifier (S256) whose challenge started the login, for access and"
+                            + " refresh tokens. Each code works once (a wrong verifier burns it)"
+                            + " and expires quickly.")
+    public ResponseEntity<LoginResponse> exchange(@Valid @RequestBody SsoExchangeRequest request) {
+        UUID userId =
+                ssoLoginCodeStore
+                        .consume(request.code(), request.codeVerifier())
+                        .orElseThrow(
+                                () -> new IllegalArgumentException("Invalid or expired SSO code"));
+        LoginResponse response = ssoService.issueTokens(userId);
+        log.info("SSO code exchanged");
+        return ResponseEntity.ok(response);
+    }
+}

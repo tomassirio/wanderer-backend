@@ -1,0 +1,63 @@
+databaseChangeLog:
+  - changeSet:
+      id: 009-create-user-identities
+      author: tomassirio
+      comment: SSO support. Provider identities linked to credentials; password becomes optional for SSO-only accounts
+      changes:
+        - dropNotNullConstraint:
+            tableName: user_credentials
+            columnName: password_hash
+            columnDataType: varchar(255)
+        - createTable:
+            tableName: user_identities
+            columns:
+              - column:
+                  name: id
+                  type: uuid
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: user_id
+                  type: uuid
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_user_identities_user_credentials
+                    references: user_credentials(user_id)
+                    deleteCascade: true
+              - column:
+                  name: provider
+                  type: varchar(50)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: subject
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: email
+                  type: varchar(255)
+              - column:
+                  name: created_at
+                  type: timestamp
+                  constraints:
+                    nullable: false
+        - addUniqueConstraint:
+            tableName: user_identities
+            columnNames: provider, subject
+            constraintName: uc_user_identities_provider_subject
+        - createIndex:
+            indexName: idx_user_identities_user_id
+            tableName: user_identities
+            columns:
+              - column:
+                  name: user_id
+      rollback:
+        - dropTable:
+            tableName: user_identities
+        # Fails if SSO-only credentials exist. Intended: delete or give them passwords first.
+        - addNotNullConstraint:
+            tableName: user_credentials
+            columnName: password_hash
+            columnDataType: varchar(255)
