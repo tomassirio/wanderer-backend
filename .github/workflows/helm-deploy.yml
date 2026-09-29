@@ -45,6 +45,9 @@ on:
       EMAIL_PASSWORD:
         description: 'SMTP password for Brevo email service'
         required: false
+      GOOGLE_CLIENT_SECRET:
+        description: 'Google OAuth client secret for SSO (wanderer-auth)'
+        required: false
 
 env:
   ENV_SUFFIX: ${{ inputs.environment == 'dev' && '-dev' || '' }}
