@@ -1,6 +1,6 @@
 package com.tomassirio.wanderer.command.handler;
 
-import com.tomassirio.wanderer.command.event.TripUpdatedEvent;
+import com.tomassirio.wanderer.command.event.PolylineUpdatedEvent;
 import com.tomassirio.wanderer.command.repository.TripRepository;
 import com.tomassirio.wanderer.command.service.ThumbnailService;
 import com.tomassirio.wanderer.commons.domain.Trip;
@@ -14,14 +14,16 @@ import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
 
 /**
- * Event handler for generating trip thumbnails when trip updates are created.
+ * Event handler for generating trip thumbnails whenever a trip's polyline is (re)computed.
  *
- * <p>This handler listens to {@link TripUpdatedEvent} and generates a map thumbnail for the trip
- * using Google Maps Static API. The thumbnail is saved to persistent storage.
+ * <p>The thumbnail draws the trip's encoded polyline, so it listens to {@link PolylineUpdatedEvent}
+ * rather than to trip updates: every new trip update triggers a polyline computation which then
+ * publishes this event (including when the polyline is cleared for trips with fewer than two
+ * locations), and the admin "recompute polyline" action publishes it too. Generating here means
+ * exactly one thumbnail per change, always drawn with the freshest polyline.
  *
- * <p>Thumbnail generation is performed asynchronously to avoid blocking the main transaction, and
- * uses {@link TransactionalEventListener} to ensure the trip data is fully committed before
- * generating the thumbnail (so all trip updates are available).
+ * <p>The event is published inside the polyline service transaction; this handler runs
+ * asynchronously after that transaction commits.
  *
  * @author tomassirio
  * @since 0.10.5
@@ -29,7 +31,7 @@ import org.springframework.transaction.event.TransactionalEventListener;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class TripThumbnailEventHandler implements EventHandler<TripUpdatedEvent> {
+public class TripThumbnailEventHandler implements EventHandler<PolylineUpdatedEvent> {
 
     private final TripRepository tripRepository;
     private final ThumbnailService thumbnailService;
@@ -38,7 +40,7 @@ public class TripThumbnailEventHandler implements EventHandler<TripUpdatedEvent>
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     @Async
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void handle(TripUpdatedEvent event) {
+    public void handle(PolylineUpdatedEvent event) {
         log.debug("Generating thumbnail for trip: {}", event.getTripId());
 
         try {
