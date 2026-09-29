@@ -73,6 +73,7 @@ public final class ApiConstants {
             "/thumbnails/regenerate-missing";
     public static final String ADMIN_TRIP_PROMOTE_ENDPOINT = "/{tripId}/promote";
     public static final String ADMIN_TRIP_DONATION_LINK_ENDPOINT = "/{tripId}/promote";
+    public static final String ADMIN_TRIP_BY_ID_ENDPOINT = "/{tripId}";
     public static final String ADMIN_TRIP_PLANS_PATH = ADMIN_PATH + "/trip-plans";
     public static final String ADMIN_TRIP_PLAN_RECOMPUTE_POLYLINE_ENDPOINT =
             "/{tripPlanId}/recompute-polyline";

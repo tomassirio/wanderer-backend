@@ -15,6 +15,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.tomassirio.wanderer.command.service.PolylineService;
 import com.tomassirio.wanderer.command.service.PromotedTripService;
 import com.tomassirio.wanderer.command.service.ThumbnailBackfillService;
+import com.tomassirio.wanderer.command.service.TripService;
 import com.tomassirio.wanderer.command.service.TripUpdateGeocodingService;
 import com.tomassirio.wanderer.commons.dto.ThumbnailBackfillResultDTO;
 import com.tomassirio.wanderer.commons.exception.GlobalExceptionHandler;
@@ -44,6 +45,8 @@ class AdminTripControllerTest {
     @Mock private TripUpdateGeocodingService tripUpdateGeocodingService;
 
     @Mock private ThumbnailBackfillService thumbnailBackfillService;
+
+    @Mock private TripService tripService;
 
     @InjectMocks private AdminTripController adminTripController;
 
@@ -278,6 +281,32 @@ class AdminTripControllerTest {
                         put(ADMIN_TRIPS_URL + "/{tripId}/promote", tripId)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(requestBody))
+                .andExpect(status().isNotFound());
+    }
+
+    // ================================================================
+    // Delete any trip
+    // ================================================================
+
+    @Test
+    void deleteTrip_shouldReturnNoContent() throws Exception {
+        UUID tripId = UUID.randomUUID();
+        doNothing().when(tripService).adminDeleteTrip(any(UUID.class), eq(tripId));
+
+        mockMvc.perform(delete(ADMIN_TRIPS_URL + "/{tripId}", tripId))
+                .andExpect(status().isNoContent());
+
+        verify(tripService).adminDeleteTrip(any(UUID.class), eq(tripId));
+    }
+
+    @Test
+    void deleteTrip_whenTripNotFound_shouldReturnNotFound() throws Exception {
+        UUID tripId = UUID.randomUUID();
+        doThrow(new EntityNotFoundException("Trip not found"))
+                .when(tripService)
+                .adminDeleteTrip(any(UUID.class), eq(tripId));
+
+        mockMvc.perform(delete(ADMIN_TRIPS_URL + "/{tripId}", tripId))
                 .andExpect(status().isNotFound());
     }
 }
