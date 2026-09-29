@@ -14,7 +14,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.tomassirio.wanderer.command.service.PolylineService;
 import com.tomassirio.wanderer.command.service.PromotedTripService;
+import com.tomassirio.wanderer.command.service.ThumbnailBackfillService;
 import com.tomassirio.wanderer.command.service.TripUpdateGeocodingService;
+import com.tomassirio.wanderer.commons.dto.ThumbnailBackfillResultDTO;
 import com.tomassirio.wanderer.commons.exception.GlobalExceptionHandler;
 import com.tomassirio.wanderer.commons.utils.MockMvcTestUtils;
 import jakarta.persistence.EntityNotFoundException;
@@ -41,6 +43,8 @@ class AdminTripControllerTest {
 
     @Mock private TripUpdateGeocodingService tripUpdateGeocodingService;
 
+    @Mock private ThumbnailBackfillService thumbnailBackfillService;
+
     @InjectMocks private AdminTripController adminTripController;
 
     @BeforeEach
@@ -48,6 +52,23 @@ class AdminTripControllerTest {
         mockMvc =
                 MockMvcTestUtils.buildMockMvcWithCurrentUserResolver(
                         adminTripController, new GlobalExceptionHandler());
+    }
+
+    // ================================================================
+    // Regenerate missing thumbnails
+    // ================================================================
+
+    @Test
+    void regenerateMissingThumbnails_shouldReturnSummary() throws Exception {
+        when(thumbnailBackfillService.regenerateMissingTripThumbnails())
+                .thenReturn(new ThumbnailBackfillResultDTO(10, 4, 3, 1));
+
+        mockMvc.perform(post(ADMIN_TRIPS_URL + "/thumbnails/regenerate-missing"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.checked").value(10))
+                .andExpect(jsonPath("$.missing").value(4))
+                .andExpect(jsonPath("$.regenerated").value(3))
+                .andExpect(jsonPath("$.failed").value(1));
     }
 
     // ================================================================
