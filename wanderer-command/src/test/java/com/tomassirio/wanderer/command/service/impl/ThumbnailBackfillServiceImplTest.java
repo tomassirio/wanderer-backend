@@ -53,10 +53,11 @@ class ThumbnailBackfillServiceImplTest {
                 .thenReturn(false, false);
         when(thumbnailService.thumbnailExists(vanished, ThumbnailEntityType.TRIP))
                 .thenReturn(false);
-        when(tripRepository.findById(regenerates)).thenReturn(Optional.of(regeneratesTrip));
-        when(tripRepository.findById(throwsError)).thenReturn(Optional.of(throwsTrip));
-        when(tripRepository.findById(silentlyFails)).thenReturn(Optional.of(silentTrip));
-        when(tripRepository.findById(vanished)).thenReturn(Optional.empty());
+        when(tripRepository.findByIdWithUpdates(regenerates))
+                .thenReturn(Optional.of(regeneratesTrip));
+        when(tripRepository.findByIdWithUpdates(throwsError)).thenReturn(Optional.of(throwsTrip));
+        when(tripRepository.findByIdWithUpdates(silentlyFails)).thenReturn(Optional.of(silentTrip));
+        when(tripRepository.findByIdWithUpdates(vanished)).thenReturn(Optional.empty());
         doThrow(new RuntimeException("Google down"))
                 .when(thumbnailService)
                 .generateAndSaveThumbnail(throwsTrip);
@@ -64,7 +65,7 @@ class ThumbnailBackfillServiceImplTest {
         ThumbnailBackfillResultDTO result = service.regenerateMissingTripThumbnails();
 
         assertThat(result).isEqualTo(new ThumbnailBackfillResultDTO(5, 4, 1, 3));
-        verify(tripRepository, never()).findById(hasFile);
+        verify(tripRepository, never()).findByIdWithUpdates(hasFile);
         // continued after the failure on the first missing trip
         verify(thumbnailService).generateAndSaveThumbnail(regeneratesTrip);
         verify(thumbnailService).generateAndSaveThumbnail(silentTrip);

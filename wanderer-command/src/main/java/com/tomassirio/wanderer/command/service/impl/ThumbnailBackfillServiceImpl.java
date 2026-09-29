@@ -12,7 +12,6 @@ import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 @Slf4j
 @Service
@@ -22,9 +21,10 @@ public class ThumbnailBackfillServiceImpl implements ThumbnailBackfillService {
     private final TripRepository tripRepository;
     private final ThumbnailService thumbnailService;
 
+    // No @Transactional on purpose: each generation is a Google HTTP call, and holding a DB
+    // connection across N of them would starve the pool. Each trip is loaded with its updates
+    // fetched (short repository transaction) and then drawn detached.
     @Override
-    // read-only session keeps each trip's lazy updates loadable while its thumbnail is drawn
-    @Transactional(readOnly = true)
     public ThumbnailBackfillResultDTO regenerateMissingTripThumbnails() {
         List<UUID> tripIds = tripRepository.findIdsWithUpdates();
         List<UUID> missing =
@@ -54,7 +54,7 @@ public class ThumbnailBackfillServiceImpl implements ThumbnailBackfillService {
 
     private boolean regenerate(UUID tripId) {
         try {
-            Optional<Trip> trip = tripRepository.findById(tripId);
+            Optional<Trip> trip = tripRepository.findByIdWithUpdates(tripId);
             if (trip.isEmpty()) {
                 log.warn("Thumbnail backfill: trip {} no longer exists", tripId);
                 return false;

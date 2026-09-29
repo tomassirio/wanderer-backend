@@ -25,6 +25,9 @@ import org.springframework.transaction.event.TransactionalEventListener;
  * <p>The event is published inside the polyline service transaction; this handler runs
  * asynchronously after that transaction commits.
  *
+ * <p>If the polyline computation fails, no event is published and that update gets no thumbnail
+ * refresh; {@code POST /api/1/admin/trips/thumbnails/regenerate-missing} recovers missing ones.
+ *
  * @author tomassirio
  * @since 0.10.5
  */
