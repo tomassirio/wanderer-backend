@@ -13,15 +13,16 @@ import org.springframework.stereotype.Component;
 public class TripPlanValidator {
 
     /**
-     * Validates that the end date is after the start date.
+     * Validates that the end date is not before the start date. A single-day plan starts and ends
+     * on the same day.
      *
      * @param startDate the start date of the trip plan
      * @param endDate the end date of the trip plan
-     * @throws IllegalArgumentException if the end date is not after the start date
+     * @throws IllegalArgumentException if the end date is before the start date
      */
     public void validateDates(LocalDate startDate, LocalDate endDate) {
-        if (endDate.isBefore(startDate) || endDate.isEqual(startDate)) {
-            throw new IllegalArgumentException("End date must be after start date");
+        if (endDate.isBefore(startDate)) {
+            throw new IllegalArgumentException("End date must not be before start date");
         }
     }
 }
