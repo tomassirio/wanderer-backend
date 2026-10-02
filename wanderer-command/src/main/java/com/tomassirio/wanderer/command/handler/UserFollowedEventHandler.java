@@ -1,6 +1,7 @@
 package com.tomassirio.wanderer.command.handler;
 
 import com.tomassirio.wanderer.command.event.UserFollowedEvent;
+import com.tomassirio.wanderer.command.handler.support.AfterCommit;
 import com.tomassirio.wanderer.command.repository.UserFollowRepository;
 import com.tomassirio.wanderer.command.service.AchievementService;
 import com.tomassirio.wanderer.commons.domain.UserFollow;
@@ -50,6 +51,9 @@ public class UserFollowedEventHandler implements EventHandler<UserFollowedEvent>
                 event.getFollowedId());
 
         // Check follower achievements for the followed user
-        achievementCalculationService.checkAndUnlockSocialAchievements(event.getFollowedId());
+        AfterCommit.run(
+                () ->
+                        achievementCalculationService.checkAndUnlockSocialAchievements(
+                                event.getFollowedId()));
     }
 }

@@ -1,6 +1,7 @@
 package com.tomassirio.wanderer.command.handler;
 
 import com.tomassirio.wanderer.command.event.FriendshipCreatedEvent;
+import com.tomassirio.wanderer.command.handler.support.AfterCommit;
 import com.tomassirio.wanderer.command.repository.FriendshipRepository;
 import com.tomassirio.wanderer.command.service.AchievementService;
 import com.tomassirio.wanderer.commons.domain.Friendship;
@@ -63,7 +64,13 @@ public class FriendshipCreatedEventHandler implements EventHandler<FriendshipCre
                 event.getFriendId());
 
         // Check friend achievements for both users
-        achievementCalculationService.checkAndUnlockSocialAchievements(event.getUserId());
-        achievementCalculationService.checkAndUnlockSocialAchievements(event.getFriendId());
+        AfterCommit.run(
+                () ->
+                        achievementCalculationService.checkAndUnlockSocialAchievements(
+                                event.getUserId()));
+        AfterCommit.run(
+                () ->
+                        achievementCalculationService.checkAndUnlockSocialAchievements(
+                                event.getFriendId()));
     }
 }
