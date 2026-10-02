@@ -1,6 +1,8 @@
 package com.tomassirio.wanderer.command.handler;
 
 import com.tomassirio.wanderer.command.event.AvatarUploadedEvent;
+import com.tomassirio.wanderer.command.handler.support.AfterCommit;
+import com.tomassirio.wanderer.command.service.AchievementService;
 import com.tomassirio.wanderer.command.service.ThumbnailService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -15,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class AvatarUploadedEventHandler implements EventHandler<AvatarUploadedEvent> {
 
     private final ThumbnailService thumbnailService;
+    private final AchievementService achievementCalculationService;
 
     @Override
     @EventListener
@@ -30,6 +33,12 @@ public class AvatarUploadedEventHandler implements EventHandler<AvatarUploadedEv
                     event.getContentType(),
                     event.getOriginalFilename());
             log.info("Successfully processed avatar for user: {}", event.getUserId());
+
+            // A profile photo is part of PROFILE_COMPLETED
+            AfterCommit.run(
+                    () ->
+                            achievementCalculationService.checkAndUnlockSocialAchievements(
+                                    event.getUserId()));
         } catch (Exception e) {
             log.error("Failed to process avatar for user: {}", event.getUserId(), e);
         }

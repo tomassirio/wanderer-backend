@@ -6,7 +6,7 @@ import lombok.Getter;
 public enum AchievementType {
     // Activation achievements
     FIRST_TRIP("First Steps", "Create your first trip", 1),
-    PROFILE_COMPLETED("All Set Up", "Fill in your display name and bio", 1),
+    PROFILE_COMPLETED("All Set Up", "Add a display name, a bio and a profile photo", 1),
 
     // Distance achievements (in kilometers)
     DISTANCE_100KM("First Century", "Walk 100km in a single trip", 100),
