@@ -43,6 +43,16 @@ public enum TripStatus {
         return Arrays.stream(values()).filter(TripStatus::isActive).toList();
     }
 
+    /**
+     * Statuses shown when browsing public trips: the active ones plus finished, so completed
+     * adventures stay discoverable. Drafts (CREATED) are left out.
+     *
+     * @return active statuses and {@link #FINISHED}
+     */
+    public static List<TripStatus> getDiscoverableStatuses() {
+        return Arrays.stream(values()).filter(s -> s.isActive() || s == FINISHED).toList();
+    }
+
     private static final Map<TripStatus, Set<TripStatus>> ALLOWED_TRANSITIONS;
 
     static {

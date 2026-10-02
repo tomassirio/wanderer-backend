@@ -1,6 +1,7 @@
 package com.tomassirio.wanderer.command.handler;
 
 import com.tomassirio.wanderer.command.event.TripUpdatedEvent;
+import com.tomassirio.wanderer.command.handler.support.AfterCommit;
 import com.tomassirio.wanderer.command.repository.TripRepository;
 import com.tomassirio.wanderer.command.repository.TripUpdateRepository;
 import com.tomassirio.wanderer.command.service.AchievementService;
@@ -73,6 +74,7 @@ public class TripUpdatedEventHandler implements EventHandler<TripUpdatedEvent> {
                 trip.getUpdateCount());
 
         // Check and unlock achievements after persisting the update
-        achievementCalculationService.checkAndUnlockAchievements(event.getTripId());
+        AfterCommit.run(
+                () -> achievementCalculationService.checkAndUnlockAchievements(event.getTripId()));
     }
 }

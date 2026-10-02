@@ -1,6 +1,7 @@
 package com.tomassirio.wanderer.command.handler;
 
 import com.tomassirio.wanderer.command.event.UserDetailsUpdatedEvent;
+import com.tomassirio.wanderer.command.handler.support.AfterCommit;
 import com.tomassirio.wanderer.command.repository.UserRepository;
 import com.tomassirio.wanderer.command.service.AchievementService;
 import com.tomassirio.wanderer.commons.domain.UserDetails;
@@ -45,8 +46,11 @@ public class UserDetailsUpdatedEventHandler implements EventHandler<UserDetailsU
                             user.setUserDetails(details);
                             log.info("User details updated for user: {}", event.getUserId());
 
-                            achievementCalculationService.checkAndUnlockSocialAchievements(
-                                    event.getUserId());
+                            AfterCommit.run(
+                                    () ->
+                                            achievementCalculationService
+                                                    .checkAndUnlockSocialAchievements(
+                                                            event.getUserId()));
                         });
     }
 }

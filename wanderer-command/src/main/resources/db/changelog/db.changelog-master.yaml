@@ -83,3 +83,5 @@ databaseChangeLog:
       file: db/changelog/041-add-update-count-to-trips.yaml
   - include:
       file: db/changelog/042-seed-activation-achievements-data.yaml
+  - include:
+      file: db/changelog/043-update-profile-completed-description.yaml

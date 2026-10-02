@@ -592,7 +592,7 @@ class TripServiceTest {
 
         List<Trip> trips = List.of(ongoingTrip1, ongoingTrip2);
         when(tripRepository.findByVisibilityAndStatusInWithPromotedFirst(
-                        TripVisibility.PUBLIC, TripStatus.getActiveStatuses(), pageable))
+                        TripVisibility.PUBLIC, TripStatus.getDiscoverableStatuses(), pageable))
                 .thenReturn(new PageImpl<>(trips, pageable, trips.size()));
 
         // When
@@ -612,7 +612,7 @@ class TripServiceTest {
 
         verify(tripRepository)
                 .findByVisibilityAndStatusInWithPromotedFirst(
-                        TripVisibility.PUBLIC, TripStatus.getActiveStatuses(), pageable);
+                        TripVisibility.PUBLIC, TripStatus.getDiscoverableStatuses(), pageable);
     }
 
     @Test
@@ -621,7 +621,7 @@ class TripServiceTest {
         Pageable pageable =
                 PageRequest.of(0, 20, Sort.by(Sort.Direction.DESC, "creationTimestamp"));
         when(tripRepository.findByVisibilityAndStatusInWithPromotedFirst(
-                        TripVisibility.PUBLIC, TripStatus.getActiveStatuses(), pageable))
+                        TripVisibility.PUBLIC, TripStatus.getDiscoverableStatuses(), pageable))
                 .thenReturn(new PageImpl<>(Collections.emptyList(), pageable, 0));
 
         // When
@@ -634,7 +634,7 @@ class TripServiceTest {
 
         verify(tripRepository)
                 .findByVisibilityAndStatusInWithPromotedFirst(
-                        TripVisibility.PUBLIC, TripStatus.getActiveStatuses(), pageable);
+                        TripVisibility.PUBLIC, TripStatus.getDiscoverableStatuses(), pageable);
     }
 
     @Test
@@ -648,7 +648,7 @@ class TripServiceTest {
         ongoingPublicTrip.getTripSettings().setTripStatus(TripStatus.IN_PROGRESS);
 
         when(tripRepository.findByVisibilityAndStatusInWithPromotedFirst(
-                        TripVisibility.PUBLIC, TripStatus.getActiveStatuses(), pageable))
+                        TripVisibility.PUBLIC, TripStatus.getDiscoverableStatuses(), pageable))
                 .thenReturn(new PageImpl<>(List.of(ongoingPublicTrip), pageable, 1));
 
         // When
@@ -664,7 +664,7 @@ class TripServiceTest {
 
         verify(tripRepository)
                 .findByVisibilityAndStatusInWithPromotedFirst(
-                        TripVisibility.PUBLIC, TripStatus.getActiveStatuses(), pageable);
+                        TripVisibility.PUBLIC, TripStatus.getDiscoverableStatuses(), pageable);
     }
 
     @Test
@@ -687,7 +687,7 @@ class TripServiceTest {
         // Promoted CREATED trip should be included in results
         List<Trip> trips = List.of(promotedCreatedTrip, activeTrip);
         when(tripRepository.findByVisibilityAndStatusInWithPromotedFirst(
-                        TripVisibility.PUBLIC, TripStatus.getActiveStatuses(), pageable))
+                        TripVisibility.PUBLIC, TripStatus.getDiscoverableStatuses(), pageable))
                 .thenReturn(new PageImpl<>(trips, pageable, trips.size()));
 
         // Override enrichment for this test to mark the promoted trip
@@ -763,7 +763,7 @@ class TripServiceTest {
 
         verify(tripRepository)
                 .findByVisibilityAndStatusInWithPromotedFirst(
-                        TripVisibility.PUBLIC, TripStatus.getActiveStatuses(), pageable);
+                        TripVisibility.PUBLIC, TripStatus.getDiscoverableStatuses(), pageable);
     }
 
     @Test
@@ -786,7 +786,7 @@ class TripServiceTest {
         // Promoted FINISHED trip should be included in results
         List<Trip> trips = List.of(promotedFinishedTrip, activeTrip);
         when(tripRepository.findByVisibilityAndStatusInWithPromotedFirst(
-                        TripVisibility.PUBLIC, TripStatus.getActiveStatuses(), pageable))
+                        TripVisibility.PUBLIC, TripStatus.getDiscoverableStatuses(), pageable))
                 .thenReturn(new PageImpl<>(trips, pageable, trips.size()));
 
         // Override enrichment for this test to mark the promoted trip
@@ -860,7 +860,7 @@ class TripServiceTest {
 
         verify(tripRepository)
                 .findByVisibilityAndStatusInWithPromotedFirst(
-                        TripVisibility.PUBLIC, TripStatus.getActiveStatuses(), pageable);
+                        TripVisibility.PUBLIC, TripStatus.getDiscoverableStatuses(), pageable);
     }
 
     @Test
@@ -908,7 +908,7 @@ class TripServiceTest {
                 .thenReturn(List.of(follow1, follow2));
         when(tripRepository.findPublicActiveTripsWithFollowedPriority(
                         eq(TripVisibility.PUBLIC),
-                        eq(TripStatus.getActiveStatuses()),
+                        eq(TripStatus.getDiscoverableStatuses()),
                         any(),
                         any(Pageable.class)))
                 .thenReturn(new PageImpl<>(trips, PageRequest.of(0, 20), trips.size()));
@@ -926,7 +926,7 @@ class TripServiceTest {
         verify(tripRepository)
                 .findPublicActiveTripsWithFollowedPriority(
                         eq(TripVisibility.PUBLIC),
-                        eq(TripStatus.getActiveStatuses()),
+                        eq(TripStatus.getDiscoverableStatuses()),
                         any(),
                         any(Pageable.class));
     }
@@ -948,7 +948,7 @@ class TripServiceTest {
 
         List<Trip> trips = List.of(trip1, trip2);
         when(tripRepository.findByVisibilityAndStatusInWithPromotedFirst(
-                        TripVisibility.PUBLIC, TripStatus.getActiveStatuses(), pageable))
+                        TripVisibility.PUBLIC, TripStatus.getDiscoverableStatuses(), pageable))
                 .thenReturn(new PageImpl<>(trips, pageable, trips.size()));
 
         // When
@@ -962,7 +962,7 @@ class TripServiceTest {
 
         verify(tripRepository)
                 .findByVisibilityAndStatusInWithPromotedFirst(
-                        TripVisibility.PUBLIC, TripStatus.getActiveStatuses(), pageable);
+                        TripVisibility.PUBLIC, TripStatus.getDiscoverableStatuses(), pageable);
         verify(userFollowRepository).findByFollowerId(requestingUserId);
     }
 
@@ -1005,7 +1005,7 @@ class TripServiceTest {
                 .thenReturn(List.of(follow1, follow2));
         when(tripRepository.findPublicActiveTripsWithFollowedPriority(
                         eq(TripVisibility.PUBLIC),
-                        eq(TripStatus.getActiveStatuses()),
+                        eq(TripStatus.getDiscoverableStatuses()),
                         any(),
                         any(Pageable.class)))
                 .thenReturn(new PageImpl<>(trips, PageRequest.of(0, 20), trips.size()));
@@ -1054,7 +1054,7 @@ class TripServiceTest {
         when(userFollowRepository.findByFollowerId(requestingUserId)).thenReturn(List.of(follow));
         when(tripRepository.findPublicActiveTripsWithFollowedPriority(
                         eq(TripVisibility.PUBLIC),
-                        eq(TripStatus.getActiveStatuses()),
+                        eq(TripStatus.getDiscoverableStatuses()),
                         any(),
                         any(Pageable.class)))
                 .thenReturn(new PageImpl<>(trips, PageRequest.of(0, 20), trips.size()));

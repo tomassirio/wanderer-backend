@@ -150,7 +150,7 @@ public class TripServiceImpl implements TripService {
             // Use optimized query that sorts promoted trips first
             tripPage =
                     tripRepository.findByVisibilityAndStatusInWithPromotedFirst(
-                            TripVisibility.PUBLIC, TripStatus.getActiveStatuses(), pageable);
+                            TripVisibility.PUBLIC, TripStatus.getDiscoverableStatuses(), pageable);
         } else {
             // Get followed user IDs
             Set<UUID> followedUserIds =
@@ -161,7 +161,9 @@ public class TripServiceImpl implements TripService {
             if (followedUserIds.isEmpty()) {
                 tripPage =
                         tripRepository.findByVisibilityAndStatusInWithPromotedFirst(
-                                TripVisibility.PUBLIC, TripStatus.getActiveStatuses(), pageable);
+                                TripVisibility.PUBLIC,
+                                TripStatus.getDiscoverableStatuses(),
+                                pageable);
             } else {
                 // Use unsorted pageable for the custom query (has its own ORDER BY)
                 Pageable unsortedPageable =
@@ -169,7 +171,7 @@ public class TripServiceImpl implements TripService {
                 tripPage =
                         tripRepository.findPublicActiveTripsWithFollowedPriority(
                                 TripVisibility.PUBLIC,
-                                TripStatus.getActiveStatuses(),
+                                TripStatus.getDiscoverableStatuses(),
                                 followedUserIds,
                                 unsortedPageable);
             }
@@ -187,7 +189,7 @@ public class TripServiceImpl implements TripService {
             // Use optimized query that sorts promoted trips first
             tripPage =
                     tripRepository.findByVisibilityAndStatusInWithPromotedFirst(
-                            TripVisibility.PUBLIC, TripStatus.getActiveStatuses(), pageable);
+                            TripVisibility.PUBLIC, TripStatus.getDiscoverableStatuses(), pageable);
         } else {
             // Get followed user IDs
             Set<UUID> followedUserIds =
@@ -198,7 +200,9 @@ public class TripServiceImpl implements TripService {
             if (followedUserIds.isEmpty()) {
                 tripPage =
                         tripRepository.findByVisibilityAndStatusInWithPromotedFirst(
-                                TripVisibility.PUBLIC, TripStatus.getActiveStatuses(), pageable);
+                                TripVisibility.PUBLIC,
+                                TripStatus.getDiscoverableStatuses(),
+                                pageable);
             } else {
                 // Use unsorted pageable for the custom query (has its own ORDER BY)
                 Pageable unsortedPageable =
@@ -206,7 +210,7 @@ public class TripServiceImpl implements TripService {
                 tripPage =
                         tripRepository.findPublicActiveTripsWithFollowedPriority(
                                 TripVisibility.PUBLIC,
-                                TripStatus.getActiveStatuses(),
+                                TripStatus.getDiscoverableStatuses(),
                                 followedUserIds,
                                 unsortedPageable);
             }

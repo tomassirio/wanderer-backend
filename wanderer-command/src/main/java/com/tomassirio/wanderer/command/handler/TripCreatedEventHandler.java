@@ -1,6 +1,7 @@
 package com.tomassirio.wanderer.command.handler;
 
 import com.tomassirio.wanderer.command.event.TripCreatedEvent;
+import com.tomassirio.wanderer.command.handler.support.AfterCommit;
 import com.tomassirio.wanderer.command.repository.TripRepository;
 import com.tomassirio.wanderer.command.service.AchievementService;
 import com.tomassirio.wanderer.command.service.helper.TripEmbeddedObjectsInitializer;
@@ -67,7 +68,10 @@ public class TripCreatedEventHandler implements EventHandler<TripCreatedEvent> {
         }
 
         tripRepository.save(trip);
-        achievementCalculationService.checkAndUnlockSocialAchievements(event.getOwnerId());
+        AfterCommit.run(
+                () ->
+                        achievementCalculationService.checkAndUnlockSocialAchievements(
+                                event.getOwnerId()));
         log.info("Trip created and persisted: {}", event.getTripId());
     }
 }

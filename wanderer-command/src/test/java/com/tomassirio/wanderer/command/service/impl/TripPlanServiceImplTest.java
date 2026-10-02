@@ -150,14 +150,14 @@ class TripPlanServiceImplTest {
                         TripPlanType.SIMPLE,
                         null);
 
-        doThrow(new IllegalArgumentException("End date must be after start date"))
+        doThrow(new IllegalArgumentException("End date must not be before start date"))
                 .when(tripPlanValidator)
                 .validateDates(endDate, startDate);
 
         // When & Then
         assertThatThrownBy(() -> tripPlanService.createTripPlan(userId, request))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("End date must be after start date");
+                .hasMessage("End date must not be before start date");
 
         verify(eventPublisher, never()).publishEvent(any(TripPlanCreatedEvent.class));
     }

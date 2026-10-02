@@ -1,0 +1,17 @@
+databaseChangeLog:
+  - changeSet:
+      id: 043-update-profile-completed-description
+      author: tomassirio
+      comment: "PROFILE_COMPLETED now also needs a profile photo"
+      preConditions:
+        - onFail: MARK_RAN
+        - tableExists:
+            tableName: achievements
+      changes:
+        - update:
+            tableName: achievements
+            columns:
+              - column:
+                  name: description
+                  value: "Add a display name, a bio and a profile photo"
+            where: "type = 'PROFILE_COMPLETED'"
