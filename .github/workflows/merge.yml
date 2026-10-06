@@ -81,7 +81,8 @@ jobs:
           echo "RELEASE_ARTIFACTS=${ARTIFACTS}" >> $GITHUB_ENV
           
           # Set next dev version
-          mvn versions:set -DnextSnapshot=true -DprocessAllModules=true -DgenerateBackupPoms=false
+          IFS='.' read -r MAJOR MINOR PATCH <<< "${RELEASE_VERSION}"
+          mvn versions:set -DnewVersion="${MAJOR}.$((MINOR + 1)).0-SNAPSHOT" -DprocessAllModules=true -DgenerateBackupPoms=false
           NEXT_VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
           git add . && git commit -m "ci: Prepare for next development iteration (${NEXT_VERSION})"
           
