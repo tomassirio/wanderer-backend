@@ -1,7 +1,10 @@
 package com.tomassirio.wanderer.command.service.impl;
 
+import com.tomassirio.wanderer.command.analytics.TripStartFunnel;
+import com.tomassirio.wanderer.command.controller.request.StartTripRequest;
 import com.tomassirio.wanderer.command.controller.request.TripCreationRequest;
 import com.tomassirio.wanderer.command.controller.request.TripFromPlanRequest;
+import com.tomassirio.wanderer.command.controller.request.TripUpdateCreationRequest;
 import com.tomassirio.wanderer.command.controller.request.TripUpdateRequest;
 import com.tomassirio.wanderer.command.event.TripCreatedEvent;
 import com.tomassirio.wanderer.command.event.TripDeletedEvent;
@@ -9,11 +12,14 @@ import com.tomassirio.wanderer.command.event.TripMetadataUpdatedEvent;
 import com.tomassirio.wanderer.command.event.TripSettingsUpdatedEvent;
 import com.tomassirio.wanderer.command.event.TripStatusChangedEvent;
 import com.tomassirio.wanderer.command.event.TripVisibilityChangedEvent;
+import com.tomassirio.wanderer.command.handler.support.AfterCommit;
 import com.tomassirio.wanderer.command.repository.ActiveTripRepository;
 import com.tomassirio.wanderer.command.repository.TripPlanRepository;
 import com.tomassirio.wanderer.command.repository.TripRepository;
+import com.tomassirio.wanderer.command.repository.TripUpdateRepository;
 import com.tomassirio.wanderer.command.repository.UserRepository;
 import com.tomassirio.wanderer.command.service.TripService;
+import com.tomassirio.wanderer.command.service.TripUpdateService;
 import com.tomassirio.wanderer.command.service.validator.OwnershipValidator;
 import com.tomassirio.wanderer.commons.domain.Trip;
 import com.tomassirio.wanderer.commons.domain.TripModality;
@@ -21,7 +27,10 @@ import com.tomassirio.wanderer.commons.domain.TripPlan;
 import com.tomassirio.wanderer.commons.domain.TripPlanType;
 import com.tomassirio.wanderer.commons.domain.TripSettings;
 import com.tomassirio.wanderer.commons.domain.TripStatus;
+import com.tomassirio.wanderer.commons.domain.TripUpdate;
 import com.tomassirio.wanderer.commons.domain.TripVisibility;
+import com.tomassirio.wanderer.commons.domain.UpdateType;
+import com.tomassirio.wanderer.commons.dto.StartTripResponse;
 import jakarta.persistence.EntityNotFoundException;
 import java.time.Instant;
 import java.time.ZoneOffset;
@@ -46,33 +55,88 @@ public class TripServiceImpl implements TripService {
     private final ActiveTripRepository activeTripRepository;
     private final OwnershipValidator ownershipValidator;
     private final ApplicationEventPublisher eventPublisher;
+    private final TripUpdateService tripUpdateService;
+    private final TripUpdateRepository tripUpdateRepository;
+    private final TripStartFunnel tripStartFunnel;
+
+    private static final Integer DEFAULT_UPDATE_REFRESH_SECONDS = 900;
 
     @Override
     public UUID createTrip(UUID ownerId, TripCreationRequest request) {
-        // Validate user exists
-        userRepository
-                .findById(ownerId)
-                .orElseThrow(() -> new EntityNotFoundException("User not found"));
+        requireUser(ownerId);
+        return publishTripCreated(
+                ownerId,
+                request.name(),
+                request.visibility(),
+                request.tripModality(),
+                request.automaticUpdates(),
+                request.updateRefresh(),
+                null,
+                null);
+    }
 
-        // Pre-generate ID for the trip
-        UUID tripId = UUID.randomUUID();
-        Instant creationTimestamp = Instant.now();
+    @Override
+    public StartTripResponse startTrip(
+            UUID userId, String idempotencyKey, StartTripRequest request) {
+        Optional<Trip> previous =
+                tripRepository.findByUserIdAndStartIdempotencyKey(userId, idempotencyKey);
+        if (previous.isPresent()) {
+            Trip trip = previous.get();
+            UUID firstCheckIn =
+                    tripUpdateRepository
+                            .findFirstByTripIdAndUpdateTypeOrderByTimestampAsc(
+                                    trip.getId(), UpdateType.TRIP_STARTED)
+                            .map(TripUpdate::getId)
+                            .orElse(null);
+            return new StartTripResponse(
+                    trip.getId(), firstCheckIn, trip.getTripSettings().getTripStatus(), true);
+        }
 
-        // Publish event - persistence handler will write to DB
-        eventPublisher.publishEvent(
-                TripCreatedEvent.builder()
-                        .tripId(tripId)
-                        .tripName(request.name())
-                        .ownerId(ownerId)
-                        .visibility(request.visibility().name())
-                        .tripPlanId(null)
-                        .creationTimestamp(creationTimestamp)
-                        .tripModality(request.tripModality())
-                        .automaticUpdates(request.automaticUpdates())
-                        .updateRefresh(request.updateRefresh())
-                        .build());
+        requireUser(userId);
+        TripPlan plan =
+                request.tripPlanId() != null
+                        ? requireOwnedPlan(userId, request.tripPlanId())
+                        : null;
+        Integer updateRefresh =
+                request.updateRefresh() == null && Boolean.TRUE.equals(request.automaticUpdates())
+                        ? DEFAULT_UPDATE_REFRESH_SECONDS
+                        : request.updateRefresh();
 
-        return tripId;
+        // Create, go live and check in within this one transaction: any failure rolls back all
+        // three, so no Draft is ever committed.
+        UUID tripId =
+                publishTripCreated(
+                        userId,
+                        request.name(),
+                        request.visibility(),
+                        // From a plan the type is the plan's; from scratch it defaults to SIMPLE
+                        plan != null
+                                ? null
+                                : Optional.ofNullable(request.tripModality())
+                                        .orElse(TripModality.SIMPLE),
+                        request.automaticUpdates(),
+                        updateRefresh,
+                        plan,
+                        idempotencyKey);
+        changeStatus(userId, tripId, TripStatus.IN_PROGRESS);
+        UUID tripUpdateId =
+                tripUpdateService.createTripUpdate(
+                        userId,
+                        tripId,
+                        new TripUpdateCreationRequest(
+                                request.location(),
+                                request.battery(),
+                                request.message() != null ? request.message() : "Trip Started!",
+                                UpdateType.TRIP_STARTED));
+
+        AfterCommit.run(
+                () ->
+                        tripStartFunnel.record(
+                                TripStartFunnel.Event.TRIP_STARTED,
+                                plan != null
+                                        ? TripStartFunnel.Source.PLAN
+                                        : TripStartFunnel.Source.SCRATCH));
+        return new StartTripResponse(tripId, tripUpdateId, TripStatus.IN_PROGRESS, false);
     }
 
     @Override
@@ -207,55 +271,76 @@ public class TripServiceImpl implements TripService {
 
     @Override
     public UUID createTripFromPlan(UUID userId, UUID tripPlanId, TripFromPlanRequest request) {
-        // Validate user exists
+        requireUser(userId);
+        TripPlan tripPlan = requireOwnedPlan(userId, tripPlanId);
+        return publishTripCreated(
+                userId,
+                null,
+                request.visibility(),
+                request.tripModality(),
+                request.automaticUpdates(),
+                request.updateRefresh(),
+                tripPlan,
+                null);
+    }
+
+    private void requireUser(UUID userId) {
         userRepository
                 .findById(userId)
                 .orElseThrow(() -> new EntityNotFoundException("User not found"));
+    }
 
-        // Fetch and validate trip plan ownership
+    private TripPlan requireOwnedPlan(UUID userId, UUID tripPlanId) {
         TripPlan tripPlan =
                 tripPlanRepository
                         .findById(tripPlanId)
                         .orElseThrow(() -> new EntityNotFoundException("Trip plan not found"));
-
         ownershipValidator.validateOwnership(
                 tripPlan, userId, TripPlan::getUserId, TripPlan::getId, "trip plan");
+        return tripPlan;
+    }
 
-        // Pre-generate ID and timestamp
+    /**
+     * Publishes a {@link TripCreatedEvent} for a new trip (status CREATED). With a plan, the trip
+     * takes the plan's name, route and dates; the modality is the requested one, or derived from
+     * the plan type when absent.
+     */
+    private UUID publishTripCreated(
+            UUID ownerId,
+            String name,
+            TripVisibility visibility,
+            TripModality modality,
+            Boolean automaticUpdates,
+            Integer updateRefresh,
+            TripPlan plan,
+            String idempotencyKey) {
         UUID tripId = UUID.randomUUID();
-        Instant creationTimestamp = Instant.now();
-
-        // Use request modality if provided, otherwise derive from plan type
-        TripModality modality =
-                request.tripModality() != null
-                        ? request.tripModality()
-                        : deriveModalityFromPlanType(tripPlan.getPlanType());
-
-        // Publish event - persistence handler will write to DB
-        eventPublisher.publishEvent(
+        TripCreatedEvent.TripCreatedEventBuilder event =
                 TripCreatedEvent.builder()
                         .tripId(tripId)
-                        .tripName(tripPlan.getName())
-                        .ownerId(userId)
-                        .visibility(request.visibility().name())
-                        .tripPlanId(tripPlanId)
-                        .creationTimestamp(creationTimestamp)
-                        .startLocation(tripPlan.getStartLocation())
-                        .endLocation(tripPlan.getEndLocation())
-                        .waypoints(
-                                tripPlan.getWaypoints() != null
-                                        ? tripPlan.getWaypoints()
-                                        : List.of())
-                        .startTimestamp(
-                                tripPlan.getStartDate().atStartOfDay().toInstant(ZoneOffset.UTC))
-                        .endTimestamp(
-                                tripPlan.getEndDate().atStartOfDay().toInstant(ZoneOffset.UTC))
+                        .tripName(name)
+                        .ownerId(ownerId)
+                        .visibility(visibility.name())
+                        .creationTimestamp(Instant.now())
                         .tripModality(modality)
-                        .plannedPolyline(tripPlan.getPlannedPolyline())
-                        .automaticUpdates(request.automaticUpdates())
-                        .updateRefresh(request.updateRefresh())
-                        .build());
-
+                        .automaticUpdates(automaticUpdates)
+                        .updateRefresh(updateRefresh)
+                        .startIdempotencyKey(idempotencyKey);
+        if (plan != null) {
+            event.tripName(plan.getName())
+                    .tripPlanId(plan.getId())
+                    .startLocation(plan.getStartLocation())
+                    .endLocation(plan.getEndLocation())
+                    .waypoints(plan.getWaypoints() != null ? plan.getWaypoints() : List.of())
+                    .startTimestamp(plan.getStartDate().atStartOfDay().toInstant(ZoneOffset.UTC))
+                    .endTimestamp(plan.getEndDate().atStartOfDay().toInstant(ZoneOffset.UTC))
+                    .tripModality(
+                            modality != null
+                                    ? modality
+                                    : deriveModalityFromPlanType(plan.getPlanType()))
+                    .plannedPolyline(plan.getPlannedPolyline());
+        }
+        eventPublisher.publishEvent(event.build());
         return tripId;
     }
 

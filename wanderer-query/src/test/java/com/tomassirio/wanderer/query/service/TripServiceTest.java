@@ -10,12 +10,15 @@ import static org.mockito.Mockito.when;
 
 import com.tomassirio.wanderer.commons.domain.Friendship;
 import com.tomassirio.wanderer.commons.domain.Trip;
+import com.tomassirio.wanderer.commons.domain.TripModality;
+import com.tomassirio.wanderer.commons.domain.TripSettings;
 import com.tomassirio.wanderer.commons.domain.TripStatus;
 import com.tomassirio.wanderer.commons.domain.TripUpdate;
 import com.tomassirio.wanderer.commons.domain.TripVisibility;
 import com.tomassirio.wanderer.commons.domain.UserFollow;
 import com.tomassirio.wanderer.commons.dto.TripDTO;
 import com.tomassirio.wanderer.commons.dto.TripMaintenanceStatsDTO;
+import com.tomassirio.wanderer.commons.dto.TripStartDefaultsDTO;
 import com.tomassirio.wanderer.commons.mapper.TripMapper;
 import com.tomassirio.wanderer.query.repository.FriendshipRepository;
 import com.tomassirio.wanderer.query.repository.PromotedTripRepository;
@@ -1508,5 +1511,36 @@ class TripServiceTest {
         assertThat(stats.totalUpdates()).isEqualTo(2);
         assertThat(stats.updatesWithGeocoding()).isZero();
         assertThat(stats.updatesMissingGeocoding()).isEqualTo(2);
+    }
+
+    @Test
+    void getStartDefaults_whenNoTrips_shouldReturnDefaults() {
+        UUID userId = UUID.randomUUID();
+        when(tripRepository.findFirstByUserIdOrderByCreationTimestampDesc(userId))
+                .thenReturn(Optional.empty());
+
+        assertThat(tripService.getStartDefaults(userId)).isEqualTo(TripStartDefaultsDTO.DEFAULTS);
+    }
+
+    @Test
+    void getStartDefaults_shouldUseLastTripAndFillGaps() {
+        UUID userId = UUID.randomUUID();
+        Trip last =
+                Trip.builder()
+                        .tripSettings(
+                                TripSettings.builder()
+                                        .tripStatus(TripStatus.FINISHED)
+                                        .visibility(TripVisibility.PRIVATE)
+                                        .automaticUpdates(false)
+                                        .tripModality(TripModality.MULTI_DAY)
+                                        .build())
+                        .build();
+        when(tripRepository.findFirstByUserIdOrderByCreationTimestampDesc(userId))
+                .thenReturn(Optional.of(last));
+
+        assertThat(tripService.getStartDefaults(userId))
+                .isEqualTo(
+                        new TripStartDefaultsDTO(
+                                TripVisibility.PRIVATE, false, 900, TripModality.MULTI_DAY, true));
     }
 }

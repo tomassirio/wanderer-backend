@@ -239,8 +239,9 @@ All endpoints are under `/api/1`. Below is a summary grouped by domain. For deta
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| POST | `/api/1/trips` | Create trip 🔒 |
-| POST | `/api/1/trips/from-plan/{tripPlanId}` | Create trip from plan 🔒 |
+| POST | `/api/1/trips/start` | Start a trip in one step: create, go live, first check-in ([contract](docs/api/one-step-trip-start.md)) 🔒 |
+| POST | `/api/1/trips` | Create Draft trip — **deprecated**, use `/trips/start` 🔒 |
+| POST | `/api/1/trips/from-plan/{tripPlanId}` | Create Draft trip from plan — **deprecated**, use `/trips/start` 🔒 |
 | PUT | `/api/1/trips/{id}` | Update trip 🔒 |
 | PATCH | `/api/1/trips/{id}/visibility` | Change visibility 🔒 |
 | PATCH | `/api/1/trips/{id}/status` | Change status 🔒 |
@@ -255,6 +256,7 @@ All endpoints are under `/api/1`. Below is a summary grouped by domain. For deta
 | GET | `/api/1/trips/{id}` | Get trip by ID |
 | GET | `/api/1/trips/me` | Get my trips 🔒 |
 | GET | `/api/1/trips/me/available` | Get trips available to me 🔒 |
+| GET | `/api/1/trips/me/start-defaults` | Prefill values for starting a trip 🔒 |
 | GET | `/api/1/trips/users/{userId}` | Get trips by user ID |
 | GET | `/api/1/trips/public` | Get public trips |
 | GET | `/api/1/trips` | List all trips (admin) 🔒 |

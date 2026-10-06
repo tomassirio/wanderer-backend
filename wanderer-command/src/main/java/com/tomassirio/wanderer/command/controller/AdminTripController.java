@@ -1,12 +1,14 @@
 package com.tomassirio.wanderer.command.controller;
 
 import com.tomassirio.wanderer.command.controller.request.PromoteTripRequest;
+import com.tomassirio.wanderer.command.service.DraftTripMigrationService;
 import com.tomassirio.wanderer.command.service.PolylineService;
 import com.tomassirio.wanderer.command.service.PromotedTripService;
 import com.tomassirio.wanderer.command.service.ThumbnailBackfillService;
 import com.tomassirio.wanderer.command.service.TripService;
 import com.tomassirio.wanderer.command.service.TripUpdateGeocodingService;
 import com.tomassirio.wanderer.commons.constants.ApiConstants;
+import com.tomassirio.wanderer.commons.dto.DraftMigrationReportDTO;
 import com.tomassirio.wanderer.commons.dto.ThumbnailBackfillResultDTO;
 import com.tomassirio.wanderer.commons.security.CurrentUserId;
 import io.swagger.v3.oas.annotations.Operation;
@@ -30,6 +32,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
@@ -56,6 +59,7 @@ public class AdminTripController {
     private final TripUpdateGeocodingService tripUpdateGeocodingService;
     private final ThumbnailBackfillService thumbnailBackfillService;
     private final TripService tripService;
+    private final DraftTripMigrationService draftTripMigrationService;
 
     /**
      * Recomputes the encoded polyline for a trip from all its trip updates.
@@ -93,6 +97,34 @@ public class AdminTripController {
         log.info("Admin recomputing polyline for trip {}", tripId);
         polylineService.recomputePolyline(tripId);
         return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * Converts Draft (CREATED) trips into trip plans. Defaults to a dry run that only reports.
+     *
+     * @param dryRun when true (default), nothing is written
+     * @return counts plus the Drafts that need manual review
+     */
+    @PostMapping(ApiConstants.ADMIN_TRIP_DRAFTS_MIGRATE_ENDPOINT)
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(
+            summary = "Migrate Draft trips to trip plans",
+            description =
+                    "Converts Drafts with a route and no check-ins into plans (name, type, dates;"
+                            + " visibility in metadata) and removes them; removes Drafts whose"
+                            + " plan still exists. Drafts with check-ins or without a route are"
+                            + " only listed. dryRun defaults to true.")
+    @ApiResponse(responseCode = "200", description = "Report returned")
+    @ApiResponse(
+            responseCode = "403",
+            description = "Forbidden - ADMIN role required",
+            content = @Content)
+    public ResponseEntity<DraftMigrationReportDTO> migrateDrafts(
+            @Parameter(description = "Only report, write nothing")
+                    @RequestParam(defaultValue = "true")
+                    boolean dryRun) {
+        log.info("Admin migrating draft trips to plans (dryRun={})", dryRun);
+        return ResponseEntity.ok(draftTripMigrationService.migrateDrafts(dryRun));
     }
 
     /**

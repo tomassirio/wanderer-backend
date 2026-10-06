@@ -73,7 +73,7 @@ checked against the payload; reusing a key with a different body returns the ori
 | 400 | Missing/blank/too long `Idempotency-Key`, `name` missing without plan, invalid field | plain-text message |
 | 403 | `tripPlanId` belongs to another user | plain-text message |
 | 404 | `tripPlanId` not found | empty |
-| 409 | User already has a trip `IN_PROGRESS` | `User already has a trip in progress. Only one trip can be in progress at a time.` |
+| 409 | User already has an ongoing trip (`IN_PROGRESS`, `PAUSED` or `RESTING`) | `User already has a trip in progress. Only one trip can be in progress at a time.` |
 
 On any error nothing is saved (no trip, no check-in).
 
@@ -138,10 +138,13 @@ There is no product-analytics vendor in the stack; events are Micrometer counter
 | `event` (required) | `READY_SCREEN_VIEWED`, `CLOSED_WITHOUT_STARTING`, `SAVED_AS_PLAN` |
 | `source` (optional) | `SCRATCH`, `PLAN` |
 
-Response `204 No Content`; `400` for unknown values.
+Response `204 No Content`; `400` for unknown values or `TRIP_STARTED`. Without `source` the
+counter is tagged `source="NONE"`.
 
 `TRIP_STARTED` (with `source` `SCRATCH`/`PLAN`) is emitted **by the server** from
 `POST /trips/start` (not on replays) — clients must not send it.
+
+Prometheus example: `sum by (event, source) (increase(wanderer_trip_start_funnel_total[7d]))`.
 
 ---
 
