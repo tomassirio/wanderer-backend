@@ -175,6 +175,53 @@ class ReleaseCommandIT extends BaseIntegrationTest {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
+    void publish_fillsMissingReleaseDatesAndKeepsSetOnes() {
+        draft(CI_TOKEN, Map.of("version", "2.0.0", "prs", List.of()));
+        Map<String, Object> platforms = new java.util.HashMap<>();
+        platforms.put("platform", "WEB");
+        platforms.put("releaseDate", null);
+        exchange(
+                HttpMethod.PUT,
+                "/api/1/admin/releases/2.0.0",
+                Map.of(
+                        "headline",
+                        "Big one",
+                        "showPopup",
+                        true,
+                        "platforms",
+                        List.of(
+                                Map.of(
+                                        "platform",
+                                        "ANDROID",
+                                        "releaseDate",
+                                        "2030-01-01T00:00:00Z"),
+                                platforms),
+                        "items",
+                        List.of()),
+                adminToken());
+
+        ResponseEntity<String> published =
+                exchange(
+                        HttpMethod.POST, "/api/1/admin/releases/2.0.0/publish", null, adminToken());
+
+        assertThat(published.getStatusCode()).isEqualTo(HttpStatus.OK);
+        List<Map<String, Object>> dates =
+                (List<Map<String, Object>>) json(published).get("platforms");
+        assertThat(dates)
+                .anySatisfy(
+                        p -> {
+                            assertThat(p.get("platform")).isEqualTo("ANDROID");
+                            assertThat((String) p.get("releaseDate")).startsWith("2030-01-01");
+                        })
+                .anySatisfy(
+                        p -> {
+                            assertThat(p.get("platform")).isEqualTo("WEB");
+                            assertThat(p.get("releaseDate")).isNotNull();
+                        });
+    }
+
+    @Test
     void publish_requiresHeadline() {
         draft(CI_TOKEN, Map.of("version", "2.0.0", "prs", List.of()));
         assertThat(

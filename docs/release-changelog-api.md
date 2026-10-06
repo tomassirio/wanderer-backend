@@ -196,8 +196,9 @@ platform's `releaseDate` after publishing, e.g. a later Android rollout).
 
 ### `POST /api/1/admin/releases/{version}/publish` (wanderer-command)
 
-Sets `status = PUBLISHED`. Idempotent. Does not set release dates: a platform with `releaseDate: null`
-stays hidden until a date is set via `PUT`.
+Sets `status = PUBLISHED`. Idempotent. Any platform with `releaseDate: null` gets the publish time, so
+it goes live immediately; dates already set (past or future) are kept. To schedule a platform for later,
+set its date via `PUT` before publishing.
 
 | Status | When |
 |--------|------|

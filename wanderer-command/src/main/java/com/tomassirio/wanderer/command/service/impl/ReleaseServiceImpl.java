@@ -13,6 +13,7 @@ import com.tomassirio.wanderer.commons.domain.Release.PlatformRelease;
 import com.tomassirio.wanderer.commons.domain.UserReleaseSeen;
 import com.tomassirio.wanderer.commons.dto.ReleaseDTO;
 import jakarta.persistence.EntityNotFoundException;
+import java.time.Instant;
 import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
@@ -58,6 +59,11 @@ public class ReleaseServiceImpl implements ReleaseService {
         if (release.getPlatforms().isEmpty()) {
             throw new IllegalArgumentException("At least one platform is required to publish");
         }
+        // Platforms without a date go live now; dates already set (e.g. a later rollout) are kept.
+        Instant now = Instant.now();
+        release.getPlatforms()
+                .replaceAll(
+                        p -> p.releaseDate() == null ? new PlatformRelease(p.platform(), now) : p);
         release.setStatus(Release.Status.PUBLISHED);
         log.info("Release {} published", version);
         return ReleaseDTO.from(releaseRepository.saveAndFlush(release));
