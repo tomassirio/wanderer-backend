@@ -10,6 +10,7 @@ import com.tomassirio.wanderer.command.WandererCommandApplication;
 import com.tomassirio.wanderer.command.client.WandererAuthClient;
 import com.tomassirio.wanderer.command.controller.request.StartTripRequest;
 import com.tomassirio.wanderer.command.controller.request.TripCreationRequest;
+import com.tomassirio.wanderer.command.controller.request.TripPlanCreationRequest;
 import com.tomassirio.wanderer.command.controller.request.TripUpdateCreationRequest;
 import com.tomassirio.wanderer.command.repository.ActiveTripRepository;
 import com.tomassirio.wanderer.command.repository.TripPlanRepository;
@@ -71,6 +72,7 @@ class TripStartIT extends BaseIntegrationTest {
     @Autowired private TripService tripService;
     @Autowired private TripUpdateService tripUpdateService;
     @Autowired private DraftTripMigrationService draftTripMigrationService;
+    @Autowired private TripPlanService tripPlanService;
     @Autowired private UserRepository userRepository;
     @Autowired private TripRepository tripRepository;
     @Autowired private TripUpdateRepository tripUpdateRepository;
@@ -255,7 +257,7 @@ class TripStartIT extends BaseIntegrationTest {
 
         assertThat(report.dryRun()).isTrue();
         assertThat(report.totalDrafts()).isEqualTo(4);
-        assertThat(report.toConvert()).isEqualTo(1);
+        assertThat(report.toConvert()).isEqualTo(2); // "With route" and "No route"
         assertThat(report.alreadyPlanned()).isEqualTo(1);
         assertThat(report.converted()).isZero();
         assertThat(report.withCheckIns())
@@ -285,6 +287,7 @@ class TripStartIT extends BaseIntegrationTest {
         DraftMigrationReportDTO report = draftTripMigrationService.migrateDrafts(false);
 
         assertThat(report.converted()).isEqualTo(1);
+        assertThat(report.missingRoute()).isEmpty();
         assertThat(tripRepository.findById(convertible.getId())).isEmpty();
         assertThat(tripRepository.findById(withCheckIns.getId())).isPresent();
         TripPlan plan = tripPlanRepository.findAll().get(0);
@@ -293,6 +296,80 @@ class TripStartIT extends BaseIntegrationTest {
         assertThat(plan.getMetadata())
                 .containsEntry("visibility", "PUBLIC")
                 .containsEntry("migratedFromTripId", convertible.getId().toString());
+    }
+
+    @Test
+    void migrateDrafts_forReal_convertsDraftWithoutRoute() {
+        Trip noRoute = draft("No route", null, null);
+
+        DraftMigrationReportDTO report = draftTripMigrationService.migrateDrafts(false);
+
+        assertThat(report.converted()).isEqualTo(1);
+        assertThat(report.missingRoute()).extracting(d -> d.name()).containsExactly("No route");
+        assertThat(tripRepository.findById(noRoute.getId())).isEmpty();
+        TripPlan plan = tripPlanRepository.findAll().get(0);
+        assertThat(plan.getName()).isEqualTo("No route");
+        assertThat(plan.getStartLocation()).isNull();
+        assertThat(plan.getEndLocation()).isNull();
+        assertThat(plan.getStartDate()).isEqualTo(plan.getEndDate());
+    }
+
+    @Test
+    void createTripPlan_withoutLocations_isSaved() {
+        UUID planId =
+                tripPlanService.createTripPlan(
+                        userId,
+                        new TripPlanCreationRequest(
+                                "Someday walk",
+                                LocalDate.of(2026, 11, 1),
+                                LocalDate.of(2026, 11, 1),
+                                null,
+                                null,
+                                null,
+                                TripPlanType.SIMPLE,
+                                null));
+
+        TripPlan plan = tripPlanRepository.findById(planId).orElseThrow();
+        assertThat(plan.getStartLocation()).isNull();
+        assertThat(plan.getEndLocation()).isNull();
+        assertThat(plan.getWaypoints()).isEmpty();
+    }
+
+    @Test
+    void startTrip_fromPlanWithoutLocations_startsAtCurrentLocation() {
+        TripPlan plan =
+                tripPlanRepository.save(
+                        TripPlan.builder()
+                                .id(UUID.randomUUID())
+                                .name("No route plan")
+                                .planType(TripPlanType.SIMPLE)
+                                .userId(userId)
+                                .createdTimestamp(Instant.now())
+                                .startDate(LocalDate.of(2026, 10, 1))
+                                .endDate(LocalDate.of(2026, 10, 1))
+                                .build());
+
+        StartTripResponse response =
+                tripService.startTrip(
+                        userId,
+                        "key-1",
+                        new StartTripRequest(
+                                null,
+                                TripVisibility.PUBLIC,
+                                null,
+                                false,
+                                null,
+                                HERE,
+                                null,
+                                null,
+                                plan.getId()));
+
+        Trip trip = tripRepository.findById(response.tripId()).orElseThrow();
+        assertThat(trip.getName()).isEqualTo("No route plan");
+        assertThat(trip.getTripSettings().getTripStatus()).isEqualTo(TripStatus.IN_PROGRESS);
+        assertThat(trip.getTripDetails().getStartLocation().getLat()).isEqualTo(HERE.getLat());
+        assertThat(trip.getTripDetails().getEndLocation()).isNull();
+        assertThat(tripUpdateRepository.countByTripId(trip.getId())).isEqualTo(1);
     }
 
     private Trip draft(String name, GeoLocation route, UUID planId) {

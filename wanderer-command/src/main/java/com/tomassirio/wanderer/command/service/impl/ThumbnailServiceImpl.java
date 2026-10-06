@@ -320,6 +320,9 @@ public class ThumbnailServiceImpl implements ThumbnailService {
 
     private void appendMarker(
             StringBuilder urlBuilder, String color, String label, GeoLocation location) {
+        if (location == null) {
+            return; // plans may have no start/end location
+        }
         urlBuilder
                 .append("&markers=color:")
                 .append(color)

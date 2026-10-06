@@ -46,7 +46,7 @@ All endpoints need `Authorization: Bearer <access token>` (role USER or ADMIN).
 | `location` | `{lat, lon}` | yes | Current location; becomes the `TRIP_STARTED` check-in. |
 | `battery` | int 0–100 | no | |
 | `message` | string <= 500 | no | Message on the first check-in. Default `"Trip Started!"`. |
-| `tripPlanId` | UUID | no | Start from a plan: name, route (start/end/waypoints/planned polyline), dates and type come from the plan. Replaces `POST /trips/from-plan/{id}`. |
+| `tripPlanId` | UUID | no | Start from a plan: name, route (start/end/waypoints/planned polyline), dates and type come from the plan. Replaces `POST /trips/from-plan/{id}`. Plans may have no locations: the trip then starts at `location` (end location stays null). |
 
 The first check-in is enriched exactly like a manual check-in (city/country via reverse
 geocoding, weather, battery).
@@ -182,7 +182,17 @@ plan's `metadata.visibility`; plans have no visibility column), then removes the
 }
 ```
 
-- `toConvert`: Drafts with start and end location, no check-ins, no existing plan → become a new plan.
+- `toConvert`: Drafts with no check-ins and no existing plan → become a new plan (with or without a route).
 - `alreadyPlanned`: Drafts created from a plan that still exists, no check-ins → Draft removed (the plan already holds the data).
 - `withCheckIns`: never converted or deleted automatically; listed for manual review.
-- `missingRoute`: no start/end location (plans require both) → left untouched, listed for review.
+- `missingRoute`: **informational** — the subset of `toConvert` with no start/end location. They still
+  convert, into a plan with `startLocation`/`endLocation` = `null`. (Field kept so the report shape is stable.)
+
+---
+
+## 7. Trip plans: locations are optional
+
+`POST /api/1/trips/plans` and `PUT /api/1/trips/plans/{planId}` no longer require `startLocation`
+/ `endLocation`; `waypoints` and `plannedPolyline` may be empty or omitted. A plan without
+locations is returned with `"startLocation": null, "endLocation": null` (never `{}`), has no
+computed polyline and no thumbnail until it gets a route. Dates and type are still required.

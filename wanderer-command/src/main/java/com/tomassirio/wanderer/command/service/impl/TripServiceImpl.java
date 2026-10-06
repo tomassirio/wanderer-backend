@@ -118,6 +118,12 @@ public class TripServiceImpl implements TripService {
                         updateRefresh,
                         plan,
                         idempotencyKey);
+        if (plan != null && plan.getStartLocation() == null) {
+            // Plans may have no route: the trip then starts where the user is.
+            tripRepository
+                    .findById(tripId)
+                    .ifPresent(t -> t.getTripDetails().setStartLocation(request.location()));
+        }
         changeStatus(userId, tripId, TripStatus.IN_PROGRESS);
         UUID tripUpdateId =
                 tripUpdateService.createTripUpdate(

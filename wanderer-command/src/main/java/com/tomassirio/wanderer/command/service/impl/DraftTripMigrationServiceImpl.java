@@ -59,9 +59,10 @@ public class DraftTripMigrationServiceImpl implements DraftTripMigrationService 
                 if (!dryRun) {
                     delete(trip);
                 }
-            } else if (!hasRoute(trip.getTripDetails())) {
-                missingRoute.add(entry);
             } else {
+                if (!hasRoute(trip.getTripDetails())) {
+                    missingRoute.add(entry); // informational: converted without a route
+                }
                 toConvert++;
                 if (!dryRun) {
                     eventPublisher.publishEvent(toPlanEvent(trip));
@@ -72,7 +73,7 @@ public class DraftTripMigrationServiceImpl implements DraftTripMigrationService 
 
         log.info(
                 "Draft migration (dryRun={}): {} drafts, {} to convert, {} already planned,"
-                        + " {} with check-ins, {} missing route",
+                        + " {} with check-ins, {} of those converted have no route",
                 dryRun,
                 drafts.size(),
                 toConvert,
@@ -101,7 +102,8 @@ public class DraftTripMigrationServiceImpl implements DraftTripMigrationService 
     }
 
     private static TripPlanCreatedEvent toPlanEvent(Trip trip) {
-        TripDetails details = trip.getTripDetails();
+        TripDetails details =
+                Optional.ofNullable(trip.getTripDetails()).orElseGet(TripDetails::new);
         LocalDate start =
                 toDate(
                         Optional.ofNullable(details.getStartTimestamp())
