@@ -58,3 +58,4 @@ jobs:
       GOOGLE_MAPS_API_KEY: ${{ secrets.GOOGLE_MAPS_API_KEY }}
       EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
       GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+      RELEASE_CI_TOKEN: ${{ secrets.RELEASE_CI_TOKEN }}

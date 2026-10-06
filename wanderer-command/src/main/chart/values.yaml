@@ -113,6 +113,10 @@ application:
   springCloud:
     compatibilityVerifierEnabled: false
 
+  # Release notes: CI shared secret for POST /api/1/releases/drafts (set by pipeline from RELEASE_CI_TOKEN)
+  release:
+    ciToken: ""
+
 # Thumbnail Storage Configuration
 # NOTE: Always uses existing PVCs from turing-pi-server (nas.pv.data in storage chart)
 thumbnail:

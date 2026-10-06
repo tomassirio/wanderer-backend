@@ -317,6 +317,20 @@ All endpoints are under `/api/1`. Below is a summary grouped by domain. For deta
 |--------|----------|-------------|
 | GET | `/api/1/promoted-trips` | Get featured/promoted trips |
 
+### Release Notes ("What's new") — see [docs/release-changelog-api.md](docs/release-changelog-api.md)
+
+| Service | Method | Endpoint | Description |
+|---------|--------|----------|-------------|
+| query | GET | `/api/1/releases/{version}?platform=` | Notes for a released version |
+| query | GET | `/api/1/releases?platform=` | Release history, newest first |
+| query | GET | `/api/1/releases/me/unread?platform=&currentVersion=` | Unread releases for popup 🔒 |
+| command | PUT | `/api/1/releases/me/seen` | Mark releases seen up to a version 🔒 |
+| command | POST | `/api/1/releases/drafts` | Create/update draft (CI, `X-Release-Token`) |
+| query | GET | `/api/1/admin/releases` | List all releases (admin) 🔒 |
+| query | GET | `/api/1/admin/releases/{version}` | Get release (admin) 🔒 |
+| command | PUT | `/api/1/admin/releases/{version}` | Edit release (admin) 🔒 |
+| command | POST | `/api/1/admin/releases/{version}/publish` | Publish release (admin) 🔒 |
+
 ### Admin — `wanderer-command` · Port 8081
 
 | Method | Endpoint | Description |

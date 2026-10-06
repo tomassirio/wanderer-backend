@@ -1,0 +1,134 @@
+databaseChangeLog:
+  - changeSet:
+      id: 20261006120000-create-releases-tables
+      author: tomassirio
+      changes:
+        - createTable:
+            tableName: releases
+            columns:
+              - column:
+                  name: id
+                  type: uuid
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: version
+                  type: varchar(32)
+                  constraints:
+                    nullable: false
+                    unique: true
+                    uniqueConstraintName: uk_releases_version
+              - column:
+                  name: status
+                  type: varchar(16)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: headline
+                  type: varchar(200)
+              - column:
+                  name: show_popup
+                  type: boolean
+                  defaultValueBoolean: true
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: timestamp with time zone
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: timestamp with time zone
+                  constraints:
+                    nullable: false
+        - createTable:
+            tableName: release_platforms
+            columns:
+              - column:
+                  name: release_id
+                  type: uuid
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_release_platforms_release_id
+                    references: releases(id)
+                    deleteCascade: true
+              - column:
+                  name: platform
+                  type: varchar(16)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: release_date
+                  type: timestamp with time zone
+        - addUniqueConstraint:
+            tableName: release_platforms
+            columnNames: release_id, platform
+            constraintName: uk_release_platforms_release_platform
+        - createIndex:
+            indexName: idx_release_platforms_platform_date
+            tableName: release_platforms
+            columns:
+              - column:
+                  name: platform
+              - column:
+                  name: release_date
+        - createTable:
+            tableName: release_items
+            columns:
+              - column:
+                  name: release_id
+                  type: uuid
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_release_items_release_id
+                    references: releases(id)
+                    deleteCascade: true
+              - column:
+                  name: position
+                  type: int
+                  constraints:
+                    nullable: false
+              - column:
+                  name: type
+                  type: varchar(16)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: title
+                  type: varchar(200)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: text
+                  type: varchar(500)
+              - column:
+                  name: pr_number
+                  type: int
+        - addPrimaryKey:
+            tableName: release_items
+            columnNames: release_id, position
+            constraintName: pk_release_items
+        - createTable:
+            tableName: user_release_seen
+            columns:
+              - column:
+                  name: user_id
+                  type: uuid
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+                    foreignKeyName: fk_user_release_seen_user_id
+                    references: users(id)
+                    deleteCascade: true
+              - column:
+                  name: last_seen_version
+                  type: varchar(32)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: timestamp with time zone
+                  constraints:
+                    nullable: false

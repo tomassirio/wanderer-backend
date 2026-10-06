@@ -48,6 +48,9 @@ on:
       GOOGLE_CLIENT_SECRET:
         description: 'Google OAuth client secret for SSO (wanderer-auth)'
         required: false
+      RELEASE_CI_TOKEN:
+        description: 'Shared secret CI sends as X-Release-Token to create release-notes drafts (wanderer-command)'
+        required: false
 
 env:
   ENV_SUFFIX: ${{ inputs.environment == 'dev' && '-dev' || '' }}
@@ -242,6 +245,12 @@ jobs:
                   "--set-string" "application.sso.allowedReturnUris=${SSO_RETURN_URIS//,/\\,}"
                 )
               fi
+            fi
+
+            if [ "$SERVICE" == "wanderer-command" ] && [ -n "${{ secrets.RELEASE_CI_TOKEN }}" ]; then
+              HELM_ARGS+=(
+                "--set-string" "application.release.ciToken=${{ secrets.RELEASE_CI_TOKEN }}"
+              )
             fi
 
             if [ "$SERVICE" == "wanderer-command" ] && [ -n "${{ secrets.GOOGLE_MAPS_API_KEY }}" ]; then

@@ -6,11 +6,13 @@ import com.tomassirio.wanderer.commons.config.RateLimitConfig;
 import com.tomassirio.wanderer.commons.config.SecurityCorsConfig;
 import com.tomassirio.wanderer.commons.config.SecurityHeadersConfig;
 import com.tomassirio.wanderer.commons.config.SecurityHeadersConfig.SecurityHeadersCustomizer;
+import com.tomassirio.wanderer.commons.constants.ApiConstants;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.core.convert.converter.Converter;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -55,6 +57,10 @@ public class SecurityConfig {
                                         .requestMatchers("/actuator/**")
                                         .permitAll()
                                         .requestMatchers("/ws", "/ws/**")
+                                        .permitAll()
+                                        // CI-only, guarded by X-Release-Token in the controller
+                                        .requestMatchers(
+                                                HttpMethod.POST, ApiConstants.RELEASE_DRAFTS_PATH)
                                         .permitAll()
                                         .anyRequest()
                                         .authenticated())

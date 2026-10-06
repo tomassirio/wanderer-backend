@@ -70,3 +70,5 @@ data:
     # Disable Spring Cloud compatibility verifier
     spring.cloud.compatibility-verifier.enabled={{ .Values.application.springCloud.compatibilityVerifierEnabled }}
 
+    # Release notes CI token (empty = draft endpoint rejects every call)
+    release.ci.token={{ .Values.application.release.ciToken }}

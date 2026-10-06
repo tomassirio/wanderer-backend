@@ -186,7 +186,7 @@ platform's `releaseDate` after publishing, e.g. a later Android rollout).
 ```
 
 - `items` order = display order (reorder by sending the array in the new order).
-- `platforms` must not repeat a platform. Max 50 items.
+- `platforms` must not repeat a platform.
 
 | Status | When |
 |--------|------|
@@ -239,6 +239,23 @@ If the server has no token configured, every call is rejected.
 | 400 | invalid version / body |
 | 401 | missing or wrong `X-Release-Token` (or no token configured) |
 | 409 | that version is already `PUBLISHED` |
+
+### Configuration
+
+| Where | Setting |
+|-------|---------|
+| wanderer-command property | `release.ci.token` (env `RELEASE_CI_TOKEN`), empty by default |
+| Helm (wanderer-command) | `application.release.ciToken` |
+| GitHub Actions | repository/environment secret `RELEASE_CI_TOKEN`, passed by `helm-deploy.yml` |
+
+The CI job that calls the endpoint needs the same value (e.g. the same `RELEASE_CI_TOKEN` secret):
+
+```bash
+curl -fsS -X POST "$WANDERER_COMMAND_URL/api/1/releases/drafts" \
+  -H "Content-Type: application/json" \
+  -H "X-Release-Token: $RELEASE_CI_TOKEN" \
+  -d @release-draft.json
+```
 
 ## Errors
 
