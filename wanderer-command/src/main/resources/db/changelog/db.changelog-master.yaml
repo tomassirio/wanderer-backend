@@ -86,4 +86,8 @@ databaseChangeLog:
   - include:
       file: db/changelog/043-update-profile-completed-description.yaml
   - include:
+      file: db/changelog/044-add-start-idempotency-key-to-trips.yaml
+  - include:
+      file: db/changelog/045-make-trip-plan-locations-optional.yaml
+  - include:
       file: db/changelog/20261006120000-create-releases-tables.yaml

@@ -1,0 +1,13 @@
+databaseChangeLog:
+  - changeSet:
+      id: 045-make-trip-plan-locations-optional
+      author: tomassirio
+      changes:
+        - dropNotNullConstraint:
+            tableName: trip_plans
+            columnName: start_location
+            columnDataType: jsonb
+        - dropNotNullConstraint:
+            tableName: trip_plans
+            columnName: end_location
+            columnDataType: jsonb

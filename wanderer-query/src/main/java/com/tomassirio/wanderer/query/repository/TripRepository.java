@@ -36,6 +36,9 @@ public interface TripRepository extends JpaRepository<Trip, UUID> {
     @EntityGraph(attributePaths = {"tripDays"})
     List<Trip> findByUserId(UUID userId);
 
+    /** The user's most recent trip, used to prefill the trip-start screen. */
+    Optional<Trip> findFirstByUserIdOrderByCreationTimestampDesc(UUID userId);
+
     /** Find trips by user ID with trip days eagerly loaded (pageable). */
     @EntityGraph(attributePaths = {"tripDays"})
     Page<Trip> findByUserId(UUID userId, Pageable pageable);

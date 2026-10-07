@@ -1,11 +1,13 @@
 package com.tomassirio.wanderer.command.service;
 
+import com.tomassirio.wanderer.command.controller.request.StartTripRequest;
 import com.tomassirio.wanderer.command.controller.request.TripCreationRequest;
 import com.tomassirio.wanderer.command.controller.request.TripFromPlanRequest;
 import com.tomassirio.wanderer.command.controller.request.TripUpdateRequest;
 import com.tomassirio.wanderer.commons.domain.TripModality;
 import com.tomassirio.wanderer.commons.domain.TripStatus;
 import com.tomassirio.wanderer.commons.domain.TripVisibility;
+import com.tomassirio.wanderer.commons.dto.StartTripResponse;
 import java.util.UUID;
 
 /**
@@ -28,6 +30,24 @@ public interface TripService {
      * @throws IllegalArgumentException if the request contains invalid data
      */
     UUID createTrip(UUID ownerId, TripCreationRequest request);
+
+    /**
+     * Creates a trip, makes it live (IN_PROGRESS) and records its first TRIP_STARTED check-in, all
+     * in one transaction. Replaces creating a Draft and starting it later.
+     *
+     * <p>Idempotent per user: a second call with the same {@code idempotencyKey} creates nothing
+     * and returns the original trip with {@code replayed = true}.
+     *
+     * @param userId the user starting the trip
+     * @param idempotencyKey client-generated key, reused on retries
+     * @param request trip settings, current location and optional plan
+     * @return ids of the trip and its first check-in
+     * @throws IllegalStateException if the user already has an ongoing trip
+     * @throws jakarta.persistence.EntityNotFoundException if the plan does not exist
+     * @throws org.springframework.security.access.AccessDeniedException if the plan is not the
+     *     user's
+     */
+    StartTripResponse startTrip(UUID userId, String idempotencyKey, StartTripRequest request);
 
     /**
      * Creates a new trip from an existing trip plan.

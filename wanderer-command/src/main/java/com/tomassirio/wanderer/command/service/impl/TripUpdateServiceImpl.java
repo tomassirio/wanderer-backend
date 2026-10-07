@@ -12,6 +12,7 @@ import com.tomassirio.wanderer.command.service.WeatherService;
 import com.tomassirio.wanderer.command.service.validator.OwnershipValidator;
 import com.tomassirio.wanderer.commons.domain.GeoLocation;
 import com.tomassirio.wanderer.commons.domain.Trip;
+import com.tomassirio.wanderer.commons.domain.TripStatus;
 import com.tomassirio.wanderer.commons.domain.TripUpdate;
 import jakarta.persistence.EntityNotFoundException;
 import java.time.Instant;
@@ -46,6 +47,15 @@ public class TripUpdateServiceImpl implements TripUpdateService {
                         .orElseThrow(() -> new EntityNotFoundException("Trip not found"));
 
         ownershipValidator.validateOwnership(trip, userId, Trip::getUserId, Trip::getId, "trip");
+
+        // Every check-in (manual, automatic, lifecycle marker) goes through here, so this is the
+        // one place that keeps Drafts and ended trips from collecting check-ins.
+        TripStatus status =
+                trip.getTripSettings() != null ? trip.getTripSettings().getTripStatus() : null;
+        if (status == null || !status.acceptsCheckIn(request.updateType())) {
+            throw new IllegalStateException(
+                    "Check-ins are not allowed for a trip in status " + status);
+        }
 
         // Pre-generate ID and timestamp
         UUID tripUpdateId = UUID.randomUUID();

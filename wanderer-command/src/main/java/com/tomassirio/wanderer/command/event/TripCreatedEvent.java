@@ -33,6 +33,7 @@ public class TripCreatedEvent implements DomainEvent, Broadcastable {
     private String plannedPolyline;
     private Boolean automaticUpdates;
     private Integer updateRefresh;
+    private String startIdempotencyKey;
 
     @Override
     public String getEventType() {

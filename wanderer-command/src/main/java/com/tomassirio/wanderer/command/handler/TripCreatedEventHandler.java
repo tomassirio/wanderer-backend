@@ -55,6 +55,7 @@ public class TripCreatedEventHandler implements EventHandler<TripCreatedEvent> {
                                                 event.getEndTimestamp())
                                         : embeddedObjectsInitializer.createTripDetails())
                         .tripPlanId(event.getTripPlanId())
+                        .startIdempotencyKey(event.getStartIdempotencyKey())
                         .plannedPolyline(event.getPlannedPolyline())
                         .creationTimestamp(event.getCreationTimestamp())
                         .enabled(true)

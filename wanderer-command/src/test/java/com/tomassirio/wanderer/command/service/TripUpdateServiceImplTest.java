@@ -1,9 +1,11 @@
 package com.tomassirio.wanderer.command.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.tomassirio.wanderer.command.controller.request.TripUpdateCreationRequest;
@@ -14,12 +16,17 @@ import com.tomassirio.wanderer.command.service.impl.TripUpdateServiceImpl;
 import com.tomassirio.wanderer.command.service.validator.OwnershipValidator;
 import com.tomassirio.wanderer.commons.domain.GeoLocation;
 import com.tomassirio.wanderer.commons.domain.Trip;
+import com.tomassirio.wanderer.commons.domain.TripSettings;
+import com.tomassirio.wanderer.commons.domain.TripStatus;
+import com.tomassirio.wanderer.commons.domain.TripVisibility;
 import com.tomassirio.wanderer.commons.domain.UpdateType;
 import com.tomassirio.wanderer.commons.domain.WeatherCondition;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -54,7 +61,13 @@ class TripUpdateServiceImplTest {
         TripUpdateCreationRequest request =
                 new TripUpdateCreationRequest(location, 85, "Paris!", null);
 
-        Trip trip = Trip.builder().id(tripId).userId(userId).name("Euro Trip").build();
+        Trip trip =
+                Trip.builder()
+                        .id(tripId)
+                        .userId(userId)
+                        .name("Euro Trip")
+                        .tripSettings(live())
+                        .build();
         when(tripRepository.findById(tripId)).thenReturn(Optional.of(trip));
         doNothing().when(ownershipValidator).validateOwnership(any(), any(), any(), any(), any());
         when(geocodingService.reverseGeocode(location))
@@ -87,7 +100,13 @@ class TripUpdateServiceImplTest {
         TripUpdateCreationRequest request =
                 new TripUpdateCreationRequest(location, 50, "Ocean", null);
 
-        Trip trip = Trip.builder().id(tripId).userId(userId).name("Ocean Trip").build();
+        Trip trip =
+                Trip.builder()
+                        .id(tripId)
+                        .userId(userId)
+                        .name("Ocean Trip")
+                        .tripSettings(live())
+                        .build();
         when(tripRepository.findById(tripId)).thenReturn(Optional.of(trip));
         doNothing().when(ownershipValidator).validateOwnership(any(), any(), any(), any(), any());
         when(geocodingService.reverseGeocode(location)).thenReturn(null);
@@ -116,7 +135,13 @@ class TripUpdateServiceImplTest {
         TripUpdateCreationRequest request =
                 new TripUpdateCreationRequest(location, 90, "Santiago!", null);
 
-        Trip trip = Trip.builder().id(tripId).userId(userId).name("Camino").build();
+        Trip trip =
+                Trip.builder()
+                        .id(tripId)
+                        .userId(userId)
+                        .name("Camino")
+                        .tripSettings(live())
+                        .build();
         when(tripRepository.findById(tripId)).thenReturn(Optional.of(trip));
         doNothing().when(ownershipValidator).validateOwnership(any(), any(), any(), any(), any());
         when(geocodingService.reverseGeocode(location))
@@ -150,7 +175,13 @@ class TripUpdateServiceImplTest {
         TripUpdateCreationRequest request =
                 new TripUpdateCreationRequest(location, 75, "Rainy?", null);
 
-        Trip trip = Trip.builder().id(tripId).userId(userId).name("Euro Trip").build();
+        Trip trip =
+                Trip.builder()
+                        .id(tripId)
+                        .userId(userId)
+                        .name("Euro Trip")
+                        .tripSettings(live())
+                        .build();
         when(tripRepository.findById(tripId)).thenReturn(Optional.of(trip));
         doNothing().when(ownershipValidator).validateOwnership(any(), any(), any(), any(), any());
         when(geocodingService.reverseGeocode(location))
@@ -180,7 +211,13 @@ class TripUpdateServiceImplTest {
         TripUpdateCreationRequest request =
                 new TripUpdateCreationRequest(location, 100, "Good morning!", UpdateType.DAY_START);
 
-        Trip trip = Trip.builder().id(tripId).userId(userId).name("Camino").build();
+        Trip trip =
+                Trip.builder()
+                        .id(tripId)
+                        .userId(userId)
+                        .name("Camino")
+                        .tripSettings(live())
+                        .build();
         when(tripRepository.findById(tripId)).thenReturn(Optional.of(trip));
         doNothing().when(ownershipValidator).validateOwnership(any(), any(), any(), any(), any());
         when(geocodingService.reverseGeocode(location)).thenReturn(null);
@@ -208,7 +245,13 @@ class TripUpdateServiceImplTest {
         TripUpdateCreationRequest request =
                 new TripUpdateCreationRequest(location, 20, "Good night!", UpdateType.DAY_END);
 
-        Trip trip = Trip.builder().id(tripId).userId(userId).name("Camino").build();
+        Trip trip =
+                Trip.builder()
+                        .id(tripId)
+                        .userId(userId)
+                        .name("Camino")
+                        .tripSettings(live())
+                        .build();
         when(tripRepository.findById(tripId)).thenReturn(Optional.of(trip));
         doNothing().when(ownershipValidator).validateOwnership(any(), any(), any(), any(), any());
         when(geocodingService.reverseGeocode(location)).thenReturn(null);
@@ -236,7 +279,13 @@ class TripUpdateServiceImplTest {
         TripUpdateCreationRequest request =
                 new TripUpdateCreationRequest(location, 100, "Let's go!", UpdateType.TRIP_STARTED);
 
-        Trip trip = Trip.builder().id(tripId).userId(userId).name("Camino").build();
+        Trip trip =
+                Trip.builder()
+                        .id(tripId)
+                        .userId(userId)
+                        .name("Camino")
+                        .tripSettings(live())
+                        .build();
         when(tripRepository.findById(tripId)).thenReturn(Optional.of(trip));
         doNothing().when(ownershipValidator).validateOwnership(any(), any(), any(), any(), any());
         when(geocodingService.reverseGeocode(location)).thenReturn(null);
@@ -264,7 +313,13 @@ class TripUpdateServiceImplTest {
         TripUpdateCreationRequest request =
                 new TripUpdateCreationRequest(location, 15, "We made it!", UpdateType.TRIP_ENDED);
 
-        Trip trip = Trip.builder().id(tripId).userId(userId).name("Camino").build();
+        Trip trip =
+                Trip.builder()
+                        .id(tripId)
+                        .userId(userId)
+                        .name("Camino")
+                        .tripSettings(live())
+                        .build();
         when(tripRepository.findById(tripId)).thenReturn(Optional.of(trip));
         doNothing().when(ownershipValidator).validateOwnership(any(), any(), any(), any(), any());
         when(geocodingService.reverseGeocode(location)).thenReturn(null);
@@ -292,7 +347,13 @@ class TripUpdateServiceImplTest {
         TripUpdateCreationRequest request =
                 new TripUpdateCreationRequest(location, 75, "Walking", null);
 
-        Trip trip = Trip.builder().id(tripId).userId(userId).name("Euro Trip").build();
+        Trip trip =
+                Trip.builder()
+                        .id(tripId)
+                        .userId(userId)
+                        .name("Euro Trip")
+                        .tripSettings(live())
+                        .build();
         when(tripRepository.findById(tripId)).thenReturn(Optional.of(trip));
         doNothing().when(ownershipValidator).validateOwnership(any(), any(), any(), any(), any());
         when(geocodingService.reverseGeocode(location)).thenReturn(null);
@@ -309,5 +370,48 @@ class TripUpdateServiceImplTest {
 
         TripUpdatedEvent event = captor.getValue();
         assertThat(event.getUpdateType()).isNull();
+    }
+
+    private static TripSettings live() {
+        return TripSettings.builder()
+                .tripStatus(TripStatus.IN_PROGRESS)
+                .visibility(TripVisibility.PUBLIC)
+                .build();
+    }
+
+    @ParameterizedTest
+    @CsvSource({
+        "CREATED, REGULAR",
+        "CREATED, TRIP_STARTED",
+        "RESTING, REGULAR",
+        "FINISHED, REGULAR",
+        "FINISHED, DAY_END"
+    })
+    void createTripUpdate_whenTripDoesNotAcceptCheckIn_shouldRejectWithoutPublishing(
+            TripStatus status, UpdateType type) {
+        UUID userId = UUID.randomUUID();
+        UUID tripId = UUID.randomUUID();
+        Trip trip =
+                Trip.builder()
+                        .id(tripId)
+                        .userId(userId)
+                        .tripSettings(
+                                TripSettings.builder()
+                                        .tripStatus(status)
+                                        .visibility(TripVisibility.PUBLIC)
+                                        .build())
+                        .build();
+        when(tripRepository.findById(tripId)).thenReturn(Optional.of(trip));
+        GeoLocation location = GeoLocation.builder().lat(1.0).lon(2.0).build();
+
+        assertThatThrownBy(
+                        () ->
+                                tripUpdateService.createTripUpdate(
+                                        userId,
+                                        tripId,
+                                        new TripUpdateCreationRequest(location, 50, null, type)))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining(status.name());
+        verifyNoInteractions(eventPublisher, geocodingService, weatherService);
     }
 }

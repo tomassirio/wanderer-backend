@@ -65,6 +65,24 @@ public enum TripStatus {
     }
 
     /**
+     * Returns whether a check-in (trip update) of the given type may be recorded on a trip in this
+     * status. Live and paused trips accept any check-in. RESTING and FINISHED only accept the
+     * lifecycle marker clients send right after the transition (DAY_END, TRIP_ENDED). Drafts
+     * (CREATED) accept none.
+     *
+     * @param type the update type, {@code null} meaning {@link UpdateType#REGULAR}
+     * @return {@code true} if the check-in is allowed
+     */
+    public boolean acceptsCheckIn(UpdateType type) {
+        return switch (this) {
+            case IN_PROGRESS, PAUSED -> true;
+            case RESTING -> type == UpdateType.DAY_END;
+            case FINISHED -> type == UpdateType.TRIP_ENDED;
+            case CREATED -> false;
+        };
+    }
+
+    /**
      * Returns whether transitioning from this status to the given target status is allowed.
      *
      * @param target the desired new status

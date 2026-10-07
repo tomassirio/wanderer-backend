@@ -74,6 +74,7 @@ public final class ApiConstants {
     public static final String ADMIN_TRIP_PROMOTE_ENDPOINT = "/{tripId}/promote";
     public static final String ADMIN_TRIP_DONATION_LINK_ENDPOINT = "/{tripId}/promote";
     public static final String ADMIN_TRIP_BY_ID_ENDPOINT = "/{tripId}";
+    public static final String ADMIN_TRIP_DRAFTS_MIGRATE_ENDPOINT = "/drafts/migrate";
     public static final String ADMIN_TRIP_PLANS_PATH = ADMIN_PATH + "/trip-plans";
     public static final String ADMIN_TRIP_PLAN_RECOMPUTE_POLYLINE_ENDPOINT =
             "/{tripPlanId}/recompute-polyline";
@@ -145,6 +146,8 @@ public final class ApiConstants {
     public static final String TRIPS_AVAILABLE_ENDPOINT = ME_SUFFIX + "/available";
     public static final String TRIP_TOGGLE_DAY_ENDPOINT = "/{id}/toggle-day";
     public static final String TRIP_FROM_PLAN_ENDPOINT = "/from-plan/{tripPlanId}";
+    public static final String TRIP_START_ENDPOINT = "/start";
+    public static final String TRIP_START_DEFAULTS_ENDPOINT = ME_SUFFIX + "/start-defaults";
 
     // ============================================================
     // Promoted Trips endpoints
@@ -191,6 +194,12 @@ public final class ApiConstants {
 
     // Trip achievement endpoints
     public static final String TRIP_ACHIEVEMENTS_BY_ID_ENDPOINT = "/{tripId}/achievements";
+
+    // ============================================================
+    // Analytics endpoints
+    // ============================================================
+
+    public static final String ANALYTICS_EVENTS_PATH = API_V1 + "/analytics/events";
 
     // ============================================================
     // Search endpoints
