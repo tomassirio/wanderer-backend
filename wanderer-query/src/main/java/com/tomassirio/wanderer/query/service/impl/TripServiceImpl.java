@@ -8,6 +8,7 @@ import com.tomassirio.wanderer.commons.domain.TripVisibility;
 import com.tomassirio.wanderer.commons.domain.UserFollow;
 import com.tomassirio.wanderer.commons.dto.TripDTO;
 import com.tomassirio.wanderer.commons.dto.TripMaintenanceStatsDTO;
+import com.tomassirio.wanderer.commons.dto.TripStartDefaultsDTO;
 import com.tomassirio.wanderer.commons.dto.TripSummaryDTO;
 import com.tomassirio.wanderer.commons.mapper.TripMapper;
 import com.tomassirio.wanderer.query.repository.FriendshipRepository;
@@ -19,6 +20,7 @@ import com.tomassirio.wanderer.query.service.helper.TripEnrichmentHelper;
 import jakarta.persistence.EntityNotFoundException;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -96,6 +98,27 @@ public class TripServiceImpl implements TripService {
         List<TripDTO> trips =
                 tripRepository.findByUserId(userId).stream().map(tripMapper::toDTO).toList();
         return tripEnrichmentHelper.enrichListWithUsernamesAndPromotedStatus(trips);
+    }
+
+    @Override
+    public TripStartDefaultsDTO getStartDefaults(UUID userId) {
+        TripStartDefaultsDTO d = TripStartDefaultsDTO.DEFAULTS;
+        return tripRepository
+                .findFirstByUserIdOrderByCreationTimestampDesc(userId)
+                .map(Trip::getTripSettings)
+                .map(
+                        s ->
+                                new TripStartDefaultsDTO(
+                                        Optional.ofNullable(s.getVisibility())
+                                                .orElse(d.visibility()),
+                                        Optional.ofNullable(s.getAutomaticUpdates())
+                                                .orElse(d.automaticUpdates()),
+                                        Optional.ofNullable(s.getUpdateRefresh())
+                                                .orElse(d.updateRefresh()),
+                                        Optional.ofNullable(s.getTripModality())
+                                                .orElse(d.tripModality()),
+                                        true))
+                .orElse(d);
     }
 
     @Override

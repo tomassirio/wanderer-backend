@@ -89,4 +89,19 @@ class TripStatusTest {
                         TripStatus.IN_PROGRESS, TripStatus.PAUSED, TripStatus.RESTING);
         assertThat(activeStatuses).doesNotContain(TripStatus.CREATED, TripStatus.FINISHED);
     }
+
+    @Test
+    void acceptsCheckIn_onlyLiveAndPausedTakeRegularCheckIns() {
+        for (UpdateType type : UpdateType.values()) {
+            assertThat(TripStatus.IN_PROGRESS.acceptsCheckIn(type)).isTrue();
+            assertThat(TripStatus.PAUSED.acceptsCheckIn(type)).isTrue();
+            assertThat(TripStatus.CREATED.acceptsCheckIn(type)).isFalse();
+            assertThat(TripStatus.RESTING.acceptsCheckIn(type))
+                    .isEqualTo(type == UpdateType.DAY_END);
+            assertThat(TripStatus.FINISHED.acceptsCheckIn(type))
+                    .isEqualTo(type == UpdateType.TRIP_ENDED);
+        }
+        assertThat(TripStatus.IN_PROGRESS.acceptsCheckIn(null)).isTrue();
+        assertThat(TripStatus.CREATED.acceptsCheckIn(null)).isFalse();
+    }
 }

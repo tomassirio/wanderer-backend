@@ -85,3 +85,7 @@ databaseChangeLog:
       file: db/changelog/042-seed-activation-achievements-data.yaml
   - include:
       file: db/changelog/043-update-profile-completed-description.yaml
+  - include:
+      file: db/changelog/044-add-start-idempotency-key-to-trips.yaml
+  - include:
+      file: db/changelog/045-make-trip-plan-locations-optional.yaml

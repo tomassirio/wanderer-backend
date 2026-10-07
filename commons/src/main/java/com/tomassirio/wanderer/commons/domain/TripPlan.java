@@ -57,13 +57,11 @@ public class TripPlan implements Polylineable, Thumbnailable {
     @Column(name = "end_date", nullable = false)
     private LocalDate endDate;
 
-    @NotNull
-    @Column(name = "start_location", columnDefinition = "jsonb", nullable = false)
+    @Column(name = "start_location", columnDefinition = "jsonb")
     @Type(JsonBinaryType.class)
     private GeoLocation startLocation;
 
-    @NotNull
-    @Column(name = "end_location", columnDefinition = "jsonb", nullable = false)
+    @Column(name = "end_location", columnDefinition = "jsonb")
     @Type(JsonBinaryType.class)
     private GeoLocation endLocation;
 

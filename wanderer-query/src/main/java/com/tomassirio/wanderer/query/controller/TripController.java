@@ -2,6 +2,7 @@ package com.tomassirio.wanderer.query.controller;
 
 import com.tomassirio.wanderer.commons.constants.ApiConstants;
 import com.tomassirio.wanderer.commons.dto.TripDTO;
+import com.tomassirio.wanderer.commons.dto.TripStartDefaultsDTO;
 import com.tomassirio.wanderer.commons.dto.TripSummaryDTO;
 import com.tomassirio.wanderer.commons.security.CurrentUserId;
 import com.tomassirio.wanderer.query.service.TripService;
@@ -103,6 +104,19 @@ public class TripController {
                 trips.getNumber() + 1,
                 trips.getTotalPages());
         return ResponseEntity.ok(trips);
+    }
+
+    @GetMapping(ApiConstants.TRIP_START_DEFAULTS_ENDPOINT)
+    @PreAuthorize("hasAnyRole('ADMIN','USER')")
+    @Operation(
+            summary = "Get prefill values for starting a trip",
+            description =
+                    "Visibility, auto check-in setting and interval (seconds), and trip type of"
+                            + " the user's most recent trip. New users get PUBLIC, auto check-in"
+                            + " on every 900 s, SIMPLE (fromLastTrip=false).")
+    public ResponseEntity<TripStartDefaultsDTO> getStartDefaults(
+            @Parameter(hidden = true) @CurrentUserId UUID userId) {
+        return ResponseEntity.ok(tripService.getStartDefaults(userId));
     }
 
     @GetMapping(ApiConstants.TRIPS_AVAILABLE_ENDPOINT)

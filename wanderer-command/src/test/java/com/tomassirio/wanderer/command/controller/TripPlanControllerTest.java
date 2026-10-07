@@ -243,7 +243,7 @@ class TripPlanControllerTest {
     }
 
     @Test
-    void createTripPlan_whenStartLocationIsNull_shouldReturnBadRequest() throws Exception {
+    void createTripPlan_whenStartLocationIsNull_shouldBeAccepted() throws Exception {
         // Given
         LocalDate startDate = LocalDate.now().plusDays(1);
         LocalDate endDate = LocalDate.now().plusDays(7);
@@ -265,11 +265,11 @@ class TripPlanControllerTest {
                         post(TRIP_PLANS_BASE_URL)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isAccepted());
     }
 
     @Test
-    void createTripPlan_whenEndLocationIsNull_shouldReturnBadRequest() throws Exception {
+    void createTripPlan_whenEndLocationIsNull_shouldBeAccepted() throws Exception {
         // Given
         LocalDate startDate = LocalDate.now().plusDays(1);
         LocalDate endDate = LocalDate.now().plusDays(7);
@@ -291,7 +291,7 @@ class TripPlanControllerTest {
                         post(TRIP_PLANS_BASE_URL)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isAccepted());
     }
 
     @Test

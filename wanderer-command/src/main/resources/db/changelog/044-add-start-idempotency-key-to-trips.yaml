@@ -1,0 +1,16 @@
+databaseChangeLog:
+  - changeSet:
+      id: 044-add-start-idempotency-key-to-trips
+      author: tomassirio
+      changes:
+        - addColumn:
+            tableName: trips
+            columns:
+              - column:
+                  name: start_idempotency_key
+                  type: varchar(100)
+                  remarks: Client Idempotency-Key of POST /trips/start; unique per user
+        - addUniqueConstraint:
+            tableName: trips
+            columnNames: user_id, start_idempotency_key
+            constraintName: uq_trips_user_start_idempotency_key

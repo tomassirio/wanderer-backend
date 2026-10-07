@@ -23,14 +23,8 @@ public record TripPlanUpdateRequest(
         @Schema(description = "Trip end date", example = "2025-10-25")
                 @NotNull(message = "End date is required")
                 LocalDate endDate,
-        @Schema(description = "Starting location")
-                @Valid
-                @NotNull(message = "Start location is required")
-                GeoLocation startLocation,
-        @Schema(description = "Ending location")
-                @Valid
-                @NotNull(message = "End location is required")
-                GeoLocation endLocation,
+        @Schema(description = "Starting location (optional)") @Valid GeoLocation startLocation,
+        @Schema(description = "Ending location (optional)") @Valid GeoLocation endLocation,
         @Schema(description = "Intermediate waypoints (optional)", example = "[]")
                 List<@Valid GeoLocation> waypoints,
         @Schema(

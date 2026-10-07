@@ -43,6 +43,9 @@ public class Trip implements Polylineable, Thumbnailable {
     @Column(name = "trip_plan_id")
     private UUID tripPlanId; // Optional reference to a trip plan
 
+    @Column(name = "start_idempotency_key", length = 100)
+    private String startIdempotencyKey; // Idempotency-Key of POST /trips/start, unique per user
+
     @OneToMany(mappedBy = "trip", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @SQLRestriction("parent_comment_id IS NULL")
     private List<Comment> comments;

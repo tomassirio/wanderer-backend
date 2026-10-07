@@ -1,6 +1,7 @@
 package com.tomassirio.wanderer.command.repository;
 
 import com.tomassirio.wanderer.commons.domain.TripUpdate;
+import com.tomassirio.wanderer.commons.domain.UpdateType;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -14,4 +15,7 @@ public interface TripUpdateRepository extends JpaRepository<TripUpdate, UUID> {
     List<TripUpdate> findByTripIdOrderByTimestampAsc(UUID tripId);
 
     Optional<TripUpdate> findFirstByTripIdAndLocationIsNotNullOrderByTimestampDesc(UUID tripId);
+
+    Optional<TripUpdate> findFirstByTripIdAndUpdateTypeOrderByTimestampAsc(
+            UUID tripId, UpdateType updateType);
 }

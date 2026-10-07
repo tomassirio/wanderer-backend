@@ -2,6 +2,7 @@ package com.tomassirio.wanderer.query.service;
 
 import com.tomassirio.wanderer.commons.dto.TripDTO;
 import com.tomassirio.wanderer.commons.dto.TripMaintenanceStatsDTO;
+import com.tomassirio.wanderer.commons.dto.TripStartDefaultsDTO;
 import com.tomassirio.wanderer.commons.dto.TripSummaryDTO;
 import java.util.List;
 import java.util.UUID;
@@ -127,4 +128,14 @@ public interface TripService {
      * @return a {@link TripMaintenanceStatsDTO} containing the computed statistics
      */
     TripMaintenanceStatsDTO getTripMaintenanceStats();
+
+    /**
+     * Returns the values to prefill the trip-start screen with: visibility, auto check-in setting
+     * and interval, and trip type of the user's most recent trip, falling back to {@link
+     * TripStartDefaultsDTO#DEFAULTS} for new users or unset fields.
+     *
+     * @param userId the authenticated user
+     * @return the prefill values
+     */
+    TripStartDefaultsDTO getStartDefaults(UUID userId);
 }

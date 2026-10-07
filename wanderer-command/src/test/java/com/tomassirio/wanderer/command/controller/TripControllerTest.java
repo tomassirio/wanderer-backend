@@ -5,22 +5,27 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.tomassirio.wanderer.command.controller.request.StartTripRequest;
 import com.tomassirio.wanderer.command.controller.request.TripCreationRequest;
 import com.tomassirio.wanderer.command.controller.request.TripFromPlanRequest;
 import com.tomassirio.wanderer.command.controller.request.TripUpdateRequest;
 import com.tomassirio.wanderer.command.service.TripService;
 import com.tomassirio.wanderer.command.utils.TestEntityFactory;
+import com.tomassirio.wanderer.commons.domain.TripStatus;
 import com.tomassirio.wanderer.commons.domain.TripVisibility;
+import com.tomassirio.wanderer.commons.dto.StartTripResponse;
 import com.tomassirio.wanderer.commons.exception.GlobalExceptionHandler;
 import com.tomassirio.wanderer.commons.utils.MockMvcTestUtils;
 import jakarta.persistence.EntityNotFoundException;
@@ -31,6 +36,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.MediaType;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.test.web.servlet.MockMvc;
@@ -485,5 +491,111 @@ class TripControllerTest {
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(requestBody))
                 .andExpect(status().isForbidden());
+    }
+
+    private static final String START_URL = TRIPS_BASE_URL + "/start";
+    private static final String START_BODY =
+            "{\"name\":\"Camino\",\"visibility\":\"PUBLIC\",\"automaticUpdates\":true,"
+                    + "\"location\":{\"lat\":52.09,\"lon\":5.12}}";
+
+    @Test
+    void startTrip_whenNew_shouldReturn201WithIds() throws Exception {
+        UUID tripId = UUID.randomUUID();
+        UUID updateId = UUID.randomUUID();
+        when(tripService.startTrip(any(UUID.class), eq("k1"), any(StartTripRequest.class)))
+                .thenReturn(new StartTripResponse(tripId, updateId, TripStatus.IN_PROGRESS, false));
+
+        mockMvc.perform(
+                        post(START_URL)
+                                .header("Idempotency-Key", "k1")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(START_BODY))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.tripId").value(tripId.toString()))
+                .andExpect(jsonPath("$.tripUpdateId").value(updateId.toString()))
+                .andExpect(jsonPath("$.status").value("IN_PROGRESS"))
+                .andExpect(jsonPath("$.replayed").value(false));
+    }
+
+    @Test
+    void startTrip_whenReplayed_shouldReturn200() throws Exception {
+        when(tripService.startTrip(any(UUID.class), eq("k1"), any(StartTripRequest.class)))
+                .thenReturn(
+                        new StartTripResponse(
+                                UUID.randomUUID(), UUID.randomUUID(), TripStatus.PAUSED, true));
+
+        mockMvc.perform(
+                        post(START_URL)
+                                .header("Idempotency-Key", "k1")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(START_BODY))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.replayed").value(true));
+    }
+
+    @Test
+    void startTrip_whenConcurrentDuplicate_shouldReplayInsteadOf500() throws Exception {
+        StartTripResponse original =
+                new StartTripResponse(
+                        UUID.randomUUID(), UUID.randomUUID(), TripStatus.IN_PROGRESS, true);
+        when(tripService.startTrip(any(UUID.class), eq("k1"), any(StartTripRequest.class)))
+                .thenThrow(new DataIntegrityViolationException("uq_trips_user_start"))
+                .thenReturn(original);
+
+        mockMvc.perform(
+                        post(START_URL)
+                                .header("Idempotency-Key", "k1")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(START_BODY))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.tripId").value(original.tripId().toString()));
+    }
+
+    @Test
+    void startTrip_withoutIdempotencyKey_shouldReturn400() throws Exception {
+        mockMvc.perform(post(START_URL).contentType(MediaType.APPLICATION_JSON).content(START_BODY))
+                .andExpect(status().isBadRequest());
+        verifyNoInteractions(tripService);
+    }
+
+    @Test
+    void startTrip_withoutNameOrPlan_shouldReturn400() throws Exception {
+        mockMvc.perform(
+                        post(START_URL)
+                                .header("Idempotency-Key", "k1")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(START_BODY.replace("\"name\":\"Camino\",", "")))
+                .andExpect(status().isBadRequest());
+        verifyNoInteractions(tripService);
+    }
+
+    @Test
+    void startTrip_whenUserHasOngoingTrip_shouldReturn409() throws Exception {
+        when(tripService.startTrip(any(UUID.class), eq("k1"), any(StartTripRequest.class)))
+                .thenThrow(new IllegalStateException("User already has a trip in progress."));
+
+        mockMvc.perform(
+                        post(START_URL)
+                                .header("Idempotency-Key", "k1")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(START_BODY))
+                .andExpect(status().isConflict());
+    }
+
+    @Test
+    void createTrip_isDeprecated_shouldSendDeprecationHeader() throws Exception {
+        doReturn(UUID.randomUUID())
+                .when(tripService)
+                .createTrip(any(UUID.class), any(TripCreationRequest.class));
+
+        mockMvc.perform(
+                        post(TRIPS_BASE_URL)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(
+                                        objectMapper.writeValueAsString(
+                                                TestEntityFactory.createTripCreationRequest(
+                                                        "Old client", TripVisibility.PUBLIC))))
+                .andExpect(status().isAccepted())
+                .andExpect(header().string("Deprecation", "true"));
     }
 }
