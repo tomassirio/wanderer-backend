@@ -208,6 +208,20 @@ public final class ApiConstants {
     public static final String SEARCH_PATH = API_V1 + "/search";
 
     // ============================================================
+    // Release notes ("What's new") endpoints
+    // ============================================================
+
+    public static final String RELEASES_PATH = API_V1 + "/releases";
+    public static final String VERSION_PATH_VARIABLE = "/{version:\\d+\\.\\d+\\.\\d+}";
+    public static final String RELEASE_BY_VERSION_ENDPOINT = VERSION_PATH_VARIABLE;
+    public static final String RELEASES_UNREAD_ENDPOINT = ME_SUFFIX + "/unread";
+    public static final String RELEASES_SEEN_ENDPOINT = ME_SUFFIX + "/seen";
+    public static final String RELEASE_DRAFTS_ENDPOINT = "/drafts";
+    public static final String RELEASE_DRAFTS_PATH = RELEASES_PATH + RELEASE_DRAFTS_ENDPOINT;
+    public static final String ADMIN_RELEASES_PATH = ADMIN_PATH + "/releases";
+    public static final String ADMIN_RELEASE_PUBLISH_ENDPOINT = VERSION_PATH_VARIABLE + "/publish";
+
+    // ============================================================
     // Public endpoint patterns (for SecurityConfig)
     // ============================================================
 
@@ -255,6 +269,10 @@ public final class ApiConstants {
         // Search endpoint (public so anyone can search)
         public static final String SEARCH = SEARCH_PATH;
 
+        // Release notes endpoints (public: notes and history are not user-specific)
+        public static final String RELEASES = RELEASES_PATH;
+        public static final String RELEASE_BY_VERSION = RELEASES_PATH + VERSION_PATH_VARIABLE;
+
         // API documentation endpoints
         public static final String SWAGGER_UI = "/swagger-ui/**";
         public static final String API_DOCS = "/v3/api-docs/**";
@@ -281,6 +299,8 @@ public final class ApiConstants {
                 USER_ACHIEVEMENTS,
                 TRIP_ACHIEVEMENTS,
                 SEARCH,
+                RELEASES,
+                RELEASE_BY_VERSION,
                 SWAGGER_UI,
                 API_DOCS,
                 ACTUATOR
