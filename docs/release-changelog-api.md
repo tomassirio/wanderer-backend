@@ -3,6 +3,11 @@
 > Contract for the release notes / What's new popup. Base path `/api/1`.
 > Reads are served by **wanderer-query** (8082), writes by **wanderer-command** (8081),
 > same split as the rest of the API.
+>
+> **Versions are app versions.** `version` is always the wanderer-frontend version (the Flutter app,
+> Android and web), because that is what travellers install and see. Only the frontend release
+> creates drafts. Backend changes travellers notice are written into the app release that ships them
+> (or added by an admin in the editor); the backend's own history lives in git and GitHub Releases.
 
 ## Enums
 
