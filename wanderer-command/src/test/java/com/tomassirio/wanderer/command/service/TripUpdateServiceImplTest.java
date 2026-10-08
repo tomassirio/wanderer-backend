@@ -55,6 +55,8 @@ class TripUpdateServiceImplTest {
 
     @Mock private DistanceCalculationStrategy distanceCalculationStrategy;
 
+    @Mock private TrackPointService trackPointService;
+
     @InjectMocks private TripUpdateServiceImpl tripUpdateService;
 
     private final UUID userId = UUID.randomUUID();
@@ -186,6 +188,21 @@ class TripUpdateServiceImplTest {
         TripUpdatedEvent event = publishedEvent();
         assertThat(event.getLocation()).isNull();
         assertThat(event.getUpdateType()).isEqualTo(type);
+    }
+
+    @Test
+    void createTripUpdate_whenTripHasTrack_usesTrackDistanceAtRecordedAt() {
+        Instant recordedAt = Instant.now().minus(Duration.ofMinutes(10));
+        when(trackPointService.distanceAt(tripId, recordedAt)).thenReturn(4.2);
+
+        tripUpdateService.createTripUpdate(
+                userId,
+                tripId,
+                new TripUpdateCreationRequest(
+                        null, null, null, UpdateType.DAY_END, null, recordedAt));
+
+        assertThat(publishedEvent().getDistanceSoFarKm()).isEqualTo(4.2);
+        verifyNoInteractions(distanceCalculationStrategy);
     }
 
     @ParameterizedTest

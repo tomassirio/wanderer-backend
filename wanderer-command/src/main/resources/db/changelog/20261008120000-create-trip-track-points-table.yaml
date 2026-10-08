@@ -1,0 +1,56 @@
+databaseChangeLog:
+  - changeSet:
+      id: 20261008120000-create-trip-track-points-table
+      author: tomassirio
+      changes:
+        - createTable:
+            tableName: trip_track_points
+            columns:
+              - column:
+                  name: id
+                  type: uuid
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: trip_id
+                  type: uuid
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_trip_track_points_trip_id
+                    references: trips(id)
+                    deleteCascade: true
+              - column:
+                  name: lat
+                  type: double precision
+                  constraints:
+                    nullable: false
+              - column:
+                  name: lon
+                  type: double precision
+                  constraints:
+                    nullable: false
+              - column:
+                  name: accuracy_m
+                  type: double precision
+              - column:
+                  name: altitude_m
+                  type: double precision
+              - column:
+                  name: recorded_at
+                  type: timestamp with time zone
+                  constraints:
+                    nullable: false
+              - column:
+                  name: received_at
+                  type: timestamp with time zone
+                  constraints:
+                    nullable: false
+        - createIndex:
+            indexName: idx_trip_track_points_trip_recorded_at
+            tableName: trip_track_points
+            columns:
+              - column:
+                  name: trip_id
+              - column:
+                  name: recorded_at

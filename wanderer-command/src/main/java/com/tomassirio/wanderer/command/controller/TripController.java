@@ -1,6 +1,7 @@
 package com.tomassirio.wanderer.command.controller;
 
 import com.tomassirio.wanderer.command.controller.request.StartTripRequest;
+import com.tomassirio.wanderer.command.controller.request.TrackPointsRequest;
 import com.tomassirio.wanderer.command.controller.request.TripCreationRequest;
 import com.tomassirio.wanderer.command.controller.request.TripFromPlanRequest;
 import com.tomassirio.wanderer.command.controller.request.TripSettingsRequest;
@@ -8,11 +9,13 @@ import com.tomassirio.wanderer.command.controller.request.TripStatusRequest;
 import com.tomassirio.wanderer.command.controller.request.TripUpdateCreationRequest;
 import com.tomassirio.wanderer.command.controller.request.TripUpdateRequest;
 import com.tomassirio.wanderer.command.controller.request.TripVisibilityRequest;
+import com.tomassirio.wanderer.command.service.TrackPointService;
 import com.tomassirio.wanderer.command.service.TripDayService;
 import com.tomassirio.wanderer.command.service.TripService;
 import com.tomassirio.wanderer.command.service.TripUpdateService;
 import com.tomassirio.wanderer.commons.constants.ApiConstants;
 import com.tomassirio.wanderer.commons.dto.StartTripResponse;
+import com.tomassirio.wanderer.commons.dto.TrackPointsAcceptedResponse;
 import com.tomassirio.wanderer.commons.security.CurrentUserId;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -53,6 +56,7 @@ public class TripController {
     private final TripService tripService;
     private final TripDayService tripDayService;
     private final TripUpdateService tripUpdateService;
+    private final TrackPointService trackPointService;
 
     static final String IDEMPOTENCY_KEY_HEADER = "Idempotency-Key";
     private static final String DEPRECATION_HEADER = "Deprecation";
@@ -293,6 +297,41 @@ public class TripController {
 
         log.info("Accepted trip update creation request with ID: {}", updateId);
         return ResponseEntity.status(HttpStatus.ACCEPTED).body(updateId);
+    }
+
+    @PostMapping(
+            value = ApiConstants.TRIP_TRACK_POINTS_ENDPOINT,
+            consumes = MediaType.APPLICATION_JSON_VALUE)
+    @PreAuthorize("hasAnyRole('ADMIN','USER')")
+    @Operation(
+            summary = "Upload recorded track points",
+            description =
+                    "Uploads a batch of 1 to 500 GPS fixes recorded by the phone. Idempotent:"
+                            + " points whose id is already stored are ignored. Accepted while the"
+                            + " trip is IN_PROGRESS, RESTING or PAUSED; for a FINISHED trip only"
+                            + " points recorded up to the finish time are kept. Other statuses"
+                            + " return 409. The route and distance are recomputed asynchronously"
+                            + " and announced via TRACK_UPDATED. Returns 202 Accepted with the"
+                            + " number of newly stored points.")
+    @ApiResponse(responseCode = "202", description = "Points accepted")
+    @ApiResponse(responseCode = "400", description = "Invalid body")
+    @ApiResponse(responseCode = "403", description = "Trip belongs to another user")
+    @ApiResponse(responseCode = "404", description = "Trip not found")
+    @ApiResponse(responseCode = "409", description = "Trip does not accept track points")
+    public ResponseEntity<TrackPointsAcceptedResponse> uploadTrackPoints(
+            @Parameter(hidden = true) @CurrentUserId UUID userId,
+            @PathVariable UUID tripId,
+            @Valid @RequestBody TrackPointsRequest request) {
+        log.info(
+                "Received {} track points for trip {} by user {}",
+                request.points().size(),
+                tripId,
+                userId);
+
+        int accepted = trackPointService.recordTrackPoints(userId, tripId, request);
+
+        return ResponseEntity.status(HttpStatus.ACCEPTED)
+                .body(new TrackPointsAcceptedResponse(accepted));
     }
 
     @PatchMapping(ApiConstants.TRIP_TOGGLE_DAY_ENDPOINT)

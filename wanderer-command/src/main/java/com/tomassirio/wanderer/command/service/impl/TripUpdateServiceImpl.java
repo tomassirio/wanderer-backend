@@ -6,6 +6,7 @@ import com.tomassirio.wanderer.command.event.TripUpdatedEvent;
 import com.tomassirio.wanderer.command.repository.TripRepository;
 import com.tomassirio.wanderer.command.repository.TripUpdateRepository;
 import com.tomassirio.wanderer.command.service.DistanceCalculationStrategy;
+import com.tomassirio.wanderer.command.service.TrackPointService;
 import com.tomassirio.wanderer.command.service.TripUpdateService;
 import com.tomassirio.wanderer.command.service.validator.OwnershipValidator;
 import com.tomassirio.wanderer.commons.domain.GeoLocation;
@@ -38,6 +39,7 @@ public class TripUpdateServiceImpl implements TripUpdateService {
     private final OwnershipValidator ownershipValidator;
     private final ApplicationEventPublisher eventPublisher;
     private final DistanceCalculationStrategy distanceCalculationStrategy;
+    private final TrackPointService trackPointService;
 
     @Override
     public UUID createTripUpdate(UUID userId, UUID tripId, TripUpdateCreationRequest request) {
@@ -77,7 +79,9 @@ public class TripUpdateServiceImpl implements TripUpdateService {
         UUID tripUpdateId = request.id() != null ? request.id() : UUID.randomUUID();
         Instant timestamp = request.recordedAt() != null ? request.recordedAt() : now;
 
-        Double distanceSoFar = calculateDistanceSoFar(trip, location);
+        Double trackDistance = trackPointService.distanceAt(tripId, timestamp);
+        Double distanceSoFar =
+                trackDistance != null ? trackDistance : calculateDistanceSoFar(trip, location);
 
         log.debug(
                 "Trip update for trip {}: calculated distanceSoFar = {} km", tripId, distanceSoFar);
@@ -103,6 +107,7 @@ public class TripUpdateServiceImpl implements TripUpdateService {
         return location != null && location.getLat() != null && location.getLon() != null;
     }
 
+    /** Check-in to check-in distance, for trips recorded by clients that send no track. */
     private Double calculateDistanceSoFar(Trip trip, GeoLocation newLocation) {
         if (newLocation == null || newLocation.getLat() == null || newLocation.getLon() == null) {
             return null;

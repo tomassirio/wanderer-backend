@@ -3,13 +3,16 @@ package com.tomassirio.wanderer.command.service.impl;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.google.maps.model.LatLng;
 import com.tomassirio.wanderer.command.event.PolylineUpdatedEvent;
 import com.tomassirio.wanderer.command.repository.TripRepository;
+import com.tomassirio.wanderer.command.repository.TripTrackPointRepository;
 import com.tomassirio.wanderer.command.repository.TripUpdateRepository;
 import com.tomassirio.wanderer.command.service.RouteService;
+import com.tomassirio.wanderer.command.service.TrackPointService;
 import com.tomassirio.wanderer.command.service.helper.PolylineCodec;
 import com.tomassirio.wanderer.command.service.helper.PolylineComputer;
 import com.tomassirio.wanderer.commons.domain.GeoLocation;
@@ -37,6 +40,10 @@ class PolylineServiceImplTest {
 
     @Mock private RouteService routeService;
 
+    @Mock private TripTrackPointRepository trackPointRepository;
+
+    @Mock private TrackPointService trackPointService;
+
     @Mock private ApplicationEventPublisher eventPublisher;
 
     private PolylineServiceImpl polylineService;
@@ -48,6 +55,8 @@ class PolylineServiceImplTest {
                 new PolylineServiceImpl(
                         tripRepository,
                         tripUpdateRepository,
+                        trackPointRepository,
+                        trackPointService,
                         routeService,
                         polylineComputer,
                         eventPublisher);
@@ -500,5 +509,26 @@ class PolylineServiceImplTest {
         Trip saved = captor.getValue();
         assertThat(saved.getEncodedPolyline()).isNotNull();
         assertThat(saved.getPolylineUpdatedAt()).isNotNull();
+    }
+
+    @Test
+    void appendSegment_whenTripHasTrackPoints_skipsDirections() {
+        UUID tripId = UUID.randomUUID();
+        when(trackPointRepository.existsByTripId(tripId)).thenReturn(true);
+
+        polylineService.appendSegment(tripId);
+
+        verifyNoInteractions(routeService, tripRepository, eventPublisher);
+    }
+
+    @Test
+    void recomputePolyline_whenTripHasTrackPoints_rebuildsFromTrack() {
+        UUID tripId = UUID.randomUUID();
+        when(trackPointRepository.existsByTripId(tripId)).thenReturn(true);
+
+        polylineService.recomputePolyline(tripId);
+
+        verify(trackPointService).recomputeTrack(tripId, List.of());
+        verifyNoInteractions(routeService);
     }
 }
