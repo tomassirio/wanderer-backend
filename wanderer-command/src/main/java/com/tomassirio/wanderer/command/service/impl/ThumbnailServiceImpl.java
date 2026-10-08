@@ -21,6 +21,7 @@ import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -142,6 +143,16 @@ public class ThumbnailServiceImpl implements ThumbnailService {
     @Override
     public boolean thumbnailExists(UUID id, ThumbnailEntityType entityType) {
         return Files.exists(resolveFilePath(id, entityType));
+    }
+
+    @Override
+    public Optional<Instant> thumbnailLastModified(UUID id, ThumbnailEntityType entityType) {
+        try {
+            return Optional.of(
+                    Files.getLastModifiedTime(resolveFilePath(id, entityType)).toInstant());
+        } catch (IOException e) {
+            return Optional.empty();
+        }
     }
 
     /**

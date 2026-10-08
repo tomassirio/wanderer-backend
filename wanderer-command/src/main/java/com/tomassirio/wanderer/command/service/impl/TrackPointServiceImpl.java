@@ -135,7 +135,12 @@ public class TrackPointServiceImpl implements TrackPointService {
         tripRepository.save(trip);
 
         eventPublisher.publishEvent(
-                PolylineUpdatedEvent.builder().tripId(tripId).encodedPolyline(encoded).build());
+                PolylineUpdatedEvent.builder()
+                        .tripId(tripId)
+                        .encodedPolyline(encoded)
+                        // no new points = explicit full rebuild (admin recompute): don't throttle
+                        .forceThumbnail(newPoints.isEmpty())
+                        .build());
         if (!newPoints.isEmpty()) {
             eventPublisher.publishEvent(
                     TrackUpdatedEvent.builder()

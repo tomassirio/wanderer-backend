@@ -106,6 +106,7 @@ class PolylineServiceImplTest {
         verify(eventPublisher).publishEvent(eventCaptor.capture());
         assertThat(eventCaptor.getValue().getTripId()).isEqualTo(tripId);
         assertThat(eventCaptor.getValue().getEncodedPolyline()).isNull();
+        assertThat(eventCaptor.getValue().isForceThumbnail()).isFalse();
     }
 
     @Test
@@ -300,6 +301,7 @@ class PolylineServiceImplTest {
         verify(eventPublisher).publishEvent(eventCaptor.capture());
         assertThat(eventCaptor.getValue().getTripId()).isEqualTo(tripId);
         assertThat(eventCaptor.getValue().getEncodedPolyline()).isNotNull();
+        assertThat(eventCaptor.getValue().isForceThumbnail()).isTrue();
     }
 
     @Test

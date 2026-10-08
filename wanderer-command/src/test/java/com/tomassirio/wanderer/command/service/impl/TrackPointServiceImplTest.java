@@ -190,7 +190,8 @@ class TrackPointServiceImplTest {
         verify(eventPublisher, times(2)).publishEvent(events.capture());
         assertThat(events.getAllValues().get(0))
                 .isInstanceOf(PolylineUpdatedEvent.class)
-                .hasFieldOrPropertyWithValue("encodedPolyline", trip.getEncodedPolyline());
+                .hasFieldOrPropertyWithValue("encodedPolyline", trip.getEncodedPolyline())
+                .hasFieldOrPropertyWithValue("forceThumbnail", false);
         TrackUpdatedEvent track = (TrackUpdatedEvent) events.getAllValues().get(1);
         assertThat(track.getPoints()).isEqualTo(fresh);
         assertThat(track.getDistanceKm()).isEqualTo(trip.getCachedDistanceKm());
@@ -208,7 +209,10 @@ class TrackPointServiceImplTest {
 
         assertThat(trip.getEncodedPolyline()).isNull();
         assertThat(trip.getCachedDistanceKm()).isZero();
-        verify(eventPublisher).publishEvent(any(PolylineUpdatedEvent.class));
+        verify(eventPublisher)
+                .publishEvent(
+                        org.mockito.ArgumentMatchers.<PolylineUpdatedEvent>argThat(
+                                PolylineUpdatedEvent::isForceThumbnail));
         verify(eventPublisher, never()).publishEvent(any(TrackUpdatedEvent.class));
     }
 

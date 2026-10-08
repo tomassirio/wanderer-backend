@@ -22,7 +22,8 @@ public interface TrackPointService {
     /**
      * Recomputes the trip's distance and encoded polyline from all its track points, then
      * broadcasts {@code POLYLINE_UPDATED} and, when {@code newPoints} is not empty, {@code
-     * TRACK_UPDATED}. Runs serialized per trip.
+     * TRACK_UPDATED}. An empty {@code newPoints} is a full rebuild and always refreshes the
+     * thumbnail. Runs serialized per trip.
      */
     void recomputeTrack(UUID tripId, List<TrackPointDTO> newPoints);
 

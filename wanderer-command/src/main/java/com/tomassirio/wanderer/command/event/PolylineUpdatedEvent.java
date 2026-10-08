@@ -16,6 +16,9 @@ public class PolylineUpdatedEvent implements DomainEvent, Broadcastable {
     private UUID tripId;
     private String encodedPolyline;
 
+    /** Regenerate the thumbnail even if it was refreshed recently (explicit full rebuilds). */
+    private boolean forceThumbnail;
+
     @Override
     public String getEventType() {
         return WebSocketEventType.POLYLINE_UPDATED;

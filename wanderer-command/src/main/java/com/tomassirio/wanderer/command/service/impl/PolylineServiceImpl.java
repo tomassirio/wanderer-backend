@@ -78,7 +78,7 @@ public class PolylineServiceImpl implements PolylineService {
             trip.setPolylineUpdatedAt(null);
             tripRepository.save(trip);
             log.debug("Trip {} has fewer than 2 valid locations, polyline cleared", tripId);
-            publishPolylineUpdatedEvent(tripId, null);
+            publishPolylineUpdatedEvent(tripId, null, false);
             return;
         }
 
@@ -105,10 +105,10 @@ public class PolylineServiceImpl implements PolylineService {
                     "Polyline incrementally updated for trip {}. Total points: {}",
                     tripId,
                     existingPoints.size());
-            publishPolylineUpdatedEvent(tripId, encoded);
+            publishPolylineUpdatedEvent(tripId, encoded, false);
         } else {
             // No existing polyline — full recompute
-            recomputePolylineInternal(trip, updates);
+            recomputePolylineInternal(trip, updates, false);
         }
     }
 
@@ -126,21 +126,24 @@ public class PolylineServiceImpl implements PolylineService {
                                 () -> new EntityNotFoundException("Trip not found: " + tripId));
 
         List<TripUpdate> updates = tripUpdateRepository.findByTripIdOrderByTimestampAsc(tripId);
-        recomputePolylineInternal(trip, updates);
+        recomputePolylineInternal(trip, updates, true);
     }
 
-    private void recomputePolylineInternal(Trip trip, List<TripUpdate> updates) {
+    private void recomputePolylineInternal(
+            Trip trip, List<TripUpdate> updates, boolean forceThumbnail) {
         List<GeoLocation> locations = updates.stream().map(TripUpdate::getLocation).toList();
 
         polylineComputer.computeAndApply(trip, locations, tripRepository::save);
-        publishPolylineUpdatedEvent(trip.getId(), trip.getEncodedPolyline());
+        publishPolylineUpdatedEvent(trip.getId(), trip.getEncodedPolyline(), forceThumbnail);
     }
 
-    private void publishPolylineUpdatedEvent(UUID tripId, String encodedPolyline) {
+    private void publishPolylineUpdatedEvent(
+            UUID tripId, String encodedPolyline, boolean forceThumbnail) {
         eventPublisher.publishEvent(
                 PolylineUpdatedEvent.builder()
                         .tripId(tripId)
                         .encodedPolyline(encodedPolyline)
+                        .forceThumbnail(forceThumbnail)
                         .build());
     }
 }
