@@ -218,6 +218,8 @@ public final class ApiConstants {
     public static final String RELEASES_SEEN_ENDPOINT = ME_SUFFIX + "/seen";
     public static final String RELEASE_DRAFTS_ENDPOINT = "/drafts";
     public static final String RELEASE_DRAFTS_PATH = RELEASES_PATH + RELEASE_DRAFTS_ENDPOINT;
+    public static final String RELEASE_PUBLISH_ENDPOINT = "/publish";
+    public static final String RELEASE_PUBLISH_PATH = RELEASES_PATH + RELEASE_PUBLISH_ENDPOINT;
     public static final String ADMIN_RELEASES_PATH = ADMIN_PATH + "/releases";
     public static final String ADMIN_RELEASE_PUBLISH_ENDPOINT = VERSION_PATH_VARIABLE + "/publish";
 

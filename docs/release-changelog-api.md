@@ -154,8 +154,9 @@ On app start (logged-in user):
 
 1. `GET /releases/me/unread?platform=…&currentVersion=<installed>`.
 2. If `releases` is non-empty: show the popup (newest first). On dismiss, `PUT /releases/me/seen` with `currentVersion`.
-3. If `releases` is empty and `lastSeenVersion != currentVersion`: silently `PUT /releases/me/seen` with `currentVersion`.
-   This sets the baseline for new users so the *next* release does show.
+3. If `releases` is empty and `lastSeenVersion` is null: silently `PUT /releases/me/seen` with `currentVersion`.
+   This sets the baseline for new users so the *next* release does show. Users with a last-seen version
+   keep it, so notes published after the update still pop up.
 
 Any later client (other platform, reinstall) then gets an empty list for versions already seen.
 
@@ -174,7 +175,8 @@ One release in any state. `200 ReleaseDTO`, `404` if unknown.
 ### `PUT /api/1/admin/releases/{version}` (wanderer-command)
 
 Full replace of the editable fields. Allowed for `DRAFT` and `PUBLISHED` (so you can set a
-platform's `releaseDate` after publishing, e.g. a later Android rollout).
+platform's `releaseDate` after publishing, e.g. a later Android rollout). An unknown version is
+created as a `DRAFT`, so admins can write notes for a version CI hasn't drafted.
 
 ```json
 {
@@ -195,9 +197,8 @@ platform's `releaseDate` after publishing, e.g. a later Android rollout).
 
 | Status | When |
 |--------|------|
-| 200 | updated `ReleaseDTO` |
+| 200 | saved `ReleaseDTO` (created if the version was unknown) |
 | 400 | validation error (blank title, too long, duplicate platform, ...) |
-| 404 | unknown version |
 
 ### `POST /api/1/admin/releases/{version}/publish` (wanderer-command)
 
@@ -245,6 +246,30 @@ If the server has no token configured, every call is rejected.
 | 400 | invalid version / body |
 | 401 | missing or wrong `X-Release-Token` (or no token configured) |
 | 409 | that version is already `PUBLISHED` |
+
+### `POST /api/1/releases/publish`
+
+Called by the frontend release pipeline once the release is deployed, with notes written for
+travellers. Same `X-Release-Token` header. Creates the release if needed (or reuses the CI draft),
+replaces `headline` and `items`, sets `showPopup: true`, keeps existing platforms (default
+`["ANDROID", "WEB"]`) and publishes, so platforms without a date go live now.
+
+```json
+{
+  "version": "2.1.0",
+  "headline": "A simpler way to start your trips",
+  "items": [
+    { "type": "NEW", "title": "Save trips for later", "text": "Not ready to go? Save your trip as a plan and come back to it whenever you're ready." }
+  ]
+}
+```
+
+| Status | When |
+|--------|------|
+| 200 | published `ReleaseDTO` |
+| 400 | validation error (invalid version, blank headline, no items, ...) |
+| 401 | missing or wrong token |
+| 409 | version already published (a rerun never overwrites live notes; edit them in the admin editor) |
 
 ### Configuration
 

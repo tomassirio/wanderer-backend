@@ -60,7 +60,9 @@ public class SecurityConfig {
                                         .permitAll()
                                         // CI-only, guarded by X-Release-Token in the controller
                                         .requestMatchers(
-                                                HttpMethod.POST, ApiConstants.RELEASE_DRAFTS_PATH)
+                                                HttpMethod.POST,
+                                                ApiConstants.RELEASE_DRAFTS_PATH,
+                                                ApiConstants.RELEASE_PUBLISH_PATH)
                                         .permitAll()
                                         .anyRequest()
                                         .authenticated())

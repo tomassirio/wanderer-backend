@@ -1,6 +1,7 @@
 package com.tomassirio.wanderer.command.controller;
 
 import com.tomassirio.wanderer.command.controller.request.ReleaseDraftRequest;
+import com.tomassirio.wanderer.command.controller.request.ReleasePublishRequest;
 import com.tomassirio.wanderer.command.controller.request.ReleaseSeenRequest;
 import com.tomassirio.wanderer.command.service.ReleaseService;
 import com.tomassirio.wanderer.commons.constants.ApiConstants;
@@ -86,6 +87,28 @@ public class ReleaseController {
         ReleaseService.DraftResult result = releaseService.upsertDraft(request);
         return ResponseEntity.status(result.created() ? HttpStatus.CREATED : HttpStatus.OK)
                 .body(result.release());
+    }
+
+    @PostMapping(ApiConstants.RELEASE_PUBLISH_ENDPOINT)
+    @Operation(
+            summary = "Write and publish release notes (CI)",
+            description =
+                    "Called by CI after a release is deployed. Requires the "
+                            + CI_TOKEN_HEADER
+                            + " header. Creates or replaces the draft's headline and items, shows the"
+                            + " popup and publishes. A published version is left alone.")
+    @ApiResponse(responseCode = "200", description = "Release published")
+    @ApiResponse(responseCode = "401", description = "Missing or wrong CI token")
+    @ApiResponse(responseCode = "409", description = "Version already published")
+    public ResponseEntity<ReleaseDTO> publish(
+            @Parameter(hidden = true) @RequestHeader(value = CI_TOKEN_HEADER, required = false)
+                    String token,
+            @Valid @RequestBody ReleasePublishRequest request) {
+        if (!validToken(token)) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
+        }
+        log.info("CI publishing release {}", request.version());
+        return ResponseEntity.ok(releaseService.publishFromCi(request));
     }
 
     private boolean validToken(String token) {

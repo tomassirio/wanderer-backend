@@ -39,12 +39,12 @@ public class AdminReleaseController {
     @PutMapping(ApiConstants.RELEASE_BY_VERSION_ENDPOINT)
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(
-            summary = "Edit a release",
+            summary = "Create or edit a release",
             description =
                     "Replaces headline, popup flag, platforms (with release dates) and the ordered"
-                            + " items.")
-    @ApiResponse(responseCode = "200", description = "Release updated")
-    @ApiResponse(responseCode = "404", description = "Unknown version")
+                            + " items. An unknown version is created as a draft.")
+    @ApiResponse(responseCode = "200", description = "Release saved")
+    @ApiResponse(responseCode = "400", description = "Invalid version or body")
     public ResponseEntity<ReleaseDTO> update(
             @PathVariable String version, @Valid @RequestBody ReleaseUpdateRequest request) {
         log.info("Admin updating release {}", version);

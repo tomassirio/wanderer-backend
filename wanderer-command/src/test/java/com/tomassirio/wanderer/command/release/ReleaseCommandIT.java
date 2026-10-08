@@ -235,9 +235,62 @@ class ReleaseCommandIT extends BaseIntegrationTest {
     }
 
     @Test
-    void adminUpdate_unknownVersionIs404() {
-        assertThat(adminUpdate("9.9.9", adminToken()).getStatusCode())
-                .isEqualTo(HttpStatus.NOT_FOUND);
+    void adminUpdate_unknownVersionCreatesDraft() {
+        ResponseEntity<String> saved = adminUpdate("9.9.9", adminToken());
+
+        assertThat(saved.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(json(saved).get("version")).isEqualTo("9.9.9");
+        assertThat(json(saved).get("status")).isEqualTo("DRAFT");
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void ciPublish_writesNotesAndPublishesOnce() {
+        draft(
+                CI_TOKEN,
+                Map.of(
+                        "version",
+                        "2.1.0",
+                        "prs",
+                        List.of(
+                                Map.of(
+                                        "number",
+                                        236,
+                                        "title",
+                                        "feat: internal title",
+                                        "label",
+                                        "feat"))));
+        Map<String, Object> body =
+                Map.of(
+                        "version",
+                        "2.1.0",
+                        "headline",
+                        "A simpler way to start your trips",
+                        "items",
+                        List.of(
+                                Map.of(
+                                        "type",
+                                        "NEW",
+                                        "title",
+                                        "Save trips for later",
+                                        "text",
+                                        "Not ready to go? Save your trip as a plan.")));
+
+        assertThat(ciPublish("wrong", body).getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+        ResponseEntity<String> published = ciPublish(CI_TOKEN, body);
+
+        assertThat(published.getStatusCode()).isEqualTo(HttpStatus.OK);
+        Map<String, Object> json = json(published);
+        assertThat(json.get("status")).isEqualTo("PUBLISHED");
+        assertThat(json.get("showPopup")).isEqualTo(true);
+        assertThat((List<Map<String, Object>>) json.get("items"))
+                .singleElement()
+                .satisfies(i -> assertThat(i.get("title")).isEqualTo("Save trips for later"));
+        assertThat((List<Map<String, Object>>) json.get("platforms"))
+                .hasSize(2)
+                .allSatisfy(p -> assertThat(p.get("releaseDate")).isNotNull());
+        // A rerun never overwrites live notes.
+        assertThat(ciPublish(CI_TOKEN, body).getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
     }
 
     // --- Read tracking ---
@@ -294,6 +347,16 @@ class ReleaseCommandIT extends BaseIntegrationTest {
                         "items",
                         List.of(Map.of("type", "NEW", "title", "Thing", "text", "Does stuff")));
         return exchange(HttpMethod.PUT, "/api/1/admin/releases/" + version, body, bearer);
+    }
+
+    private ResponseEntity<String> ciPublish(String ciToken, Map<String, Object> body) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("X-Release-Token", ciToken);
+        return rest.exchange(
+                "/api/1/releases/publish",
+                HttpMethod.POST,
+                new HttpEntity<>(body, headers),
+                String.class);
     }
 
     private ResponseEntity<String> seen(String version, String bearer) {
