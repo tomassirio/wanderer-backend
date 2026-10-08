@@ -10,6 +10,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.tomassirio.wanderer.commons.domain.GeoLocation;
 import com.tomassirio.wanderer.commons.domain.Reactions;
 import com.tomassirio.wanderer.commons.domain.WeatherCondition;
+import com.tomassirio.wanderer.commons.dto.TrackPointDTO;
 import com.tomassirio.wanderer.commons.dto.TripUpdateDTO;
 import com.tomassirio.wanderer.commons.exception.GlobalExceptionHandler;
 import com.tomassirio.wanderer.commons.utils.MockMvcTestUtils;
@@ -334,5 +335,32 @@ class TripUpdateQueryControllerTest {
                 null,
                 null,
                 timestamp);
+    }
+
+    private static final String TRACK_POINTS_URL = "/api/1/trips/{tripId}/track-points";
+
+    @Test
+    void getTrackPoints_withoutSince_returnsWholeTrack() throws Exception {
+        UUID tripId = UUID.randomUUID();
+        Instant at = Instant.parse("2026-10-08T09:15:02Z");
+        when(tripUpdateService.getTrackPoints(tripId, null))
+                .thenReturn(List.of(new TrackPointDTO(52.09, 5.12, at)));
+
+        mockMvc.perform(get(TRACK_POINTS_URL, tripId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].lat").value(52.09))
+                .andExpect(jsonPath("$[0].lon").value(5.12))
+                .andExpect(jsonPath("$[0].recordedAt").exists());
+    }
+
+    @Test
+    void getTrackPoints_withSince_passesInstant() throws Exception {
+        UUID tripId = UUID.randomUUID();
+        Instant since = Instant.parse("2026-10-08T09:00:00Z");
+        when(tripUpdateService.getTrackPoints(tripId, since)).thenReturn(List.of());
+
+        mockMvc.perform(get(TRACK_POINTS_URL, tripId).param("since", "2026-10-08T09:00:00Z"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isEmpty());
     }
 }

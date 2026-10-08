@@ -7,11 +7,14 @@ import static org.mockito.Mockito.when;
 
 import com.tomassirio.wanderer.commons.domain.Trip;
 import com.tomassirio.wanderer.commons.domain.TripUpdate;
+import com.tomassirio.wanderer.commons.dto.TrackPointDTO;
 import com.tomassirio.wanderer.commons.dto.TripUpdateDTO;
+import com.tomassirio.wanderer.query.repository.TripTrackPointRepository;
 import com.tomassirio.wanderer.query.repository.TripUpdateRepository;
 import com.tomassirio.wanderer.query.service.impl.TripUpdateServiceImpl;
 import com.tomassirio.wanderer.query.utils.TestEntityFactory;
 import jakarta.persistence.EntityNotFoundException;
+import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -31,6 +34,8 @@ import org.springframework.data.domain.Sort;
 class TripUpdateServiceTest {
 
     @Mock private TripUpdateRepository tripUpdateRepository;
+
+    @Mock private TripTrackPointRepository tripTrackPointRepository;
 
     @InjectMocks private TripUpdateServiceImpl tripUpdateService;
 
@@ -202,5 +207,24 @@ class TripUpdateServiceTest {
         assertThat(dto.city()).isEqualTo("Santiago de Compostela");
         assertThat(dto.country()).isEqualTo("Spain");
         assertThat(dto.timestamp()).isNotNull();
+    }
+
+    @Test
+    void getTrackPoints_withoutSince_returnsWholeTrack() {
+        UUID tripId = UUID.randomUUID();
+        List<TrackPointDTO> track = List.of(new TrackPointDTO(1.0, 2.0, Instant.now()));
+        when(tripTrackPointRepository.findTrack(tripId)).thenReturn(track);
+
+        assertThat(tripUpdateService.getTrackPoints(tripId, null)).isEqualTo(track);
+    }
+
+    @Test
+    void getTrackPoints_withSince_returnsNewerPoints() {
+        UUID tripId = UUID.randomUUID();
+        Instant since = Instant.now();
+        List<TrackPointDTO> track = List.of(new TrackPointDTO(1.0, 2.0, since.plusSeconds(1)));
+        when(tripTrackPointRepository.findTrackSince(tripId, since)).thenReturn(track);
+
+        assertThat(tripUpdateService.getTrackPoints(tripId, since)).isEqualTo(track);
     }
 }

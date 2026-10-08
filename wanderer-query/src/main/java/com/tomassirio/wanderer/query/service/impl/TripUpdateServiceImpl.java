@@ -1,10 +1,14 @@
 package com.tomassirio.wanderer.query.service.impl;
 
+import com.tomassirio.wanderer.commons.dto.TrackPointDTO;
 import com.tomassirio.wanderer.commons.dto.TripUpdateDTO;
 import com.tomassirio.wanderer.commons.mapper.TripUpdateMapper;
+import com.tomassirio.wanderer.query.repository.TripTrackPointRepository;
 import com.tomassirio.wanderer.query.repository.TripUpdateRepository;
 import com.tomassirio.wanderer.query.service.TripUpdateService;
 import jakarta.persistence.EntityNotFoundException;
+import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 import lombok.AllArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -21,6 +25,7 @@ import org.springframework.stereotype.Service;
 public class TripUpdateServiceImpl implements TripUpdateService {
 
     private final TripUpdateRepository tripUpdateRepository;
+    private final TripTrackPointRepository tripTrackPointRepository;
     private final TripUpdateMapper tripUpdateMapper = TripUpdateMapper.INSTANCE;
 
     @Override
@@ -40,5 +45,12 @@ public class TripUpdateServiceImpl implements TripUpdateService {
     // #pageable.sort")
     public Page<TripUpdateDTO> getTripUpdatesForTrip(UUID tripId, Pageable pageable) {
         return tripUpdateRepository.findByTripId(tripId, pageable).map(tripUpdateMapper::toDTO);
+    }
+
+    @Override
+    public List<TrackPointDTO> getTrackPoints(UUID tripId, Instant since) {
+        return since == null
+                ? tripTrackPointRepository.findTrack(tripId)
+                : tripTrackPointRepository.findTrackSince(tripId, since);
     }
 }
