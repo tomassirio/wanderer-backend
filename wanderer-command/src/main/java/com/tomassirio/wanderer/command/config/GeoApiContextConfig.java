@@ -12,6 +12,7 @@ import com.tomassirio.wanderer.command.service.impl.strategy.GoogleMapsDistanceS
 import com.tomassirio.wanderer.command.service.impl.strategy.HaversineDistanceStrategy;
 import com.tomassirio.wanderer.command.service.impl.strategy.StraightLineRouteStrategy;
 import jakarta.annotation.PreDestroy;
+import java.util.concurrent.TimeUnit;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -47,7 +48,14 @@ public class GeoApiContextConfig {
         if (properties.getApiKey() != null
                 && !properties.getApiKey().isEmpty()
                 && properties.isEnabled()) {
-            geoApiContext = new GeoApiContext.Builder().apiKey(properties.getApiKey()).build();
+            // Bounded so a slow Google call can't pin a worker thread indefinitely.
+            geoApiContext =
+                    new GeoApiContext.Builder()
+                            .apiKey(properties.getApiKey())
+                            .connectTimeout(5, TimeUnit.SECONDS)
+                            .readTimeout(5, TimeUnit.SECONDS)
+                            .retryTimeout(10, TimeUnit.SECONDS)
+                            .build();
             log.info("Google Maps GeoApiContext initialized successfully");
             return geoApiContext;
         }

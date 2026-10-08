@@ -1,8 +1,10 @@
 package com.tomassirio.wanderer.command.client;
 
+import java.time.Duration;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
@@ -24,13 +26,18 @@ public class GoogleWeatherClient {
             "https://weather.googleapis.com/v1/currentConditions:lookup"
                     + "?key={key}&location.latitude={lat}&location.longitude={lon}";
 
+    private static final Duration TIMEOUT = Duration.ofSeconds(5);
+
     private final String apiKey;
     private final RestClient restClient;
 
     public GoogleWeatherClient(
             @Value("${google.maps.api-key:}") String apiKey, RestClient.Builder restClientBuilder) {
         this.apiKey = apiKey;
-        this.restClient = restClientBuilder.build();
+        SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
+        requestFactory.setConnectTimeout(TIMEOUT);
+        requestFactory.setReadTimeout(TIMEOUT);
+        this.restClient = restClientBuilder.requestFactory(requestFactory).build();
     }
 
     /**
