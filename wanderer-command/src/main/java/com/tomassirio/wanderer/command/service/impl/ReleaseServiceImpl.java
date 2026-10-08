@@ -1,6 +1,7 @@
 package com.tomassirio.wanderer.command.service.impl;
 
 import com.tomassirio.wanderer.command.controller.request.ReleaseDraftRequest;
+import com.tomassirio.wanderer.command.controller.request.ReleasePublishRequest;
 import com.tomassirio.wanderer.command.controller.request.ReleaseUpdateRequest;
 import com.tomassirio.wanderer.command.repository.ReleaseRepository;
 import com.tomassirio.wanderer.command.repository.UserReleaseSeenRepository;
@@ -112,6 +113,24 @@ public class ReleaseServiceImpl implements ReleaseService {
                 created ? "created" : "updated",
                 request.prs().size());
         return new DraftResult(ReleaseDTO.from(releaseRepository.saveAndFlush(release)), created);
+    }
+
+    @Override
+    public ReleaseDTO publishFromCi(ReleasePublishRequest request) {
+        String version = Release.requireVersion(request.version());
+        Release release = releaseRepository.findByVersion(version).orElse(null);
+        if (release != null && release.getStatus() == Release.Status.PUBLISHED) {
+            // An admin may have edited the live notes; a pipeline rerun must not overwrite them.
+            throw new IllegalStateException("Release " + version + " is already published");
+        }
+        List<PlatformRelease> platforms =
+                release == null || release.getPlatforms().isEmpty()
+                        ? DEFAULT_PLATFORMS.stream().map(p -> new PlatformRelease(p, null)).toList()
+                        : List.copyOf(release.getPlatforms());
+        update(
+                version,
+                new ReleaseUpdateRequest(request.headline(), true, platforms, request.items()));
+        return publish(version);
     }
 
     @Override
