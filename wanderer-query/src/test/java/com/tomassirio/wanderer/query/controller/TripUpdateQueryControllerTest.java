@@ -2,6 +2,9 @@ package com.tomassirio.wanderer.query.controller;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -13,8 +16,10 @@ import com.tomassirio.wanderer.commons.domain.WeatherCondition;
 import com.tomassirio.wanderer.commons.dto.TrackPointDTO;
 import com.tomassirio.wanderer.commons.dto.TripUpdateDTO;
 import com.tomassirio.wanderer.commons.exception.GlobalExceptionHandler;
+import com.tomassirio.wanderer.commons.utils.BaseTestEntityFactory;
 import com.tomassirio.wanderer.commons.utils.MockMvcTestUtils;
 import com.tomassirio.wanderer.query.service.TripUpdateService;
+import com.tomassirio.wanderer.query.service.helper.TripVisibilityHelper;
 import jakarta.persistence.EntityNotFoundException;
 import java.time.Instant;
 import java.util.List;
@@ -27,6 +32,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.test.web.servlet.MockMvc;
 
 @ExtendWith(MockitoExtension.class)
@@ -38,6 +44,8 @@ class TripUpdateQueryControllerTest {
     private MockMvc mockMvc;
 
     @Mock private TripUpdateService tripUpdateService;
+
+    @Mock private TripVisibilityHelper tripVisibilityHelper;
 
     @InjectMocks private TripUpdateQueryController tripUpdateQueryController;
 
@@ -362,5 +370,54 @@ class TripUpdateQueryControllerTest {
         mockMvc.perform(get(TRACK_POINTS_URL, tripId).param("since", "2026-10-08T09:00:00Z"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isEmpty());
+    }
+
+    @Test
+    void getTrackPoints_whenTripNotVisible_returnsForbidden() throws Exception {
+        UUID tripId = UUID.randomUUID();
+        doThrow(new AccessDeniedException("denied"))
+                .when(tripVisibilityHelper)
+                .assertCanView(tripId, BaseTestEntityFactory.USER_ID);
+
+        mockMvc.perform(get(TRACK_POINTS_URL, tripId)).andExpect(status().isForbidden());
+
+        verifyNoInteractions(tripUpdateService);
+    }
+
+    @Test
+    void getTripUpdatesForTrip_whenTripNotVisible_returnsForbidden() throws Exception {
+        UUID tripId = UUID.randomUUID();
+        doThrow(new AccessDeniedException("denied"))
+                .when(tripVisibilityHelper)
+                .assertCanView(tripId, BaseTestEntityFactory.USER_ID);
+
+        mockMvc.perform(get(TRIP_UPDATES_FOR_TRIP_URL, tripId)).andExpect(status().isForbidden());
+
+        verifyNoInteractions(tripUpdateService);
+    }
+
+    @Test
+    void getTripUpdate_whenTripNotVisible_returnsForbidden() throws Exception {
+        UUID tripUpdateId = UUID.randomUUID();
+        UUID tripId = UUID.randomUUID();
+        when(tripUpdateService.getTripUpdate(tripUpdateId))
+                .thenReturn(createTripUpdateDTO(tripUpdateId, tripId, 85, "secret"));
+        doThrow(new AccessDeniedException("denied"))
+                .when(tripVisibilityHelper)
+                .assertCanView(tripId, BaseTestEntityFactory.USER_ID);
+
+        mockMvc.perform(get(TRIP_UPDATE_BY_ID_URL, tripUpdateId)).andExpect(status().isForbidden());
+    }
+
+    @Test
+    void getTripUpdate_checksVisibilityOfOwningTrip() throws Exception {
+        UUID tripUpdateId = UUID.randomUUID();
+        UUID tripId = UUID.randomUUID();
+        when(tripUpdateService.getTripUpdate(tripUpdateId))
+                .thenReturn(createTripUpdateDTO(tripUpdateId, tripId, 85, "ok"));
+
+        mockMvc.perform(get(TRIP_UPDATE_BY_ID_URL, tripUpdateId)).andExpect(status().isOk());
+
+        verify(tripVisibilityHelper).assertCanView(tripId, BaseTestEntityFactory.USER_ID);
     }
 }

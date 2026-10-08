@@ -51,12 +51,11 @@ Feature: Trip Updates Query
     And the response should contain 2 trip updates
     And the trip updates should have location data
 
-  Scenario: Get trip updates for non-existent trip returns empty list
+  Scenario: Get trip updates for non-existent trip returns 404
     Given a user exists with username "alice" and email "alice@example.com"
     And I have a valid token for that user with roles "USER"
     When I get all trip updates for non-existent trip
-    Then the response status should be 200
-    And the response should be empty
+    Then the response status should be 404
 
   Scenario: Get trip updates with various battery levels
     Given a user exists with username "alice" and email "alice@example.com"
