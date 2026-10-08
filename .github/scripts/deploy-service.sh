@@ -1,13 +1,19 @@
 #!/usr/bin/env bash
-# Helm-deploys one backend service. Called once per service by its own step in
+# Helm-deploys one backend service. Run by one parallel matrix job per service in
 # .github/workflows/helm-deploy.yml, so each service deploys (and fails) on its own.
 #
-# Usage: deploy-service.sh SERVICE PORT DB_NAME
+# Usage: deploy-service.sh SERVICE
 # Env: ENVIRONMENT, IMAGE_TAG, NAMESPACE, ENV_SUFFIX, PUBLIC_URL, JWT_SECRET, DB_PASSWORD,
 #      plus the optional per-service values read below.
 set -euo pipefail
 
-SERVICE=$1 PORT=$2 DB=$3
+SERVICE=$1
+case "$SERVICE" in
+  wanderer-auth) PORT=8083 DB=wanderer_auth_db ;;
+  wanderer-command) PORT=8081 DB=wanderer_db ;;
+  wanderer-query) PORT=8082 DB=wanderer_db ;;
+  *) echo "::error::Unknown service: $SERVICE"; exit 1 ;;
+esac
 EMAIL_SMTP_PWD=${EMAIL_SMTP_PWD:-}
 DB_URL="jdbc:postgresql://postgres${ENV_SUFFIX}:5432/$DB"
 
@@ -47,7 +53,7 @@ fi
 
 HELM_ARGS=(
   "upgrade" "--install" "$SERVICE" "./$SERVICE/src/main/chart"
-  "--namespace" "$NAMESPACE"
+  "--namespace" "$NAMESPACE" "--create-namespace"
   "--set" "environment.name=$ENVIRONMENT"
   "--set" "environment.suffix=$ENV_SUFFIX"
   "--set" "replicaCount=$REPLICA_COUNT"

@@ -59,12 +59,12 @@ env:
   NAMESPACE: ${{ inputs.namespace }}
 
 jobs:
-  deploy:
+  # PostgreSQL and the services deploy as parallel jobs. They all start together, so on a
+  # protected environment (prod) they wait for review at the same time and one approval of
+  # the environment releases all of them.
+  deploy-postgres:
     runs-on: ubuntu-latest
     environment: ${{ inputs.environment }}
-    env:
-      # Per-environment variable, so set at job level (needs the environment)
-      PUBLIC_URL: ${{ vars.PUBLIC_URL }}
 
     steps:
       - name: Checkout code
@@ -82,7 +82,6 @@ jobs:
           chmod 600 ~/.kube/config
 
       - name: Deploy PostgreSQL
-        id: postgres
         env:
           PVC_NAME: postgres${{ env.ENV_SUFFIX }}-pvc
           STATEFULSET_NAME: postgres${{ env.ENV_SUFFIX }}
@@ -110,42 +109,52 @@ jobs:
           
           echo "✓ PostgreSQL deployed successfully"
 
-      # One step per service: each deploys and fails on its own, and a failed one doesn't stop
-      # the others. Same job as PostgreSQL so a protected environment (prod) asks for approval
-      # once. Shared helm logic: .github/scripts/deploy-service.sh.
-      - name: Deploy wanderer-auth
-        if: ${{ !cancelled() && steps.postgres.outcome == 'success' && (inputs.service == '' || inputs.service == 'wanderer-auth') }}
-        env:
-          DB_PASSWORD: ${{ secrets.DB_AUTH_PASSWORD }}
-          JWT_SECRET: ${{ secrets.JWT_SECRET }}
-          EMAIL_SMTP_PWD: ${{ secrets.EMAIL_PASSWORD }}
-          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
-          GOOGLE_CLIENT_ID: ${{ vars.GOOGLE_CLIENT_ID }}
-          SSO_ALLOWED_RETURN_URIS: ${{ vars.SSO_ALLOWED_RETURN_URIS }}
-          BOOTSTRAP_ADMIN_USERNAME: ${{ vars.BOOTSTRAP_ADMIN_USERNAME }}
-          BOOTSTRAP_ADMIN_ENABLED: ${{ vars.BOOTSTRAP_ADMIN_ENABLED }}
-          EMAIL_ENABLED: ${{ vars.EMAIL_ENABLED }}
-          EMAIL_BASE_URL: ${{ vars.EMAIL_BASE_URL }}
-        run: .github/scripts/deploy-service.sh wanderer-auth 8083 wanderer_auth_db
+  deploy-service:
+    name: deploy ${{ matrix.service }}
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    strategy:
+      # Independent: one service failing doesn't cancel the others.
+      fail-fast: false
+      matrix:
+        service: ${{ fromJSON(inputs.service == '' && '["wanderer-auth","wanderer-command","wanderer-query"]' || format('["{0}"]', inputs.service)) }}
+    env:
+      # Each service only gets its own secrets.
+      PUBLIC_URL: ${{ vars.PUBLIC_URL }}
+      JWT_SECRET: ${{ secrets.JWT_SECRET }}
+      DB_PASSWORD: ${{ matrix.service == 'wanderer-auth' && secrets.DB_AUTH_PASSWORD || secrets.DB_PASSWORD }}
+      EMAIL_SMTP_PWD: ${{ matrix.service == 'wanderer-auth' && secrets.EMAIL_PASSWORD || '' }}
+      GOOGLE_CLIENT_SECRET: ${{ matrix.service == 'wanderer-auth' && secrets.GOOGLE_CLIENT_SECRET || '' }}
+      GOOGLE_CLIENT_ID: ${{ vars.GOOGLE_CLIENT_ID }}
+      SSO_ALLOWED_RETURN_URIS: ${{ vars.SSO_ALLOWED_RETURN_URIS }}
+      BOOTSTRAP_ADMIN_USERNAME: ${{ vars.BOOTSTRAP_ADMIN_USERNAME }}
+      BOOTSTRAP_ADMIN_ENABLED: ${{ vars.BOOTSTRAP_ADMIN_ENABLED }}
+      EMAIL_ENABLED: ${{ vars.EMAIL_ENABLED }}
+      EMAIL_BASE_URL: ${{ vars.EMAIL_BASE_URL }}
+      GOOGLE_MAPS_API_KEY: ${{ matrix.service == 'wanderer-command' && secrets.GOOGLE_MAPS_API_KEY || '' }}
+      RELEASE_CI_TOKEN: ${{ matrix.service == 'wanderer-command' && secrets.RELEASE_CI_TOKEN || '' }}
 
-      - name: Deploy wanderer-command
-        if: ${{ !cancelled() && steps.postgres.outcome == 'success' && (inputs.service == '' || inputs.service == 'wanderer-command') }}
-        env:
-          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
-          JWT_SECRET: ${{ secrets.JWT_SECRET }}
-          GOOGLE_MAPS_API_KEY: ${{ secrets.GOOGLE_MAPS_API_KEY }}
-          RELEASE_CI_TOKEN: ${{ secrets.RELEASE_CI_TOKEN }}
-        run: .github/scripts/deploy-service.sh wanderer-command 8081 wanderer_db
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-      - name: Deploy wanderer-query
-        if: ${{ !cancelled() && steps.postgres.outcome == 'success' && (inputs.service == '' || inputs.service == 'wanderer-query') }}
-        env:
-          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
-          JWT_SECRET: ${{ secrets.JWT_SECRET }}
-        run: .github/scripts/deploy-service.sh wanderer-query 8082 wanderer_db
+      - name: Connect to Twingate
+        uses: twingate/github-action@v1
+        with:
+          service-key: ${{ secrets.TWINGATE_SERVICE_KEY }}
+
+      - name: Setup Kubernetes
+        run: |
+          mkdir -p ~/.kube
+          echo "${{ secrets.KUBECONFIG_CONTENT }}" | base64 -d > ~/.kube/config
+          chmod 600 ~/.kube/config
+
+      - name: Deploy ${{ matrix.service }}
+        run: .github/scripts/deploy-service.sh "${{ matrix.service }}"
 
   verify-deployment:
-    needs: deploy
+    needs: [deploy-postgres, deploy-service]
+    if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
 
     steps:
