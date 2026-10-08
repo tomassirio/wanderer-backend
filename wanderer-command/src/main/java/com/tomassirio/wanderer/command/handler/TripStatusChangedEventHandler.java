@@ -5,7 +5,6 @@ import com.tomassirio.wanderer.command.handler.support.AfterCommit;
 import com.tomassirio.wanderer.command.repository.TripRepository;
 import com.tomassirio.wanderer.command.service.AchievementService;
 import com.tomassirio.wanderer.command.service.helper.ActiveTripManager;
-import com.tomassirio.wanderer.command.service.helper.LifecycleTripUpdateManager;
 import com.tomassirio.wanderer.command.service.helper.TripDayManager;
 import com.tomassirio.wanderer.command.service.helper.TripEmbeddedObjectsInitializer;
 import com.tomassirio.wanderer.command.service.helper.TripStatusTransitionHandler;
@@ -21,10 +20,9 @@ import org.springframework.transaction.annotation.Transactional;
  * Event handler for persisting trip status change events to the database.
  *
  * <p>This handler implements the CQRS write side by handling TripStatusChangedEvent and updating
- * trip status in the database. It delegates lifecycle trip update creation to {@link
- * LifecycleTripUpdateManager}, multi-day trip day tracking to {@link TripDayManager}, and active
- * trip management to {@link ActiveTripManager}. WebSocket broadcasting is handled centrally by
- * {@link com.tomassirio.wanderer.command.websocket.BroadcastableEventListener}.
+ * trip status in the database. It delegates multi-day trip day tracking to {@link TripDayManager}
+ * and active trip management to {@link ActiveTripManager}. WebSocket broadcasting is handled
+ * centrally by {@link com.tomassirio.wanderer.command.websocket.BroadcastableEventListener}.
  */
 @Slf4j
 @Component
@@ -34,7 +32,6 @@ public class TripStatusChangedEventHandler implements EventHandler<TripStatusCha
     private final TripRepository tripRepository;
     private final TripEmbeddedObjectsInitializer embeddedObjectsInitializer;
     private final TripStatusTransitionHandler statusTransitionHandler;
-    private final LifecycleTripUpdateManager lifecycleTripUpdateManager;
     private final TripDayManager tripDayManager;
     private final ActiveTripManager activeTripManager;
     private final AchievementService achievementService;
