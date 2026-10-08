@@ -235,9 +235,12 @@ class ReleaseCommandIT extends BaseIntegrationTest {
     }
 
     @Test
-    void adminUpdate_unknownVersionIs404() {
-        assertThat(adminUpdate("9.9.9", adminToken()).getStatusCode())
-                .isEqualTo(HttpStatus.NOT_FOUND);
+    void adminUpdate_unknownVersionCreatesDraft() {
+        ResponseEntity<String> saved = adminUpdate("9.9.9", adminToken());
+
+        assertThat(saved.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(json(saved).get("version")).isEqualTo("9.9.9");
+        assertThat(json(saved).get("status")).isEqualTo("DRAFT");
     }
 
     // --- Read tracking ---

@@ -174,7 +174,8 @@ One release in any state. `200 ReleaseDTO`, `404` if unknown.
 ### `PUT /api/1/admin/releases/{version}` (wanderer-command)
 
 Full replace of the editable fields. Allowed for `DRAFT` and `PUBLISHED` (so you can set a
-platform's `releaseDate` after publishing, e.g. a later Android rollout).
+platform's `releaseDate` after publishing, e.g. a later Android rollout). An unknown version is
+created as a `DRAFT`, so admins can write notes for a version CI hasn't drafted.
 
 ```json
 {
@@ -195,9 +196,8 @@ platform's `releaseDate` after publishing, e.g. a later Android rollout).
 
 | Status | When |
 |--------|------|
-| 200 | updated `ReleaseDTO` |
+| 200 | saved `ReleaseDTO` (created if the version was unknown) |
 | 400 | validation error (blank title, too long, duplicate platform, ...) |
-| 404 | unknown version |
 
 ### `POST /api/1/admin/releases/{version}/publish` (wanderer-command)
 

@@ -35,7 +35,9 @@ public class ReleaseServiceImpl implements ReleaseService {
 
     @Override
     public ReleaseDTO update(String version, ReleaseUpdateRequest request) {
-        Release release = get(version);
+        // Unknown version: the admin is writing notes CI hasn't drafted (yet), so start a draft.
+        Release release =
+                releaseRepository.findByVersion(version).orElseGet(() -> newDraft(version));
         if (request.platforms().stream().map(PlatformRelease::platform).distinct().count()
                 != request.platforms().size()) {
             throw new IllegalArgumentException("Each platform may appear only once");
@@ -77,10 +79,7 @@ public class ReleaseServiceImpl implements ReleaseService {
         Release release = releaseRepository.findByVersion(version).orElse(null);
         boolean created = release == null;
         if (created) {
-            release = new Release();
-            release.setId(UUID.randomUUID());
-            release.setVersion(version);
-            release.setStatus(Release.Status.DRAFT);
+            release = newDraft(version);
             List<Platform> platforms =
                     request.platforms() == null || request.platforms().isEmpty()
                             ? DEFAULT_PLATFORMS
@@ -126,6 +125,14 @@ public class ReleaseServiceImpl implements ReleaseService {
             seen.setLastSeenVersion(version);
         }
         return userReleaseSeenRepository.save(seen).getLastSeenVersion();
+    }
+
+    private static Release newDraft(String version) {
+        Release release = new Release();
+        release.setId(UUID.randomUUID());
+        release.setVersion(Release.requireVersion(version));
+        release.setStatus(Release.Status.DRAFT);
+        return release;
     }
 
     private Release get(String version) {
