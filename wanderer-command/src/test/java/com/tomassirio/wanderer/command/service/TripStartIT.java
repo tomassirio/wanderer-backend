@@ -2,6 +2,7 @@ package com.tomassirio.wanderer.command.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.awaitility.Awaitility.await;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
@@ -33,6 +34,7 @@ import com.tomassirio.wanderer.commons.domain.UpdateType;
 import com.tomassirio.wanderer.commons.domain.User;
 import com.tomassirio.wanderer.commons.dto.DraftMigrationReportDTO;
 import com.tomassirio.wanderer.commons.dto.StartTripResponse;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
@@ -122,19 +124,27 @@ class TripStartIT extends BaseIntegrationTest {
         TripUpdate first = updates.get(0);
         assertThat(first.getId()).isEqualTo(response.tripUpdateId());
         assertThat(first.getUpdateType()).isEqualTo(UpdateType.TRIP_STARTED);
-        assertThat(first.getCity()).isEqualTo("Utrecht");
         assertThat(first.getBattery()).isEqualTo(80);
+        // Place name arrives asynchronously after commit
+        await().atMost(Duration.ofSeconds(10))
+                .untilAsserted(
+                        () ->
+                                assertThat(
+                                                tripUpdateRepository
+                                                        .findById(first.getId())
+                                                        .orElseThrow()
+                                                        .getCity())
+                                        .isEqualTo("Utrecht"));
     }
 
     @Test
-    void startTrip_whenCheckInFails_savesNothing() {
+    void startTrip_whenGeocodingFails_stillStartsTrip() {
         when(geocodingService.reverseGeocode(any())).thenThrow(new RuntimeException("boom"));
 
-        assertThatThrownBy(() -> tripService.startTrip(userId, "key-1", scratch("Camino")))
-                .hasMessage("boom");
+        StartTripResponse response = tripService.startTrip(userId, "key-1", scratch("Camino"));
 
-        assertThat(tripRepository.findAllByUserId(userId)).isEmpty();
-        assertThat(activeTripRepository.findById(userId)).isEmpty();
+        assertThat(tripRepository.findById(response.tripId())).isPresent();
+        assertThat(tripUpdateRepository.findById(response.tripUpdateId())).isPresent();
     }
 
     @Test

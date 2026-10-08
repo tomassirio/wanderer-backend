@@ -6,15 +6,15 @@ import com.tomassirio.wanderer.command.event.TripUpdatedEvent;
 import com.tomassirio.wanderer.command.repository.TripRepository;
 import com.tomassirio.wanderer.command.repository.TripUpdateRepository;
 import com.tomassirio.wanderer.command.service.DistanceCalculationStrategy;
-import com.tomassirio.wanderer.command.service.GeocodingService;
 import com.tomassirio.wanderer.command.service.TripUpdateService;
-import com.tomassirio.wanderer.command.service.WeatherService;
 import com.tomassirio.wanderer.command.service.validator.OwnershipValidator;
 import com.tomassirio.wanderer.commons.domain.GeoLocation;
 import com.tomassirio.wanderer.commons.domain.Trip;
 import com.tomassirio.wanderer.commons.domain.TripStatus;
 import com.tomassirio.wanderer.commons.domain.TripUpdate;
+import com.tomassirio.wanderer.commons.domain.UpdateType;
 import jakarta.persistence.EntityNotFoundException;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -31,12 +31,12 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional
 public class TripUpdateServiceImpl implements TripUpdateService {
 
+    private static final Duration MAX_FUTURE_SKEW = Duration.ofMinutes(5);
+
     private final TripRepository tripRepository;
     private final TripUpdateRepository tripUpdateRepository;
     private final OwnershipValidator ownershipValidator;
     private final ApplicationEventPublisher eventPublisher;
-    private final GeocodingService geocodingService;
-    private final WeatherService weatherService;
     private final DistanceCalculationStrategy distanceCalculationStrategy;
 
     @Override
@@ -48,6 +48,11 @@ public class TripUpdateServiceImpl implements TripUpdateService {
 
         ownershipValidator.validateOwnership(trip, userId, Trip::getUserId, Trip::getId, "trip");
 
+        // Safe retry from the phone's offline queue: the check-in already landed.
+        if (request.id() != null && tripUpdateRepository.existsById(request.id())) {
+            return request.id();
+        }
+
         // Every check-in (manual, automatic, lifecycle marker) goes through here, so this is the
         // one place that keeps Drafts and ended trips from collecting check-ins.
         TripStatus status =
@@ -57,44 +62,36 @@ public class TripUpdateServiceImpl implements TripUpdateService {
                     "Check-ins are not allowed for a trip in status " + status);
         }
 
-        // Pre-generate ID and timestamp
-        UUID tripUpdateId = UUID.randomUUID();
-        Instant timestamp = Instant.now();
+        UpdateType updateType = request.updateType();
+        GeoLocation location = request.location();
+        if ((updateType == null || updateType == UpdateType.REGULAR) && !hasCoordinates(location)) {
+            throw new IllegalArgumentException("Location is required for REGULAR check-ins");
+        }
 
-        GeocodingService.GeocodingResult geocodingResult = resolveGeocoding(request.location());
-        WeatherService.WeatherResult weatherResult = resolveWeather(request.location());
+        Instant now = Instant.now();
+        if (request.recordedAt() != null
+                && request.recordedAt().isAfter(now.plus(MAX_FUTURE_SKEW))) {
+            throw new IllegalArgumentException("recordedAt must not be in the future");
+        }
 
-        // Calculate distance so far
-        Double distanceSoFar = calculateDistanceSoFar(trip, request.location());
+        UUID tripUpdateId = request.id() != null ? request.id() : UUID.randomUUID();
+        Instant timestamp = request.recordedAt() != null ? request.recordedAt() : now;
+
+        Double distanceSoFar = calculateDistanceSoFar(trip, location);
 
         log.debug(
                 "Trip update for trip {}: calculated distanceSoFar = {} km", tripId, distanceSoFar);
 
-        // Publish event - persistence handler will write to DB
+        // City and weather are filled in asynchronously after commit (TRIP_UPDATE_ENRICHED), so
+        // the request never waits on Google.
         eventPublisher.publishEvent(
                 TripUpdatedEvent.builder()
                         .tripUpdateId(tripUpdateId)
                         .tripId(tripId)
-                        .location(request.location())
+                        .location(location)
                         .batteryLevel(request.battery())
                         .message(request.message())
-                        .city(
-                                Optional.ofNullable(geocodingResult)
-                                        .map(GeocodingService.GeocodingResult::city)
-                                        .orElse(null))
-                        .country(
-                                Optional.ofNullable(geocodingResult)
-                                        .map(GeocodingService.GeocodingResult::country)
-                                        .orElse(null))
-                        .temperatureCelsius(
-                                Optional.ofNullable(weatherResult)
-                                        .map(WeatherService.WeatherResult::temperatureCelsius)
-                                        .orElse(null))
-                        .weatherCondition(
-                                Optional.ofNullable(weatherResult)
-                                        .map(WeatherService.WeatherResult::condition)
-                                        .orElse(null))
-                        .updateType(request.updateType())
+                        .updateType(updateType)
                         .distanceSoFarKm(distanceSoFar)
                         .timestamp(timestamp)
                         .build());
@@ -102,12 +99,8 @@ public class TripUpdateServiceImpl implements TripUpdateService {
         return tripUpdateId;
     }
 
-    private GeocodingService.GeocodingResult resolveGeocoding(GeoLocation location) {
-        return geocodingService.reverseGeocode(location);
-    }
-
-    private WeatherService.WeatherResult resolveWeather(GeoLocation location) {
-        return weatherService.lookupCurrentWeather(location);
+    private static boolean hasCoordinates(GeoLocation location) {
+        return location != null && location.getLat() != null && location.getLon() != null;
     }
 
     private Double calculateDistanceSoFar(Trip trip, GeoLocation newLocation) {

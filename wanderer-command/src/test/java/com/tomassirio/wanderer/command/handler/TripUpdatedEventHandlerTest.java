@@ -12,7 +12,6 @@ import com.tomassirio.wanderer.commons.domain.GeoLocation;
 import com.tomassirio.wanderer.commons.domain.Trip;
 import com.tomassirio.wanderer.commons.domain.TripUpdate;
 import com.tomassirio.wanderer.commons.domain.UpdateType;
-import com.tomassirio.wanderer.commons.domain.WeatherCondition;
 import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
@@ -51,10 +50,6 @@ class TripUpdatedEventHandlerTest {
                         .location(location)
                         .batteryLevel(85)
                         .message("Arrived at Santiago!")
-                        .city("Santiago de Compostela")
-                        .country("Spain")
-                        .temperatureCelsius(18.5)
-                        .weatherCondition(WeatherCondition.PARTLY_CLOUDY)
                         .timestamp(timestamp)
                         .build();
 
@@ -73,10 +68,9 @@ class TripUpdatedEventHandlerTest {
         assertThat(saved.getLocation()).isEqualTo(location);
         assertThat(saved.getBattery()).isEqualTo(85);
         assertThat(saved.getMessage()).isEqualTo("Arrived at Santiago!");
-        assertThat(saved.getCity()).isEqualTo("Santiago de Compostela");
-        assertThat(saved.getCountry()).isEqualTo("Spain");
-        assertThat(saved.getTemperatureCelsius()).isEqualTo(18.5);
-        assertThat(saved.getWeatherCondition()).isEqualTo(WeatherCondition.PARTLY_CLOUDY);
+        // Place name and weather are filled in later by asynchronous enrichment
+        assertThat(saved.getCity()).isNull();
+        assertThat(saved.getWeatherCondition()).isNull();
         assertThat(saved.getTimestamp()).isEqualTo(timestamp);
 
         // Verify updateCount was incremented and trip saved
@@ -89,7 +83,7 @@ class TripUpdatedEventHandlerTest {
     }
 
     @Test
-    void handle_whenGeocodingReturnsNull_shouldPersistWithoutCityCountry() {
+    void handle_withoutEnrichment_shouldPersistWithoutCityCountry() {
         // Given
         UUID tripId = UUID.randomUUID();
         UUID tripUpdateId = UUID.randomUUID();

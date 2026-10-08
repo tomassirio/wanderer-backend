@@ -276,10 +276,13 @@ public class TripController {
             summary = "Create a trip update",
             description =
                     "Adds a new update to a trip with location, battery, and optional message."
-                            + " Only IN_PROGRESS and PAUSED trips accept check-ins; RESTING"
-                            + " accepts DAY_END and FINISHED accepts TRIP_ENDED. Anything else"
-                            + " (including Drafts) returns 409. Returns 202 Accepted with the"
-                            + " trip update ID.")
+                            + " Location is required for REGULAR check-ins only. Only IN_PROGRESS"
+                            + " and PAUSED trips accept check-ins; RESTING accepts DAY_END and"
+                            + " FINISHED accepts TRIP_ENDED. Anything else (including Drafts)"
+                            + " returns 409. A client-supplied id makes retries idempotent."
+                            + " City and weather are filled in asynchronously and announced via"
+                            + " TRIP_UPDATE_ENRICHED. Returns 202 Accepted with the trip update"
+                            + " ID.")
     public ResponseEntity<UUID> createTripUpdate(
             @Parameter(hidden = true) @CurrentUserId UUID userId,
             @PathVariable UUID tripId,

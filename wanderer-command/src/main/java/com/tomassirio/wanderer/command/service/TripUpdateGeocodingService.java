@@ -16,4 +16,13 @@ public interface TripUpdateGeocodingService {
      * @param tripId the UUID of the trip whose updates should be re-geocoded
      */
     void recomputeGeocoding(UUID tripId);
+
+    /**
+     * Fills in city, country and weather on a freshly created check-in and broadcasts {@code
+     * TRIP_UPDATE_ENRICHED}. When the previous enriched check-in is within 300 m and 30 minutes,
+     * its values are copied instead of calling the external APIs.
+     *
+     * @param tripUpdateId the UUID of the check-in to enrich
+     */
+    void enrichTripUpdate(UUID tripUpdateId);
 }
