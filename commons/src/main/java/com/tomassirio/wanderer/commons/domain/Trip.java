@@ -16,10 +16,14 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.DynamicUpdate;
 import org.hibernate.annotations.SQLRestriction;
 
 @Entity
 @Table(name = "trips")
+// Only write changed columns, so a check-in bumping updateCount can't overwrite the route/distance
+// an async track recompute just stored (and vice versa).
+@DynamicUpdate
 @Data
 @NoArgsConstructor
 @AllArgsConstructor

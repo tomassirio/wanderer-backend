@@ -2,10 +2,12 @@ package com.tomassirio.wanderer.command.repository;
 
 import com.tomassirio.wanderer.commons.domain.Trip;
 import com.tomassirio.wanderer.commons.domain.TripStatus;
+import jakarta.persistence.LockModeType;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -20,6 +22,14 @@ public interface TripRepository extends JpaRepository<Trip, UUID> {
 
     @Query("SELECT DISTINCT u.trip.id FROM TripUpdate u")
     List<UUID> findIdsWithUpdates();
+
+    /**
+     * Loads a trip holding a row lock until the transaction ends, so concurrent track recomputes
+     * for the same trip run one after another.
+     */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT t FROM Trip t WHERE t.id = :id")
+    Optional<Trip> findByIdForUpdate(@Param("id") UUID id);
 
     /** Loads a trip with its updates initialised, so it can be used outside a transaction. */
     @Query("SELECT t FROM Trip t LEFT JOIN FETCH t.tripUpdates WHERE t.id = :id")

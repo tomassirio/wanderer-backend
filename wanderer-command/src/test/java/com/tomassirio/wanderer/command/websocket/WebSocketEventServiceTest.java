@@ -29,7 +29,7 @@ class WebSocketEventServiceTest {
 
     @BeforeEach
     void setUp() {
-        ObjectMapper objectMapper = new ObjectMapper();
+        ObjectMapper objectMapper = new ObjectMapper().findAndRegisterModules();
         service = new WebSocketEventService(redisBroadcaster, objectMapper);
     }
 

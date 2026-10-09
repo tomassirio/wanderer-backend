@@ -2,6 +2,8 @@ package com.tomassirio.wanderer.command.service;
 
 import com.tomassirio.wanderer.commons.domain.Trip;
 import com.tomassirio.wanderer.commons.domain.TripPlan;
+import java.time.Instant;
+import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -68,4 +70,13 @@ public interface ThumbnailService {
      * @return true if a thumbnail file exists, false otherwise
      */
     boolean thumbnailExists(UUID id, ThumbnailEntityType entityType);
+
+    /**
+     * Returns when the thumbnail file for a given entity was last written.
+     *
+     * @param id the UUID of the entity
+     * @param entityType the type of entity (TRIP, TRIP_PLAN, USER_PROFILE)
+     * @return the file's last-modified time, or empty if there is no thumbnail
+     */
+    Optional<Instant> thumbnailLastModified(UUID id, ThumbnailEntityType entityType);
 }

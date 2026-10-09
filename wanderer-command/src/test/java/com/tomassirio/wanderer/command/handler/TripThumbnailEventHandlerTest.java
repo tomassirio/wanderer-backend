@@ -4,13 +4,18 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.tomassirio.wanderer.command.event.PolylineUpdatedEvent;
+import com.tomassirio.wanderer.command.event.TripStatusChangedEvent;
 import com.tomassirio.wanderer.command.repository.TripRepository;
+import com.tomassirio.wanderer.command.service.ThumbnailEntityType;
 import com.tomassirio.wanderer.command.service.ThumbnailService;
 import com.tomassirio.wanderer.commons.domain.GeoLocation;
 import com.tomassirio.wanderer.commons.domain.Trip;
+import com.tomassirio.wanderer.commons.domain.TripSettings;
+import com.tomassirio.wanderer.commons.domain.TripStatus;
 import com.tomassirio.wanderer.commons.domain.TripUpdate;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -155,6 +160,80 @@ class TripThumbnailEventHandlerTest {
 
         // Then
         verify(thumbnailService, never()).generateAndSaveThumbnail(any(Trip.class));
+    }
+
+    @Test
+    void handle_whenThumbnailRefreshedRecently_shouldSkip() {
+        when(tripRepository.findById(tripId)).thenReturn(Optional.of(trip));
+        givenThumbnailAge(java.time.Duration.ofMinutes(5));
+
+        eventHandler.handle(PolylineUpdatedEvent.builder().tripId(tripId).build());
+
+        verify(thumbnailService, never()).generateAndSaveThumbnail(any(Trip.class));
+    }
+
+    @Test
+    void handle_whenThumbnailOlderThanInterval_shouldRegenerate() {
+        when(tripRepository.findById(tripId)).thenReturn(Optional.of(trip));
+        givenThumbnailAge(TripThumbnailEventHandler.THUMBNAIL_REFRESH_INTERVAL.plusMinutes(1));
+
+        eventHandler.handle(PolylineUpdatedEvent.builder().tripId(tripId).build());
+
+        verify(thumbnailService).generateAndSaveThumbnail(trip);
+    }
+
+    @Test
+    void handle_whenTripFinished_shouldIgnoreThrottle() {
+        trip.setTripSettings(TripSettings.builder().tripStatus(TripStatus.FINISHED).build());
+        when(tripRepository.findById(tripId)).thenReturn(Optional.of(trip));
+
+        eventHandler.handle(PolylineUpdatedEvent.builder().tripId(tripId).build());
+
+        verify(thumbnailService).generateAndSaveThumbnail(trip);
+        verify(thumbnailService, never()).thumbnailLastModified(any(), any());
+    }
+
+    @Test
+    void handle_whenForced_shouldIgnoreThrottle() {
+        when(tripRepository.findById(tripId)).thenReturn(Optional.of(trip));
+
+        eventHandler.handle(
+                PolylineUpdatedEvent.builder().tripId(tripId).forceThumbnail(true).build());
+
+        verify(thumbnailService).generateAndSaveThumbnail(trip);
+        verify(thumbnailService, never()).thumbnailLastModified(any(), any());
+    }
+
+    @Test
+    void handleTripFinished_shouldRegenerateWithoutThrottle() {
+        when(tripRepository.findById(tripId)).thenReturn(Optional.of(trip));
+
+        eventHandler.handleTripFinished(
+                TripStatusChangedEvent.builder()
+                        .tripId(tripId)
+                        .previousStatus(TripStatus.IN_PROGRESS.name())
+                        .newStatus(TripStatus.FINISHED.name())
+                        .build());
+
+        verify(thumbnailService).generateAndSaveThumbnail(trip);
+        verify(thumbnailService, never()).thumbnailLastModified(any(), any());
+    }
+
+    @Test
+    void handleTripFinished_whenOtherStatus_shouldDoNothing() {
+        eventHandler.handleTripFinished(
+                TripStatusChangedEvent.builder()
+                        .tripId(tripId)
+                        .previousStatus(TripStatus.IN_PROGRESS.name())
+                        .newStatus(TripStatus.PAUSED.name())
+                        .build());
+
+        verifyNoInteractions(tripRepository, thumbnailService);
+    }
+
+    private void givenThumbnailAge(java.time.Duration age) {
+        when(thumbnailService.thumbnailLastModified(tripId, ThumbnailEntityType.TRIP))
+                .thenReturn(Optional.of(Instant.now().minus(age)));
     }
 
     private Trip createTripWithUpdates(UUID tripId) {

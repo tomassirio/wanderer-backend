@@ -189,6 +189,23 @@ class ThumbnailServiceTest {
     }
 
     @Test
+    void thumbnailLastModified_returnsFileMtimeOrEmpty() throws IOException {
+        UUID tripId = UUID.randomUUID();
+        assertThat(thumbnailService.thumbnailLastModified(tripId, ThumbnailEntityType.TRIP))
+                .isEmpty();
+
+        Path tripsDir = tempDir.resolve("trips");
+        Files.createDirectories(tripsDir);
+        Path thumbnailPath = tripsDir.resolve(tripId + ".png");
+        Files.createFile(thumbnailPath);
+        java.time.Instant mtime = java.time.Instant.parse("2026-10-08T10:00:00Z");
+        Files.setLastModifiedTime(thumbnailPath, java.nio.file.attribute.FileTime.from(mtime));
+
+        assertThat(thumbnailService.thumbnailLastModified(tripId, ThumbnailEntityType.TRIP))
+                .contains(mtime);
+    }
+
+    @Test
     void thumbnailExists_whenFileDoesNotExist_shouldReturnFalse() {
         // Given
         UUID tripId = UUID.randomUUID();

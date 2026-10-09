@@ -1,7 +1,10 @@
 package com.tomassirio.wanderer.command.handler;
 
+import com.tomassirio.wanderer.command.event.TrackPointsRecordedEvent;
 import com.tomassirio.wanderer.command.event.TripUpdatedEvent;
 import com.tomassirio.wanderer.command.service.PolylineService;
+import com.tomassirio.wanderer.command.service.TrackPointService;
+import com.tomassirio.wanderer.commons.dto.TrackPointDTO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
@@ -15,7 +18,8 @@ import org.springframework.transaction.event.TransactionalEventListener;
  *
  * <p>This handler runs <strong>after the main transaction commits</strong> and on a separate
  * thread, so it never blocks the user-facing response. When a new trip update is added, it
- * incrementally appends the new route segment to the existing polyline.
+ * incrementally appends the new route segment to the existing polyline; when track points arrive,
+ * the route is rebuilt from the recorded track instead.
  */
 @Slf4j
 @Component
@@ -23,6 +27,7 @@ import org.springframework.transaction.event.TransactionalEventListener;
 public class PolylineComputationEventHandler {
 
     private final PolylineService polylineService;
+    private final TrackPointService trackPointService;
 
     /**
      * Handles a TripUpdatedEvent by incrementally appending the new segment to the trip's polyline.
@@ -40,6 +45,30 @@ public class PolylineComputationEventHandler {
         } catch (Exception e) {
             log.error(
                     "Failed to compute polyline for trip {}: {}",
+                    event.getTripId(),
+                    e.getMessage(),
+                    e);
+        }
+    }
+
+    /**
+     * Recomputes the trip's route and distance from its track points after a batch of points is
+     * committed, and broadcasts the newly accepted points.
+     *
+     * @param event the track points recorded event
+     */
+    @Async
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void handleTrackPointsRecorded(TrackPointsRecordedEvent event) {
+        try {
+            trackPointService.recomputeTrack(
+                    event.getTripId(),
+                    event.getPoints().stream()
+                            .map(p -> new TrackPointDTO(p.getLat(), p.getLon(), p.getRecordedAt()))
+                            .toList());
+        } catch (Exception e) {
+            log.error(
+                    "Failed to recompute track for trip {}: {}",
                     event.getTripId(),
                     e.getMessage(),
                     e);

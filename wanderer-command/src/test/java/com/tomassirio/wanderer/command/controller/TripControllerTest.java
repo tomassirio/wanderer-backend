@@ -1,10 +1,12 @@
 package com.tomassirio.wanderer.command.controller;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -20,8 +22,11 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.tomassirio.wanderer.command.controller.request.StartTripRequest;
 import com.tomassirio.wanderer.command.controller.request.TripCreationRequest;
 import com.tomassirio.wanderer.command.controller.request.TripFromPlanRequest;
+import com.tomassirio.wanderer.command.controller.request.TripUpdateCreationRequest;
 import com.tomassirio.wanderer.command.controller.request.TripUpdateRequest;
+import com.tomassirio.wanderer.command.service.TrackPointService;
 import com.tomassirio.wanderer.command.service.TripService;
+import com.tomassirio.wanderer.command.service.TripUpdateService;
 import com.tomassirio.wanderer.command.utils.TestEntityFactory;
 import com.tomassirio.wanderer.commons.domain.TripStatus;
 import com.tomassirio.wanderer.commons.domain.TripVisibility;
@@ -29,10 +34,12 @@ import com.tomassirio.wanderer.commons.dto.StartTripResponse;
 import com.tomassirio.wanderer.commons.exception.GlobalExceptionHandler;
 import com.tomassirio.wanderer.commons.utils.MockMvcTestUtils;
 import jakarta.persistence.EntityNotFoundException;
+import java.time.Instant;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -53,6 +60,10 @@ class TripControllerTest {
     private ObjectMapper objectMapper;
 
     @Mock private TripService tripService;
+
+    @Mock private TripUpdateService tripUpdateService;
+
+    @Mock private TrackPointService trackPointService;
 
     @InjectMocks private TripController tripController;
 
@@ -597,5 +608,123 @@ class TripControllerTest {
                                                         "Old client", TripVisibility.PUBLIC))))
                 .andExpect(status().isAccepted())
                 .andExpect(header().string("Deprecation", "true"));
+    }
+
+    // --- Check-ins ---
+
+    private static final String TRIP_UPDATES_URL = TRIPS_BASE_URL + "/{tripId}/updates";
+    private static final String TRACK_POINTS_URL = TRIPS_BASE_URL + "/{tripId}/track-points";
+
+    @Test
+    void createTripUpdate_withClientIdAndRecordedAt_passesThemThrough() throws Exception {
+        UUID tripId = UUID.randomUUID();
+        UUID clientId = UUID.randomUUID();
+        when(tripUpdateService.createTripUpdate(any(), eq(tripId), any())).thenReturn(clientId);
+
+        mockMvc.perform(
+                        post(TRIP_UPDATES_URL, tripId)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(
+                                        """
+                                        {"location":{"lat":52.09,"lon":5.12},"updateType":"REGULAR",
+                                         "id":"%s","recordedAt":"2026-10-08T09:15:02Z"}
+                                        """
+                                                .formatted(clientId)))
+                .andExpect(status().isAccepted())
+                .andExpect(jsonPath("$").value(clientId.toString()));
+
+        ArgumentCaptor<TripUpdateCreationRequest> captor =
+                ArgumentCaptor.forClass(TripUpdateCreationRequest.class);
+        verify(tripUpdateService).createTripUpdate(any(), eq(tripId), captor.capture());
+        assertThat(captor.getValue().id()).isEqualTo(clientId);
+        assertThat(captor.getValue().recordedAt()).isEqualTo(Instant.parse("2026-10-08T09:15:02Z"));
+    }
+
+    @Test
+    void createTripUpdate_lifecycleMarkerWithoutLocation_isAccepted() throws Exception {
+        UUID tripId = UUID.randomUUID();
+        when(tripUpdateService.createTripUpdate(any(), eq(tripId), any()))
+                .thenReturn(UUID.randomUUID());
+
+        mockMvc.perform(
+                        post(TRIP_UPDATES_URL, tripId)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("{\"updateType\":\"DAY_END\"}"))
+                .andExpect(status().isAccepted());
+    }
+
+    // --- Track points ---
+
+    private static String trackPoints(int count) {
+        StringBuilder points = new StringBuilder();
+        for (int i = 0; i < count; i++) {
+            if (i > 0) {
+                points.append(',');
+            }
+            points.append(
+                    """
+                    {"id":"%s","lat":52.09,"lon":5.12,"accuracyM":8.0,"altitudeM":3.1,
+                     "recordedAt":"2026-10-08T09:15:02Z"}"""
+                            .formatted(UUID.randomUUID()));
+        }
+        return "{\"points\":[" + points + "]}";
+    }
+
+    @Test
+    void uploadTrackPoints_returnsAcceptedCount() throws Exception {
+        UUID tripId = UUID.randomUUID();
+        when(trackPointService.recordTrackPoints(any(), eq(tripId), any())).thenReturn(2);
+
+        mockMvc.perform(
+                        post(TRACK_POINTS_URL, tripId)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(trackPoints(3)))
+                .andExpect(status().isAccepted())
+                .andExpect(jsonPath("$.accepted").value(2));
+    }
+
+    @Test
+    void uploadTrackPoints_withoutPoints_returnsBadRequest() throws Exception {
+        mockMvc.perform(
+                        post(TRACK_POINTS_URL, UUID.randomUUID())
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("{\"points\":[]}"))
+                .andExpect(status().isBadRequest());
+        verifyNoInteractions(trackPointService);
+    }
+
+    @Test
+    void uploadTrackPoints_withMoreThan500Points_returnsBadRequest() throws Exception {
+        mockMvc.perform(
+                        post(TRACK_POINTS_URL, UUID.randomUUID())
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(trackPoints(501)))
+                .andExpect(status().isBadRequest());
+        verifyNoInteractions(trackPointService);
+    }
+
+    @Test
+    void uploadTrackPoints_withPointMissingId_returnsBadRequest() throws Exception {
+        mockMvc.perform(
+                        post(TRACK_POINTS_URL, UUID.randomUUID())
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(
+                                        "{\"points\":[{\"lat\":1.0,\"lon\":2.0,"
+                                                + "\"recordedAt\":\"2026-10-08T09:15:02Z\"}]}"))
+                .andExpect(status().isBadRequest());
+        verifyNoInteractions(trackPointService);
+    }
+
+    @Test
+    void uploadTrackPoints_whenTripNotLive_returnsConflict() throws Exception {
+        UUID tripId = UUID.randomUUID();
+        when(trackPointService.recordTrackPoints(any(), eq(tripId), any()))
+                .thenThrow(new IllegalStateException("Track points are not accepted"));
+
+        mockMvc.perform(
+                        post(TRACK_POINTS_URL, tripId)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(trackPoints(1)))
+                .andExpect(status().isConflict());
     }
 }

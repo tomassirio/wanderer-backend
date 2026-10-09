@@ -3,9 +3,11 @@ package com.tomassirio.wanderer.command.service.impl;
 import com.google.maps.model.LatLng;
 import com.tomassirio.wanderer.command.event.PolylineUpdatedEvent;
 import com.tomassirio.wanderer.command.repository.TripRepository;
+import com.tomassirio.wanderer.command.repository.TripTrackPointRepository;
 import com.tomassirio.wanderer.command.repository.TripUpdateRepository;
 import com.tomassirio.wanderer.command.service.PolylineService;
 import com.tomassirio.wanderer.command.service.RouteService;
+import com.tomassirio.wanderer.command.service.TrackPointService;
 import com.tomassirio.wanderer.command.service.helper.PolylineCodec;
 import com.tomassirio.wanderer.command.service.helper.PolylineComputer;
 import com.tomassirio.wanderer.commons.domain.GeoLocation;
@@ -26,7 +28,8 @@ import org.springframework.transaction.annotation.Transactional;
  * Directions API (walking mode).
  *
  * <p>Supports incremental segment appending for optimal performance when new trip updates are
- * added, and full recomputation when trip updates are deleted.
+ * added, and full recomputation when trip updates are deleted. Trips with recorded track points get
+ * their route from the track instead (see {@link TrackPointService}).
  */
 @Slf4j
 @Service
@@ -35,6 +38,8 @@ public class PolylineServiceImpl implements PolylineService {
 
     private final TripRepository tripRepository;
     private final TripUpdateRepository tripUpdateRepository;
+    private final TripTrackPointRepository trackPointRepository;
+    private final TrackPointService trackPointService;
     private final RouteService routeService;
     private final PolylineComputer polylineComputer;
     private final ApplicationEventPublisher eventPublisher;
@@ -44,6 +49,11 @@ public class PolylineServiceImpl implements PolylineService {
     @Override
     @Transactional
     public void appendSegment(UUID tripId) {
+        if (trackPointRepository.existsByTripId(tripId)) {
+            // Recorded track owns the route; no Directions calls for this trip.
+            log.debug("Trip {} has track points, skipping check-in segment", tripId);
+            return;
+        }
         Trip trip =
                 tripRepository
                         .findById(tripId)
@@ -68,7 +78,7 @@ public class PolylineServiceImpl implements PolylineService {
             trip.setPolylineUpdatedAt(null);
             tripRepository.save(trip);
             log.debug("Trip {} has fewer than 2 valid locations, polyline cleared", tripId);
-            publishPolylineUpdatedEvent(tripId, null);
+            publishPolylineUpdatedEvent(tripId, null, false);
             return;
         }
 
@@ -95,16 +105,20 @@ public class PolylineServiceImpl implements PolylineService {
                     "Polyline incrementally updated for trip {}. Total points: {}",
                     tripId,
                     existingPoints.size());
-            publishPolylineUpdatedEvent(tripId, encoded);
+            publishPolylineUpdatedEvent(tripId, encoded, false);
         } else {
             // No existing polyline — full recompute
-            recomputePolylineInternal(trip, updates);
+            recomputePolylineInternal(trip, updates, false);
         }
     }
 
     @Override
     @Transactional
     public void recomputePolyline(UUID tripId) {
+        if (trackPointRepository.existsByTripId(tripId)) {
+            trackPointService.recomputeTrack(tripId, List.of());
+            return;
+        }
         Trip trip =
                 tripRepository
                         .findById(tripId)
@@ -112,21 +126,24 @@ public class PolylineServiceImpl implements PolylineService {
                                 () -> new EntityNotFoundException("Trip not found: " + tripId));
 
         List<TripUpdate> updates = tripUpdateRepository.findByTripIdOrderByTimestampAsc(tripId);
-        recomputePolylineInternal(trip, updates);
+        recomputePolylineInternal(trip, updates, true);
     }
 
-    private void recomputePolylineInternal(Trip trip, List<TripUpdate> updates) {
+    private void recomputePolylineInternal(
+            Trip trip, List<TripUpdate> updates, boolean forceThumbnail) {
         List<GeoLocation> locations = updates.stream().map(TripUpdate::getLocation).toList();
 
         polylineComputer.computeAndApply(trip, locations, tripRepository::save);
-        publishPolylineUpdatedEvent(trip.getId(), trip.getEncodedPolyline());
+        publishPolylineUpdatedEvent(trip.getId(), trip.getEncodedPolyline(), forceThumbnail);
     }
 
-    private void publishPolylineUpdatedEvent(UUID tripId, String encodedPolyline) {
+    private void publishPolylineUpdatedEvent(
+            UUID tripId, String encodedPolyline, boolean forceThumbnail) {
         eventPublisher.publishEvent(
                 PolylineUpdatedEvent.builder()
                         .tripId(tripId)
                         .encodedPolyline(encodedPolyline)
+                        .forceThumbnail(forceThumbnail)
                         .build());
     }
 }

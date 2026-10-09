@@ -1,6 +1,9 @@
 package com.tomassirio.wanderer.query.service;
 
+import com.tomassirio.wanderer.commons.dto.TrackPointDTO;
 import com.tomassirio.wanderer.commons.dto.TripUpdateDTO;
+import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -34,4 +37,13 @@ public interface TripUpdateService {
      * @return a page of {@link TripUpdateDTO} objects representing the trip updates
      */
     Page<TripUpdateDTO> getTripUpdatesForTrip(UUID tripId, Pageable pageable);
+
+    /**
+     * Retrieves a trip's recorded track points ordered by capture time.
+     *
+     * @param tripId the UUID of the trip
+     * @param since only points recorded strictly after this instant; {@code null} for all
+     * @return the track points, oldest first
+     */
+    List<TrackPointDTO> getTrackPoints(UUID tripId, Instant since);
 }

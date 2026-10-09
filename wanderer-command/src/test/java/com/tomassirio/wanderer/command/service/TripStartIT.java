@@ -2,6 +2,7 @@ package com.tomassirio.wanderer.command.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.awaitility.Awaitility.await;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
@@ -9,6 +10,7 @@ import com.google.maps.GeoApiContext;
 import com.tomassirio.wanderer.command.WandererCommandApplication;
 import com.tomassirio.wanderer.command.client.WandererAuthClient;
 import com.tomassirio.wanderer.command.controller.request.StartTripRequest;
+import com.tomassirio.wanderer.command.controller.request.TrackPointsRequest;
 import com.tomassirio.wanderer.command.controller.request.TripCreationRequest;
 import com.tomassirio.wanderer.command.controller.request.TripPlanCreationRequest;
 import com.tomassirio.wanderer.command.controller.request.TripUpdateCreationRequest;
@@ -33,6 +35,7 @@ import com.tomassirio.wanderer.commons.domain.UpdateType;
 import com.tomassirio.wanderer.commons.domain.User;
 import com.tomassirio.wanderer.commons.dto.DraftMigrationReportDTO;
 import com.tomassirio.wanderer.commons.dto.StartTripResponse;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
@@ -70,6 +73,7 @@ class TripStartIT extends BaseIntegrationTest {
     @MockitoBean private RedisMessageListenerContainer redisMessageListenerContainer;
 
     @Autowired private TripService tripService;
+    @Autowired private TrackPointService trackPointService;
     @Autowired private TripUpdateService tripUpdateService;
     @Autowired private DraftTripMigrationService draftTripMigrationService;
     @Autowired private TripPlanService tripPlanService;
@@ -122,19 +126,27 @@ class TripStartIT extends BaseIntegrationTest {
         TripUpdate first = updates.get(0);
         assertThat(first.getId()).isEqualTo(response.tripUpdateId());
         assertThat(first.getUpdateType()).isEqualTo(UpdateType.TRIP_STARTED);
-        assertThat(first.getCity()).isEqualTo("Utrecht");
         assertThat(first.getBattery()).isEqualTo(80);
+        // Place name arrives asynchronously after commit
+        await().atMost(Duration.ofSeconds(10))
+                .untilAsserted(
+                        () ->
+                                assertThat(
+                                                tripUpdateRepository
+                                                        .findById(first.getId())
+                                                        .orElseThrow()
+                                                        .getCity())
+                                        .isEqualTo("Utrecht"));
     }
 
     @Test
-    void startTrip_whenCheckInFails_savesNothing() {
+    void startTrip_whenGeocodingFails_stillStartsTrip() {
         when(geocodingService.reverseGeocode(any())).thenThrow(new RuntimeException("boom"));
 
-        assertThatThrownBy(() -> tripService.startTrip(userId, "key-1", scratch("Camino")))
-                .hasMessage("boom");
+        StartTripResponse response = tripService.startTrip(userId, "key-1", scratch("Camino"));
 
-        assertThat(tripRepository.findAllByUserId(userId)).isEmpty();
-        assertThat(activeTripRepository.findById(userId)).isEmpty();
+        assertThat(tripRepository.findById(response.tripId())).isPresent();
+        assertThat(tripUpdateRepository.findById(response.tripUpdateId())).isPresent();
     }
 
     @Test
@@ -370,6 +382,44 @@ class TripStartIT extends BaseIntegrationTest {
         assertThat(trip.getTripDetails().getStartLocation().getLat()).isEqualTo(HERE.getLat());
         assertThat(trip.getTripDetails().getEndLocation()).isNull();
         assertThat(tripUpdateRepository.countByTripId(trip.getId())).isEqualTo(1);
+    }
+
+    @Test
+    void trackPoints_areIdempotentAndDriveRouteAndCheckInDistance() {
+        UUID tripId = tripService.startTrip(userId, "key-1", scratch("Walk")).tripId();
+        Instant t0 = Instant.now().minusSeconds(600);
+        TrackPointsRequest batch =
+                new TrackPointsRequest(
+                        List.of(
+                                new TrackPointsRequest.Point(
+                                        UUID.randomUUID(), 52.00, 5.12, null, null, t0),
+                                new TrackPointsRequest.Point(
+                                        UUID.randomUUID(),
+                                        52.01,
+                                        5.12,
+                                        6.0,
+                                        2.0,
+                                        t0.plusSeconds(60))));
+
+        assertThat(trackPointService.recordTrackPoints(userId, tripId, batch)).isEqualTo(2);
+        assertThat(trackPointService.recordTrackPoints(userId, tripId, batch)).isZero();
+
+        await().atMost(Duration.ofSeconds(10))
+                .untilAsserted(
+                        () -> {
+                            Trip trip = tripRepository.findById(tripId).orElseThrow();
+                            assertThat(trip.getEncodedPolyline()).isNotBlank();
+                            assertThat(trip.getCachedDistanceKm()).isBetween(1.10, 1.12);
+                        });
+
+        UUID checkIn =
+                tripUpdateService.createTripUpdate(
+                        userId,
+                        tripId,
+                        new TripUpdateCreationRequest(
+                                null, null, null, UpdateType.DAY_START, null, t0.plusSeconds(120)));
+        assertThat(tripUpdateRepository.findById(checkIn).orElseThrow().getDistanceSoFarKm())
+                .isBetween(1.10, 1.12);
     }
 
     private Trip draft(String name, GeoLocation route, UUID planId) {

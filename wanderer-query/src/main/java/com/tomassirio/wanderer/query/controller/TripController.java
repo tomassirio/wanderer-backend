@@ -6,6 +6,7 @@ import com.tomassirio.wanderer.commons.dto.TripStartDefaultsDTO;
 import com.tomassirio.wanderer.commons.dto.TripSummaryDTO;
 import com.tomassirio.wanderer.commons.security.CurrentUserId;
 import com.tomassirio.wanderer.query.service.TripService;
+import com.tomassirio.wanderer.query.service.helper.TripVisibilityHelper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -37,11 +38,16 @@ import org.springframework.web.bind.annotation.RestController;
 public class TripController {
 
     private final TripService tripService;
+    private final TripVisibilityHelper tripVisibilityHelper;
 
     @GetMapping(ApiConstants.TRIP_BY_ID_ENDPOINT)
     @Operation(summary = "Get trip by ID", description = "Retrieves a specific trip by its ID")
-    public ResponseEntity<TripDTO> getTrip(@PathVariable UUID id) {
+    public ResponseEntity<TripDTO> getTrip(
+            @Parameter(hidden = true) @CurrentUserId(required = false) UUID requestingUserId,
+            @PathVariable UUID id) {
         log.info("Received request to retrieve trip: {}", id);
+
+        tripVisibilityHelper.assertCanView(id, requestingUserId);
 
         TripDTO trip = tripService.getTrip(id);
 

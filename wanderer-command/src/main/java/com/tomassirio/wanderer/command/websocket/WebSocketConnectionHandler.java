@@ -20,6 +20,7 @@ public class WebSocketConnectionHandler extends TextWebSocketHandler {
     private final WebSocketAuthenticationService authenticationService;
     private final ObjectMapper objectMapper;
     private final WebSocketSessionManager sessionManager;
+    private final TripTopicAuthorizer tripTopicAuthorizer;
 
     @Override
     public void afterConnectionEstablished(WebSocketSession session) {
@@ -109,6 +110,13 @@ public class WebSocketConnectionHandler extends TextWebSocketHandler {
                     "Invalid subscription destination: {} from session {}",
                     destination,
                     session.getId());
+            return;
+        }
+
+        if (TripTopicAuthorizer.isTripTopic(destination)
+                && !tripTopicAuthorizer.canSubscribe(
+                        destination, sessionManager.getUserId(session))) {
+            log.warn("Denied subscription to {} for session {}", destination, session.getId());
             return;
         }
 

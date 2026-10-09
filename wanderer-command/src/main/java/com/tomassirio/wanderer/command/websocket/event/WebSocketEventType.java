@@ -27,6 +27,8 @@ public final class WebSocketEventType {
 
     // Trip update side-effect events
     public static final String POLYLINE_UPDATED = "POLYLINE_UPDATED";
+    public static final String TRIP_UPDATE_ENRICHED = "TRIP_UPDATE_ENRICHED";
+    public static final String TRACK_UPDATED = "TRACK_UPDATED";
 
     // Trip Plan events
     public static final String TRIP_PLAN_CREATED = "TRIP_PLAN_CREATED";

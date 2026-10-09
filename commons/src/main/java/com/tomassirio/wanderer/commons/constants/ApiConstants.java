@@ -142,6 +142,7 @@ public final class ApiConstants {
     public static final String TRIP_PROMOTION_INFO_ENDPOINT = "/{id}/promotion";
     public static final String TRIP_UPDATES_ENDPOINT = "/{tripId}/updates";
     public static final String TRIP_UPDATE_BY_ID_ENDPOINT = "/updates" + UUID_PATH_VARIABLE;
+    public static final String TRIP_TRACK_POINTS_ENDPOINT = "/{tripId}/track-points";
     public static final String TRIP_COMMENTS_ENDPOINT = "/{tripId}/comments";
     public static final String TRIPS_AVAILABLE_ENDPOINT = ME_SUFFIX + "/available";
     public static final String TRIP_TOGGLE_DAY_ENDPOINT = "/{id}/toggle-day";
@@ -256,6 +257,10 @@ public final class ApiConstants {
         public static final String TRIP_UPDATES =
                 TRIPS_PATH + "/{tripId:" + UUID_REGEX + "}/updates";
 
+        // Track points endpoints (same visibility as trip updates)
+        public static final String TRIP_TRACK_POINTS =
+                TRIPS_PATH + "/{tripId:" + UUID_REGEX + "}/track-points";
+
         // Promoted trips endpoints (public so all users can see featured trips)
         public static final String PROMOTED_TRIPS = PROMOTED_TRIPS_PATH + "/**";
         public static final String TRIP_PROMOTION_INFO =
@@ -295,6 +300,7 @@ public final class ApiConstants {
                 TRIPS_PUBLIC,
                 TRIP_COMMENTS,
                 TRIP_UPDATES,
+                TRIP_TRACK_POINTS,
                 PROMOTED_TRIPS,
                 TRIP_PROMOTION_INFO,
                 ALL_ACHIEVEMENTS,
