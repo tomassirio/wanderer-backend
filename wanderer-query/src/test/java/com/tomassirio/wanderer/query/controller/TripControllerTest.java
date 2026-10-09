@@ -4,7 +4,9 @@ import static com.tomassirio.wanderer.commons.utils.BaseTestEntityFactory.USERNA
 import static com.tomassirio.wanderer.commons.utils.BaseTestEntityFactory.USER_ID;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -19,6 +21,7 @@ import com.tomassirio.wanderer.commons.dto.TripSummaryDTO;
 import com.tomassirio.wanderer.commons.exception.GlobalExceptionHandler;
 import com.tomassirio.wanderer.commons.utils.MockMvcTestUtils;
 import com.tomassirio.wanderer.query.service.TripService;
+import com.tomassirio.wanderer.query.service.helper.TripVisibilityHelper;
 import jakarta.persistence.EntityNotFoundException;
 import java.time.Instant;
 import java.util.List;
@@ -32,6 +35,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.test.web.servlet.MockMvc;
 
 @ExtendWith(MockitoExtension.class)
@@ -43,6 +47,8 @@ class TripControllerTest {
     private MockMvc mockMvc;
 
     @Mock private TripService tripService;
+
+    @Mock private TripVisibilityHelper tripVisibilityHelper;
 
     @InjectMocks private TripController tripController;
 
@@ -69,6 +75,19 @@ class TripControllerTest {
                 .andExpect(jsonPath("$.tripSettings.visibility").value("PUBLIC"))
                 .andExpect(jsonPath("$.tripSettings.tripStatus").value("CREATED"))
                 .andExpect(jsonPath("$.enabled").value(true));
+    }
+
+    @Test
+    void getTrip_whenRequesterMayNotView_shouldReturnForbiddenWithoutLoadingTrip()
+            throws Exception {
+        UUID tripId = UUID.randomUUID();
+        doThrow(new AccessDeniedException("denied"))
+                .when(tripVisibilityHelper)
+                .assertCanView(eq(tripId), any());
+
+        mockMvc.perform(get(TRIPS_BASE_URL + "/{id}", tripId)).andExpect(status().isForbidden());
+
+        verifyNoInteractions(tripService);
     }
 
     @Test
