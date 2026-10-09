@@ -81,9 +81,9 @@ Incremental computation is allowed as an optimisation (append points newer than 
 last processed `recorded_at`) as long as the result equals a full recompute.
 
 `GET /api/1/trips/{tripId}/track-points?since=<ISO instant>` (query, same visibility
-rules as trip updates) → `[{ "lat", "lon", "recordedAt" }]` ordered by `recordedAt`.
-Without `since` returns all. Used by followers to backfill and by the owner on a new
-device.
+rules as trip detail) → `[{ "lat", "lon", "recordedAt" }]` ordered by `recordedAt`.
+Without `since` returns all. Not used by the app yet (reserved for the owner on a new
+device); followers draw the trip's `encodedPolyline` instead, to keep egress small.
 
 ### Check-ins (`TripUpdate`)
 
@@ -144,8 +144,9 @@ arrive via `TRIP_UPDATE_ENRICHED` (they ignore it and see the values on next loa
   pending; offline is not an error anymore ("Will send when online").
   Lifecycle markers are sent even without a GPS fix.
 - **Live UI** — the owner's trip detail map draws the route from the local track
-  (live while recording); followers extend the route from `TRACK_UPDATED` and
-  backfill with `GET …/track-points?since=`. City/weather on a timeline item fill
+  (live while recording); followers draw the trip's `encodedPolyline`, replace it on
+  `POLYLINE_UPDATED`, take the distance from `TRACK_UPDATED`, and re-fetch the trip on
+  reconnect/resume. City/weather on a timeline item fill
   in on `TRIP_UPDATE_ENRICHED`. Profile switch (Live / Battery saver) in the live
   trip UI; default from trip modality.
 
